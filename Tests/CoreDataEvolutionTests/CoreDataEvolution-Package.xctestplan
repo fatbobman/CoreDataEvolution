@@ -1,0 +1,36 @@
+{
+  "configurations" : [
+    {
+      "id" : "174B9628-1144-4305-8319-78EC92BD9520",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "commandLineArgumentEntries" : [
+      {
+        "argument" : "-com.apple.CoreData.ConcurrencyDebug 1"
+      }
+    ],
+    "environmentVariableEntries" : [
+
+    ],
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:",
+      "identifier" : "CoreDataEvolutionTests",
+      "name" : "CoreDataEvolutionTests"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "CoreDataEvolutionTests",
+        "name" : "CoreDataEvolutionTests"
+      }
+    }
+  ],
+  "version" : 1
+}

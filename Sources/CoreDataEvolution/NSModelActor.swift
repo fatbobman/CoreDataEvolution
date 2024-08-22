@@ -52,3 +52,9 @@ extension NSModelActor {
     try? modelContext.existingObject(with: id) as? T
   }
 }
+
+/// NSManagedObjectContext Mode
+public enum ActorContextMode: Equatable {
+  case newBackground
+  case viewContext
+}
