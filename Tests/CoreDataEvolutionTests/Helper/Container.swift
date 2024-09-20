@@ -9,17 +9,18 @@
 //  ------------------------------------------------
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
-import CoreData
+@preconcurrency import CoreData
+
 import Foundation
 
-final class TestStack: @unchecked Sendable {
+final class TestStack {
   @MainActor var viewContext: NSManagedObjectContext {
     container.viewContext
   }
-  
-  static let model:NSManagedObjectModel = {
+
+  static let model: NSManagedObjectModel = {
     guard let modelURL = Bundle.module.url(forResource: "TestModel", withExtension: "momd"),
-          let model = NSManagedObjectModel(contentsOf: modelURL)
+      let model = NSManagedObjectModel(contentsOf: modelURL)
     else {
       fatalError("Can't load DataModel")
     }
@@ -39,5 +40,3 @@ final class TestStack: @unchecked Sendable {
     container.viewContext.automaticallyMergesChangesFromParent = true
   }
 }
-
-extension NSManagedObjectModel:@unchecked @retroactive Sendable {}

@@ -12,11 +12,11 @@ struct NSModelActorTests {
   }
 
   @MainActor
-  @Test func createNewItemInMainActor() async throws {
+  @Test func createNewItemInMainActor() throws {
     let stack = TestStack()
-    let handler = DataHandler(container: stack.container, mode: .viewContext)
-    _ = try await handler.createNemItem(showThread: true)
-    let count = try await handler.getItemCount()
+    let handler = MainHandler(container: stack.container)
+    _ = try handler.createNemItem(showThread: true)
+    let count = try handler.getItemCount()
     #expect(count == 1)
   }
 }

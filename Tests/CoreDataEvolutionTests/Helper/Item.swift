@@ -8,11 +8,22 @@
 //  Blog: https://fatbobman.com
 //  ------------------------------------------------
 //  Copyright © 2024-present Fatbobman. All rights reserved.
-		
+
 @preconcurrency import CoreData
 
+@objc(Item)
+public class Item: NSManagedObject {}
 extension Item {
-  static let fetchAll:NSFetchRequest<Item> = {
+
+  @nonobjc public class func fetchRequest() -> NSFetchRequest<Item> {
+    return NSFetchRequest<Item>(entityName: "Item")
+  }
+
+  @NSManaged public var timestamp: Date?
+
+}
+extension Item {
+  static let fetchAll: NSFetchRequest<Item> = {
     let request = NSFetchRequest<Item>(entityName: "Item")
     request.sortDescriptors = [.init(key: "timestamp", ascending: true)]
     return request

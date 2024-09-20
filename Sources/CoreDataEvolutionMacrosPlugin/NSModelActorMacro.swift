@@ -26,11 +26,7 @@ import SwiftSyntaxMacros
 ///
 ///       public init(container: CoreData.NSPersistentContainer, mode: ActorContextMode = .newBackground) {
 ///         let context: NSManagedObjectContext
-///         if mode ==  .newBackground {
-///            context = container.newBackgroundContext()
-///         } else {
-///            context = container.viewContext
-///         }
+///         context = container.newBackgroundContext()
 ///         modelExecutor = CoreDataEvolution.NSModelObjectContextExecutor(context: context)
 ///         modelContainer = container
 ///       }
@@ -60,13 +56,9 @@ extension NSModelActorMacro: MemberMacro {
       public nonisolated let modelExecutor: CoreDataEvolution.NSModelObjectContextExecutor
       public nonisolated let modelContainer: CoreData.NSPersistentContainer
 
-      public init(container: CoreData.NSPersistentContainer, mode: ActorContextMode = .newBackground) {
+      public init(container: CoreData.NSPersistentContainer) {
         let context: NSManagedObjectContext
-        if mode ==  .newBackground {
-          context = container.newBackgroundContext()
-        } else {
-          context = container.viewContext
-        }
+        context = container.newBackgroundContext()
         modelExecutor = CoreDataEvolution.NSModelObjectContextExecutor(context: context)
         modelContainer = container
       }

@@ -3,6 +3,7 @@
 
 import CompilerPluginSupport
 import PackageDescription
+import Foundation
 
 let package = Package(
   name: "CoreDataEvolution",
@@ -24,7 +25,7 @@ let package = Package(
     ),
   ],
   dependencies: [
-    .package(url: "https://github.com/apple/swift-syntax.git", from: "509.0.0"),
+    .package(url: "https://github.com/apple/swift-syntax.git", from: "600.0.0")
   ],
   targets: [
     // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -36,13 +37,16 @@ let package = Package(
       name: "CoreDataEvolutionTests",
       dependencies: [
         "CoreDataEvolution",
-        "CoreDataEvolutionMacros"
+        "CoreDataEvolutionMacros",
+      ],
+      resources: [
+        .process("Resources")
       ]
     ),
     .target(
       name: "CoreDataEvolutionMacros",
       dependencies: [
-        "CoreDataEvolutionMacrosPlugin",
+        "CoreDataEvolutionMacrosPlugin"
       ]
     ),
     .macro(
