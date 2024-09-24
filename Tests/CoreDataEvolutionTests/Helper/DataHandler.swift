@@ -31,7 +31,7 @@ actor DataHandler {
     }
 
     func delItem(_ itemID: NSManagedObjectID) throws {
-        guard let item = try modelContext.existingObject(with: itemID) as? Item else {
+        guard let item = self[itemID, as: Item.self] else {
             fatalError("Can't load model by ID:\(itemID)")
         }
         try delItem(item)
