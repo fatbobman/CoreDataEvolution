@@ -57,10 +57,10 @@ extension NSModelActorMacro: MemberMacro {
       public nonisolated let modelContainer: CoreData.NSPersistentContainer
 
       public init(container: CoreData.NSPersistentContainer) {
-        let context: NSManagedObjectContext
-        context = container.newBackgroundContext()
-        modelExecutor = CoreDataEvolution.NSModelObjectContextExecutor(context: context)
-        modelContainer = container
+          let context: NSManagedObjectContext
+          context = container.newBackgroundContext()
+          modelExecutor = CoreDataEvolution.NSModelObjectContextExecutor(context: context)
+          modelContainer = container
       }
       """,
     ]

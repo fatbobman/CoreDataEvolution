@@ -38,30 +38,30 @@ import SwiftSyntaxMacros
 public enum NSMainModelActorMacro {}
 
 extension NSMainModelActorMacro: ExtensionMacro {
-  public static func expansion(of _: SwiftSyntax.AttributeSyntax, attachedTo _: some SwiftSyntax.DeclGroupSyntax, providingExtensionsOf type: some SwiftSyntax.TypeSyntaxProtocol, conformingTo _: [SwiftSyntax.TypeSyntax], in _: some SwiftSyntaxMacros.MacroExpansionContext) throws -> [SwiftSyntax.ExtensionDeclSyntax] {
-    let decl: DeclSyntax =
-      """
-      extension \(type.trimmed): CoreDataEvolution.NSMainModelActor {}
-      """
+    public static func expansion(of _: SwiftSyntax.AttributeSyntax, attachedTo _: some SwiftSyntax.DeclGroupSyntax, providingExtensionsOf type: some SwiftSyntax.TypeSyntaxProtocol, conformingTo _: [SwiftSyntax.TypeSyntax], in _: some SwiftSyntaxMacros.MacroExpansionContext) throws -> [SwiftSyntax.ExtensionDeclSyntax] {
+        let decl: DeclSyntax =
+            """
+            extension \(type.trimmed): CoreDataEvolution.NSMainModelActor {}
+            """
 
-    guard let extensionDecl = decl.as(ExtensionDeclSyntax.self) else {
-      return []
+        guard let extensionDecl = decl.as(ExtensionDeclSyntax.self) else {
+            return []
+        }
+
+        return [extensionDecl]
     }
-
-    return [extensionDecl]
-  }
 }
 
 extension NSMainModelActorMacro: MemberMacro {
-  public static func expansion(of _: AttributeSyntax, providingMembersOf _: some DeclGroupSyntax, conformingTo _: [TypeSyntax], in _: some MacroExpansionContext) throws -> [DeclSyntax] {
-    [
-      """
-      public let modelContainer: CoreData.NSPersistentContainer
+    public static func expansion(of _: AttributeSyntax, providingMembersOf _: some DeclGroupSyntax, conformingTo _: [TypeSyntax], in _: some MacroExpansionContext) throws -> [DeclSyntax] {
+        [
+            """
+            public let modelContainer: CoreData.NSPersistentContainer
 
-      public init(container: CoreData.NSPersistentContainer) {
-        modelContainer = container
-      }
-      """,
-    ]
-  }
+            public init(container: CoreData.NSPersistentContainer) {
+                modelContainer = container
+            }
+            """,
+        ]
+    }
 }

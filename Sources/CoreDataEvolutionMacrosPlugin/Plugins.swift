@@ -10,8 +10,8 @@ import SwiftSyntaxMacros
 
 @main
 struct CoreDataEvolutionMacrosPlugin: CompilerPlugin {
-  let providingMacros: [Macro.Type] = [
-    NSModelActorMacro.self,
-    NSMainModelActorMacro.self,
-  ]
+    let providingMacros: [Macro.Type] = [
+        NSModelActorMacro.self,
+        NSMainModelActorMacro.self,
+    ]
 }

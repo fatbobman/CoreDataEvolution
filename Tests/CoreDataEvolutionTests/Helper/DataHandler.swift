@@ -15,34 +15,34 @@ import CoreDataEvolutionMacros
 
 @NSModelActor
 actor DataHandler {
-  func createNemItem(_ timestamp: Date = .now, showThread: Bool = false) throws -> NSManagedObjectID {
-    let item = Item(context: modelContext)
-    item.timestamp = timestamp
-    if showThread {
-      print(Thread.current)
+    func createNemItem(_ timestamp: Date = .now, showThread: Bool = false) throws -> NSManagedObjectID {
+        let item = Item(context: modelContext)
+        item.timestamp = timestamp
+        if showThread {
+            print(Thread.current)
+        }
+        try modelContext.save()
+        return item.objectID
     }
-    try modelContext.save()
-    return item.objectID
-  }
 
-  func delItem(_ item: Item) throws {
-    modelContext.delete(item)
-    try modelContext.save()
-  }
-
-  func delItem(_ itemID: NSManagedObjectID) throws {
-    guard let item = try modelContext.existingObject(with: itemID) as? Item else {
-      fatalError("Can't load model by ID:\(itemID)")
+    func delItem(_ item: Item) throws {
+        modelContext.delete(item)
+        try modelContext.save()
     }
-    try delItem(item)
-  }
 
-  private func getAllItems() throws -> [Item] {
-    let request = Item.fetchRequest()
-    return try modelContext.fetch(request)
-  }
+    func delItem(_ itemID: NSManagedObjectID) throws {
+        guard let item = try modelContext.existingObject(with: itemID) as? Item else {
+            fatalError("Can't load model by ID:\(itemID)")
+        }
+        try delItem(item)
+    }
 
-  func getItemCount() throws -> Int {
-    try getAllItems().count
-  }
+    private func getAllItems() throws -> [Item] {
+        let request = Item.fetchRequest()
+        return try modelContext.fetch(request)
+    }
+
+    func getItemCount() throws -> Int {
+        try getAllItems().count
+    }
 }
