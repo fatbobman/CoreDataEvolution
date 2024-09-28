@@ -9,4 +9,4 @@
 //  ------------------------------------------------
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
-@_exported @preconcurrency import CoreData
+@_exported import CoreData
