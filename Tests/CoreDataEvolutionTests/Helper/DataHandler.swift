@@ -11,7 +11,6 @@
 
 import CoreData
 import CoreDataEvolution
-import CoreDataEvolutionMacros
 
 @NSModelActor
 actor DataHandler {

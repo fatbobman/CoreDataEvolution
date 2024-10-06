@@ -10,9 +10,7 @@
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
 import Foundation
-import SwiftCompilerPlugin
 import SwiftSyntax
-import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
 /// The ModelActor in SwiftData corresponding to the Core Data version.

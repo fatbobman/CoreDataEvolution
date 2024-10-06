@@ -19,9 +19,9 @@ let package = Package(
             name: "CoreDataEvolution",
             targets: ["CoreDataEvolution"]
         ),
-        .library(
-            name: "CoreDataEvolutionMacros",
-            targets: ["CoreDataEvolutionMacros"]
+        .executable(
+            name: "CoreDataEvolutionClient",
+            targets: ["CoreDataEvolutionClient"]
         ),
     ],
     dependencies: [
@@ -30,6 +30,13 @@ let package = Package(
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
+        .macro(
+            name: "CoreDataEvolutionMacros",
+            dependencies: [
+                .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+                .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
+            ]
+        ),
         .target(
             name: "CoreDataEvolution",
             dependencies: [
@@ -40,25 +47,12 @@ let package = Package(
             name: "CoreDataEvolutionTests",
             dependencies: [
                 "CoreDataEvolution",
-                "CoreDataEvolutionMacros",
             ],
             resources: [
                 .process("Resources"),
             ]
         ),
-        .target(
-            name: "CoreDataEvolutionMacros",
-            dependencies: [
-                "CoreDataEvolutionMacrosPlugin",
-            ]
-        ),
-        .macro(
-            name: "CoreDataEvolutionMacrosPlugin",
-            dependencies: [
-                .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-                .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
-            ]
-        ),
+        .executableTarget(name: "CoreDataEvolutionClient", dependencies: ["CoreDataEvolution"]),
     ],
     swiftLanguageModes: [.version("6")]
 )

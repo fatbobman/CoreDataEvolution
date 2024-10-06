@@ -6,9 +6,7 @@
 //
 
 import Foundation
-import SwiftCompilerPlugin
 import SwiftSyntax
-import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
 /// The ModelActor in SwiftData corresponding to the Core Data version.
