@@ -1,5 +1,7 @@
 # CoreDataEvolution
 
+![Swift 6](https://img.shields.io/badge/Swift-6-orange?logo=swift) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 **Revolutionizing Core Data with SwiftData-inspired Concurrent Operations**
 
 Welcome to CoreDataEvolution, a library aimed at modernizing Core Data by incorporating the elegance and safety of SwiftData-style concurrency. This library is designed to simplify and enhance Core Data’s handling of multithreading, drawing inspiration from SwiftData's `@ModelActor` feature, enabling efficient, safe, and scalable operations.
