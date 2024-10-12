@@ -6,6 +6,12 @@
 
 Welcome to CoreDataEvolution, a library aimed at modernizing Core Data by incorporating the elegance and safety of SwiftData-style concurrency. This library is designed to simplify and enhance Core Data’s handling of multithreading, drawing inspiration from SwiftData's `@ModelActor` feature, enabling efficient, safe, and scalable operations.
 
+---
+
+Don't miss out on the latest updates and excellent articles about Swift, SwiftUI, Core Data, and SwiftData. Subscribe to **[Fatbobman's Swift Weekly](https://weekly.fatbobman.com)** and receive weekly insights and valuable content directly to your inbox.
+
+---
+
 ## Motivation
 
 SwiftData introduced modern concurrency features like `@ModelActor`, making it easier to handle concurrent data access with safety guaranteed by the compiler. However, SwiftData's platform requirements and limited maturity in certain areas have deterred many developers from adopting it. CoreDataEvolution bridges the gap, bringing SwiftData’s advanced design into the Core Data world for developers who are still reliant on Core Data.
