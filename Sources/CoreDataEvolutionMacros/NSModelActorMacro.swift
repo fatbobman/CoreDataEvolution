@@ -33,34 +33,53 @@ import SwiftSyntaxMacros
 public enum NSModelActorMacro {}
 
 extension NSModelActorMacro: ExtensionMacro {
-  public static func expansion(of _: SwiftSyntax.AttributeSyntax, attachedTo _: some SwiftSyntax.DeclGroupSyntax, providingExtensionsOf type: some SwiftSyntax.TypeSyntaxProtocol, conformingTo _: [SwiftSyntax.TypeSyntax], in _: some SwiftSyntaxMacros.MacroExpansionContext) throws -> [SwiftSyntax.ExtensionDeclSyntax] {
-    let decl: DeclSyntax =
-      """
-      extension \(type.trimmed): CoreDataEvolution.NSModelActor {}
-      """
+    public static func expansion(of _: SwiftSyntax.AttributeSyntax, attachedTo _: some SwiftSyntax.DeclGroupSyntax, providingExtensionsOf type: some SwiftSyntax.TypeSyntaxProtocol, conformingTo _: [SwiftSyntax.TypeSyntax], in _: some SwiftSyntaxMacros.MacroExpansionContext) throws -> [SwiftSyntax.ExtensionDeclSyntax] {
+        let decl: DeclSyntax =
+            """
+            extension \(type.trimmed): CoreDataEvolution.NSModelActor {}
+            """
 
-    guard let extensionDecl = decl.as(ExtensionDeclSyntax.self) else {
-      return []
+        guard let extensionDecl = decl.as(ExtensionDeclSyntax.self) else {
+            return []
+        }
+
+        return [extensionDecl]
     }
-
-    return [extensionDecl]
-  }
 }
 
 extension NSModelActorMacro: MemberMacro {
-  public static func expansion(of _: AttributeSyntax, providingMembersOf _: some DeclGroupSyntax, conformingTo _: [TypeSyntax], in _: some MacroExpansionContext) throws -> [DeclSyntax] {
-    [
-      """
-      public nonisolated let modelExecutor: CoreDataEvolution.NSModelObjectContextExecutor
-      public nonisolated let modelContainer: CoreData.NSPersistentContainer
+    public static func expansion(
+        of node: AttributeSyntax,
+        providingMembersOf _: some DeclGroupSyntax,
+        conformingTo _: [TypeSyntax],
+        in _: some MacroExpansionContext
+    ) throws -> [DeclSyntax] {
+        var generateInitializer = true
+        if let argumentList = node.arguments?.as(LabeledExprListSyntax.self) {
+            for argument in argumentList {
+                if argument.label?.text == "disableGenerateInit",
+                   let booleanLiteral = argument.expression.as(BooleanLiteralExprSyntax.self)
+                {
+                    generateInitializer = booleanLiteral.literal.text != "true"
+                }
+            }
+        }
 
-      public init(container: CoreData.NSPersistentContainer) {
-          let context: NSManagedObjectContext
-          context = container.newBackgroundContext()
-          modelExecutor = CoreDataEvolution.NSModelObjectContextExecutor(context: context)
-          modelContainer = container
-      }
-      """,
-    ]
-  }
+        let decl: DeclSyntax =
+            """
+            public nonisolated let modelExecutor: CoreDataEvolution.NSModelObjectContextExecutor
+            public nonisolated let modelContainer: CoreData.NSPersistentContainer
+
+            """
+        let initializer: DeclSyntax = generateInitializer ?
+            """
+            public init(container: CoreData.NSPersistentContainer) {
+                let context: NSManagedObjectContext
+                context = container.newBackgroundContext()
+                modelExecutor = CoreDataEvolution.NSModelObjectContextExecutor(context: context)
+                modelContainer = container
+            }
+            """ : ""
+        return [decl, initializer]
+    }
 }

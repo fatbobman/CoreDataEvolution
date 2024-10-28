@@ -9,7 +9,7 @@ import Foundation
 
 @attached(member, names: named(modelExecutor), named(modelContainer), named(init))
 @attached(extension, conformances: NSModelActor)
-public macro NSModelActor() = #externalMacro(module: "CoreDataEvolutionMacros", type: "NSModelActorMacro")
+public macro NSModelActor(disableGenerateInit: Bool = false) = #externalMacro(module: "CoreDataEvolutionMacros", type: "NSModelActorMacro")
 
 @attached(member, names: named(modelExecutor), named(modelContainer), named(init))
 @attached(extension, conformances: NSMainModelActor)
