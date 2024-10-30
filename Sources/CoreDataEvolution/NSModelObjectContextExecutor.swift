@@ -12,6 +12,7 @@
 import _Concurrency
 import CoreData
 
+/// A class that coordinates access to the model actor.
 public final class NSModelObjectContextExecutor: @unchecked Sendable, SerialExecutor {
     public final let context: NSManagedObjectContext
     public init(context: NSManagedObjectContext) {

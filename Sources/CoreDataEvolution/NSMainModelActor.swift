@@ -11,14 +11,15 @@
 
 import CoreData
 
+/// A protocol that defines the properties and methods for accessing a Core Data model in a main actor context.
 @MainActor
-public protocol NSMainModelActor {
+public protocol NSMainModelActor: AnyObject {
     /// The NSPersistentContainer for the NSMainModelActor
     var modelContainer: NSPersistentContainer { get }
 }
 
 extension NSMainModelActor {
-    /// The view context
+    /// The view context for the NSMainModelActor
     public var modelContext: NSManagedObjectContext {
         modelContainer.viewContext
     }

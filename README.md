@@ -27,6 +27,9 @@ SwiftData introduced modern concurrency features like `@ModelActor`, making it e
   
 - **@NSModelActor Macro**  
   The `@NSModelActor` macro simplifies Core Data concurrency, mirroring SwiftData’s `@ModelActor` macro. It generates the necessary boilerplate code to manage a Core Data stack within an actor, ensuring safe and efficient access to managed objects.
+  
+- **NSMainModelActor Macro**
+  `NSMainModelActor` will provide the same functionality as `NSModelActor`, but it will be used to declare a class that runs on the main thread.
 
 - **Elegant Actor-based Concurrency**  
   CoreDataEvolution allows you to create actors with custom executors tied to Core Data contexts, ensuring that all operations within the actor are executed serially on the context’s thread.
@@ -53,6 +56,46 @@ actor DataHandler {
 In this example, the `@NSModelActor` macro simplifies the setup, automatically creating the required executor and Core Data stack inside the actor. Developers can then focus on their business logic without worrying about concurrency pitfalls.
 
 This approach allows you to safely integrate modern Swift concurrency mechanisms into your existing Core Data stack, enhancing performance and code clarity.
+
+You can disable the automatic generation of the constructor by using `disableGenerateInit`:
+
+```swift
+@NSModelActor(disableGenerateInit: true)
+public actor DataHandler {
+    let viewName: String
+
+    func createNemItem(_ timestamp: Date = .now, showThread: Bool = false) throws -> NSManagedObjectID {
+        let item = Item(context: modelContext)
+        item.timestamp = timestamp
+        try modelContext.save()
+        return item.objectID
+    }
+
+    init(container: NSPersistentContainer, viewName: String) {
+        modelContainer = container
+        self.viewName = viewName
+        let context = container.newBackgroundContext()
+        context.name = viewName
+        modelExecutor = .init(context: context)
+    }
+}
+```
+
+NSMainModelActor will provide the same functionality as NSModelActor, but it will be used to declare a class that runs on the main thread:
+
+```swift
+@MainActor
+@NSMainModelActor
+final class DataHandler {
+    func updateItem(identifier: NSManagedObjectID, timestamp: Date) throws {
+        guard let item = self[identifier, as: Item.self] else {
+            throw MyError.objectNotExist
+        }
+        item.timestamp = timestamp
+        try modelContext.save()
+    }
+}
+```
 
 ## Installation
 

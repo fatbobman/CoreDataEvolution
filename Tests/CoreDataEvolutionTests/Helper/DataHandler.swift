@@ -12,8 +12,10 @@
 import CoreData
 import CoreDataEvolution
 
-@NSModelActor
-actor DataHandler {
+@NSModelActor(disableGenerateInit: true)
+public actor DataHandler {
+    let viewName: String
+
     func createNemItem(_ timestamp: Date = .now, showThread: Bool = false) throws -> NSManagedObjectID {
         let item = Item(context: modelContext)
         item.timestamp = timestamp
@@ -43,5 +45,13 @@ actor DataHandler {
 
     func getItemCount() throws -> Int {
         try getAllItems().count
+    }
+
+    init(container: NSPersistentContainer, viewName: String) {
+        modelContainer = container
+        self.viewName = viewName
+        let context = container.newBackgroundContext()
+        context.name = viewName
+        modelExecutor = .init(context: context)
     }
 }

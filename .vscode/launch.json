@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:CoreDataEvolution}",
+            "name": "Debug CoreDataEvolutionClient",
+            "program": "${workspaceFolder:CoreDataEvolution}/.build/debug/CoreDataEvolutionClient",
+            "preLaunchTask": "swift: Build Debug CoreDataEvolutionClient"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:CoreDataEvolution}",
+            "name": "Release CoreDataEvolutionClient",
+            "program": "${workspaceFolder:CoreDataEvolution}/.build/release/CoreDataEvolutionClient",
+            "preLaunchTask": "swift: Build Release CoreDataEvolutionClient"
+        }
+    ]
+}

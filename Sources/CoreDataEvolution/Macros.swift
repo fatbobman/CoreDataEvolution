@@ -6,6 +6,9 @@
 //
 
 import Foundation
+import SwiftData
+
+// MARK: - Core Data Macro
 
 @attached(member, names: named(modelExecutor), named(modelContainer), named(init))
 @attached(extension, conformances: NSModelActor)
@@ -13,4 +16,4 @@ public macro NSModelActor(disableGenerateInit: Bool = false) = #externalMacro(mo
 
 @attached(member, names: named(modelExecutor), named(modelContainer), named(init))
 @attached(extension, conformances: NSMainModelActor)
-public macro NSMainModelActor() = #externalMacro(module: "CoreDataEvolutionMacros", type: "NSMainModelActorMacro")
+public macro NSMainModelActor(disableGenerateInit: Bool = false) = #externalMacro(module: "CoreDataEvolutionMacros", type: "NSMainModelActorMacro")

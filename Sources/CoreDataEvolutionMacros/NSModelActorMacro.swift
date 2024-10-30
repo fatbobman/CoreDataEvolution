@@ -33,7 +33,13 @@ import SwiftSyntaxMacros
 public enum NSModelActorMacro {}
 
 extension NSModelActorMacro: ExtensionMacro {
-    public static func expansion(of _: SwiftSyntax.AttributeSyntax, attachedTo _: some SwiftSyntax.DeclGroupSyntax, providingExtensionsOf type: some SwiftSyntax.TypeSyntaxProtocol, conformingTo _: [SwiftSyntax.TypeSyntax], in _: some SwiftSyntaxMacros.MacroExpansionContext) throws -> [SwiftSyntax.ExtensionDeclSyntax] {
+    public static func expansion(
+        of _: SwiftSyntax.AttributeSyntax,
+        attachedTo _: some SwiftSyntax.DeclGroupSyntax,
+        providingExtensionsOf type: some SwiftSyntax.TypeSyntaxProtocol,
+        conformingTo _: [SwiftSyntax.TypeSyntax],
+        in _: some SwiftSyntaxMacros.MacroExpansionContext
+    ) throws -> [SwiftSyntax.ExtensionDeclSyntax] {
         let decl: DeclSyntax =
             """
             extension \(type.trimmed): CoreDataEvolution.NSModelActor {}
@@ -50,36 +56,27 @@ extension NSModelActorMacro: ExtensionMacro {
 extension NSModelActorMacro: MemberMacro {
     public static func expansion(
         of node: AttributeSyntax,
-        providingMembersOf _: some DeclGroupSyntax,
+        providingMembersOf declaration: some DeclGroupSyntax,
         conformingTo _: [TypeSyntax],
         in _: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
-        var generateInitializer = true
-        if let argumentList = node.arguments?.as(LabeledExprListSyntax.self) {
-            for argument in argumentList {
-                if argument.label?.text == "disableGenerateInit",
-                   let booleanLiteral = argument.expression.as(BooleanLiteralExprSyntax.self)
-                {
-                    generateInitializer = booleanLiteral.literal.text != "true"
-                }
-            }
-        }
-
+        let generateInitializer = shouldGenerateInitializer(from: node)
+        let accessModifier = isPublic(from: declaration) ? "public " : ""
         let decl: DeclSyntax =
             """
-            public nonisolated let modelExecutor: CoreDataEvolution.NSModelObjectContextExecutor
-            public nonisolated let modelContainer: CoreData.NSPersistentContainer
+            \(raw: accessModifier)nonisolated let modelExecutor: CoreDataEvolution.NSModelObjectContextExecutor
+            \(raw: accessModifier)nonisolated let modelContainer: CoreData.NSPersistentContainer
 
             """
-        let initializer: DeclSyntax = generateInitializer ?
+        let initializer: DeclSyntax? = generateInitializer ?
             """
-            public init(container: CoreData.NSPersistentContainer) {
+            \(raw: accessModifier)init(container: CoreData.NSPersistentContainer) {
                 let context: NSManagedObjectContext
                 context = container.newBackgroundContext()
                 modelExecutor = CoreDataEvolution.NSModelObjectContextExecutor(context: context)
                 modelContainer = container
             }
-            """ : ""
-        return [decl, initializer]
+            """ : nil
+        return [decl] + (initializer.map { [$0] } ?? [])
     }
 }

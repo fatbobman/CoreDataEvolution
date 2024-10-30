@@ -13,6 +13,7 @@ import _Concurrency
 import CoreData
 import Foundation
 
+/// A protocol that defines the properties and methods for accessing a Core Data model in a model actor context.
 public protocol NSModelActor: Actor {
     /// The NSPersistentContainer for the NSModelActor
     nonisolated var modelContainer: NSPersistentContainer { get }

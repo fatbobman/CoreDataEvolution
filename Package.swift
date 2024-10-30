@@ -54,5 +54,5 @@ let package = Package(
         ),
         .executableTarget(name: "CoreDataEvolutionClient", dependencies: ["CoreDataEvolution"]),
     ],
-    swiftLanguageModes: [.version("6")]
+    swiftLanguageModes: [.v6]
 )

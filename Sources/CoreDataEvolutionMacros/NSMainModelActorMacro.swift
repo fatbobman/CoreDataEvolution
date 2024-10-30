@@ -28,15 +28,21 @@ import SwiftSyntaxMacros
 ///     final class DataHandler{}
 ///       public let modelContainer: CoreData.NSPersistentContainer
 ///
-///       public init(container: CoreData.NSPersistentContainer) {
-///           modelContainer = container
+///       public init(modelContainer: CoreData.NSPersistentContainer) {
+///           self.modelContainer = modelContainer
 ///       }
 ///    extension DataHandler: CoreDataEvolution.NSModelActor {
 ///    }
 public enum NSMainModelActorMacro {}
 
 extension NSMainModelActorMacro: ExtensionMacro {
-    public static func expansion(of _: SwiftSyntax.AttributeSyntax, attachedTo _: some SwiftSyntax.DeclGroupSyntax, providingExtensionsOf type: some SwiftSyntax.TypeSyntaxProtocol, conformingTo _: [SwiftSyntax.TypeSyntax], in _: some SwiftSyntaxMacros.MacroExpansionContext) throws -> [SwiftSyntax.ExtensionDeclSyntax] {
+    public static func expansion(
+        of _: SwiftSyntax.AttributeSyntax,
+        attachedTo _: some SwiftSyntax.DeclGroupSyntax,
+        providingExtensionsOf type: some SwiftSyntax.TypeSyntaxProtocol,
+        conformingTo _: [SwiftSyntax.TypeSyntax],
+        in _: some SwiftSyntaxMacros.MacroExpansionContext
+    ) throws -> [SwiftSyntax.ExtensionDeclSyntax] {
         let decl: DeclSyntax =
             """
             extension \(type.trimmed): CoreDataEvolution.NSMainModelActor {}
@@ -51,15 +57,26 @@ extension NSMainModelActorMacro: ExtensionMacro {
 }
 
 extension NSMainModelActorMacro: MemberMacro {
-    public static func expansion(of _: AttributeSyntax, providingMembersOf _: some DeclGroupSyntax, conformingTo _: [TypeSyntax], in _: some MacroExpansionContext) throws -> [DeclSyntax] {
-        [
-            """
-            public let modelContainer: CoreData.NSPersistentContainer
+    public static func expansion(
+        of node: AttributeSyntax,
+        providingMembersOf declaration: some DeclGroupSyntax,
+        conformingTo _: [TypeSyntax],
+        in _: some MacroExpansionContext
+    ) throws -> [DeclSyntax] {
+        let generateInitializer = shouldGenerateInitializer(from: node)
+        let accessModifier = isPublic(from: declaration) ? "public " : ""
 
-            public init(container: CoreData.NSPersistentContainer) {
-                modelContainer = container
+        let decl: DeclSyntax =
+            """
+            \(raw: accessModifier)let modelContainer: CoreData.NSPersistentContainer
+            """
+
+        let initializer: DeclSyntax? = generateInitializer ?
+            """
+            \(raw: accessModifier)init(modelContainer: CoreData.NSPersistentContainer) {
+                self.modelContainer = modelContainer
             }
-            """,
-        ]
+            """ : nil
+        return [decl] + (initializer.map { [$0] } ?? [])
     }
 }
