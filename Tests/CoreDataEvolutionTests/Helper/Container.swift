@@ -10,33 +10,32 @@
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
 @preconcurrency import CoreData
-
 import Foundation
 
 final class TestStack {
-    @MainActor var viewContext: NSManagedObjectContext {
-        container.viewContext
+  @MainActor var viewContext: NSManagedObjectContext {
+    container.viewContext
+  }
+
+  static let model: NSManagedObjectModel = {
+    guard let modelURL = Bundle.module.url(forResource: "TestModel", withExtension: "momd"),
+      let model = NSManagedObjectModel(contentsOf: modelURL)
+    else {
+      fatalError("Can't load DataModel")
     }
+    return model
+  }()
 
-    static let model: NSManagedObjectModel = {
-        guard let modelURL = Bundle.module.url(forResource: "TestModel", withExtension: "momd"),
-              let model = NSManagedObjectModel(contentsOf: modelURL)
-        else {
-            fatalError("Can't load DataModel")
-        }
-        return model
-    }()
+  let container: NSPersistentContainer
 
-    let container: NSPersistentContainer
-
-    init(url: URL = URL(fileURLWithPath: "/dev/null")) {
-        container = NSPersistentContainer(name: "TestModel", managedObjectModel: Self.model)
-        container.persistentStoreDescriptions.first!.url = url
-        container.loadPersistentStores { _, error in
-            if let error = error as NSError? {
-                fatalError("Unresolved error \(error), \(error.userInfo)")
-            }
-        }
-        container.viewContext.automaticallyMergesChangesFromParent = true
+  init(url: URL = URL(fileURLWithPath: "/dev/null")) {
+    container = NSPersistentContainer(name: "TestModel", managedObjectModel: Self.model)
+    container.persistentStoreDescriptions.first!.url = url
+    container.loadPersistentStores { _, error in
+      if let error = error as NSError? {
+        fatalError("Unresolved error \(error), \(error.userInfo)")
+      }
     }
+    container.viewContext.automaticallyMergesChangesFromParent = true
+  }
 }

@@ -11,8 +11,6 @@
 
 import Foundation
 import SwiftSyntax
-import SwiftSyntaxMacros
-
 /// Determines whether to generate an initializer based on the attribute node.
 ///
 /// This function checks the attribute node for an argument labeled "disableGenerateInit" with a boolean value.
@@ -21,20 +19,7 @@ import SwiftSyntaxMacros
 ///
 /// - Parameter node: The attribute node to check.
 /// - Returns: A boolean indicating whether to generate an initializer.
-func shouldGenerateInitializer(from node: AttributeSyntax) -> Bool {
-    guard let argumentList = node.arguments?.as(LabeledExprListSyntax.self) else {
-        return true // Default to true if no arguments are present.
-    }
-
-    for argument in argumentList {
-        if argument.label?.text == "disableGenerateInit",
-           let booleanLiteral = argument.expression.as(BooleanLiteralExprSyntax.self)
-        {
-            return booleanLiteral.literal.text != "true" // Return false if "disableGenerateInit" is set to true.
-        }
-    }
-    return true // Default to true if "disableGenerateInit" is not found or is set to false.
-}
+import SwiftSyntaxMacros
 
 /// Checks if the access level of the declared type is public.
 ///
@@ -42,8 +27,22 @@ func shouldGenerateInitializer(from node: AttributeSyntax) -> Bool {
 ///
 /// - Parameter declaration: The declaration to check.
 /// - Returns: A boolean indicating whether the access level is public.
-func isPublic(from declaration: some DeclGroupSyntax) -> Bool {
-    return declaration.modifiers.contains { modifier in
-        modifier.name.text == "public" // Check if the "public" modifier is present.
+func shouldGenerateInitializer(from node: AttributeSyntax) -> Bool {
+  guard let argumentList = node.arguments?.as(LabeledExprListSyntax.self) else {
+    return true  // Default to true if no arguments are present.
+  }
+
+  for argument in argumentList {
+    if argument.label?.text == "disableGenerateInit",
+      let booleanLiteral = argument.expression.as(BooleanLiteralExprSyntax.self)
+    {
+      return booleanLiteral.literal.text != "true"  // Return false if "disableGenerateInit" is set to true.
     }
+  }
+  return true  // Default to true if "disableGenerateInit" is not found or is set to false.
+}
+func isPublic(from declaration: some DeclGroupSyntax) -> Bool {
+  return declaration.modifiers.contains { modifier in
+    modifier.name.text == "public"  // Check if the "public" modifier is present.
+  }
 }

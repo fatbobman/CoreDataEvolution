@@ -1,3 +1,7 @@
+/// A class that coordinates access to the model actor.
+import CoreData
+import _Concurrency
+
 //
 //  ------------------------------------------------
 //  Original project: CoreDataEvolution
@@ -9,25 +13,21 @@
 //  ------------------------------------------------
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
-import _Concurrency
-import CoreData
-
-/// A class that coordinates access to the model actor.
 public final class NSModelObjectContextExecutor: @unchecked Sendable, SerialExecutor {
-    public final let context: NSManagedObjectContext
-    public init(context: NSManagedObjectContext) {
-        self.context = context
-    }
+  public final let context: NSManagedObjectContext
+  public init(context: NSManagedObjectContext) {
+    self.context = context
+  }
 
-    public func enqueue(_ job: consuming ExecutorJob) {
-        let unownedJob = UnownedJob(job)
-        let unownedExecutor = asUnownedSerialExecutor()
-        context.perform {
-            unownedJob.runSynchronously(on: unownedExecutor)
-        }
+  public func enqueue(_ job: consuming ExecutorJob) {
+    let unownedJob = UnownedJob(job)
+    let unownedExecutor = asUnownedSerialExecutor()
+    context.perform {
+      unownedJob.runSynchronously(on: unownedExecutor)
     }
+  }
 
-    public func asUnownedSerialExecutor() -> UnownedSerialExecutor {
-        UnownedSerialExecutor(ordinary: self)
-    }
+  public func asUnownedSerialExecutor() -> UnownedSerialExecutor {
+    UnownedSerialExecutor(ordinary: self)
+  }
 }

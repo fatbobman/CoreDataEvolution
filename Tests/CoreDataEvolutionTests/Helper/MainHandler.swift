@@ -15,34 +15,35 @@ import CoreDataEvolution
 @MainActor
 @NSMainModelActor
 final class MainHandler {
-    func createNemItem(_ timestamp: Date = .now, showThread: Bool = false) throws -> NSManagedObjectID {
-        let item = Item(context: modelContext)
-        item.timestamp = timestamp
-        if showThread {
-            print(Thread.current)
-        }
-        try modelContext.save()
-        return item.objectID
+  func createNemItem(_ timestamp: Date = .now, showThread: Bool = false) throws -> NSManagedObjectID
+  {
+    let item = Item(context: modelContext)
+    item.timestamp = timestamp
+    if showThread {
+      print(Thread.current)
     }
+    try modelContext.save()
+    return item.objectID
+  }
 
-    func delItem(_ item: Item) throws {
-        modelContext.delete(item)
-        try modelContext.save()
-    }
+  func delItem(_ item: Item) throws {
+    modelContext.delete(item)
+    try modelContext.save()
+  }
 
-    func delItem(_ itemID: NSManagedObjectID) throws {
-        guard let item = try modelContext.existingObject(with: itemID) as? Item else {
-            fatalError("Can't load model by ID:\(itemID)")
-        }
-        try delItem(item)
+  func delItem(_ itemID: NSManagedObjectID) throws {
+    guard let item = try modelContext.existingObject(with: itemID) as? Item else {
+      fatalError("Can't load model by ID:\(itemID)")
     }
+    try delItem(item)
+  }
 
-    private func getAllItems() throws -> [Item] {
-        let request = Item.fetchRequest()
-        return try modelContext.fetch(request)
-    }
+  private func getAllItems() throws -> [Item] {
+    let request = Item.fetchRequest()
+    return try modelContext.fetch(request)
+  }
 
-    func getItemCount() throws -> Int {
-        try getAllItems().count
-    }
+  func getItemCount() throws -> Int {
+    try getAllItems().count
+  }
 }
