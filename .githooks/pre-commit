@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# Pre-commit hook for Swift code formatting
+# 在提交前自动格式化 Swift 代码
+
+# 获取所有待提交的 Swift 文件
+SWIFT_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.swift$')
+
+if [ -z "$SWIFT_FILES" ]; then
+    # 没有 Swift 文件变更，直接退出
+    exit 0
+fi
+
+echo "🔍 检测到 Swift 文件变更，开始格式化..."
+
+# 检查是否安装了 swift-format (Apple 官方)
+if ! command -v swift-format &> /dev/null; then
+    echo "⚠️  未找到 swift-format，跳过格式化"
+    echo "   安装方法: brew install swift-format"
+    echo ""
+    echo "   或者跳过此检查: git commit --no-verify"
+    exit 0
+fi
+
+# swift-format 使用默认规则或项目根目录的 .swift-format 配置
+
+# 格式化每个文件
+FORMATTED_COUNT=0
+for file in $SWIFT_FILES; do
+    if [ -f "$file" ]; then
+        echo "  📝 格式化: $file"
+
+        # 格式化文件 (swift-format 会自动查找 .swift-format 配置)
+        swift-format format --in-place "$file"
+
+        # 重新暂存格式化后的文件
+        git add "$file"
+
+        FORMATTED_COUNT=$((FORMATTED_COUNT + 1))
+    fi
+done
+
+echo "✅ 格式化完成 ($FORMATTED_COUNT 个文件)"
+echo ""
+
+exit 0
