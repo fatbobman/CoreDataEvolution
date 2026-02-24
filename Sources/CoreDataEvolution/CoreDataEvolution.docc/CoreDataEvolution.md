@@ -14,7 +14,7 @@ SwiftData introduced modern concurrency features like `@ModelActor`, making it e
 
 ### Custom Executors for Core Data Actors
 
-Using Swift 5.9's new `SerialExecutor` and `ExecutorJob` protocols, CoreDataEvolution provides custom executors that ensure all operations on managed objects are performed on the appropriate thread associated with their managed object context.
+CoreDataEvolution provides custom executors that ensure all operations on managed objects are performed on the appropriate thread associated with their managed object context. On iOS 17+/macOS 14+, it uses the modern `ExecutorJob` path; on earlier systems, it uses a compatible `UnownedJob` path.
 
 ### @NSModelActor Macro
 
@@ -113,10 +113,14 @@ import CoreDataEvolution
 
 ## System Requirements
 
-- iOS 17.0+ / macOS 14.0+ / watchOS 10.0+ / visionOS 1.0+ / tvOS 17.0+
+- iOS 13.0+ / macOS 10.15+ / watchOS 6.0+ / visionOS 1.0+ / tvOS 13.0+
 - Swift 6.0
 
-> Important: Due to system limitations, custom executors and `SerialExecutor` are only available on iOS 17/macOS 14 and later.
+> Important: On iOS 17+/macOS 14+, the executor uses the `ExecutorJob` API. On earlier supported systems, it uses a compatible `UnownedJob` executor path.
+
+## Acknowledgments
+
+Thanks to [@rnine](https://github.com/rnine) for sharing and validating the iOS 13+ compatibility approach that inspired this adaptation.
 
 ## Topics
 
@@ -134,4 +138,3 @@ import CoreDataEvolution
 
 - Migrating from traditional Core Data patterns
 - SwiftData compatibility considerations
-

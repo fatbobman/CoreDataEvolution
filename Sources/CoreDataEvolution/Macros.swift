@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import SwiftData
 
 // MARK: - Core Data Macro
 

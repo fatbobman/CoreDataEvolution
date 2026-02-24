@@ -2,18 +2,16 @@
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import CompilerPluginSupport
-
 import Foundation
-
 import PackageDescription
 
 let package = Package(
   name: "CoreDataEvolution",
   platforms: [
-    .iOS(.v17),
-    .macOS(.v14),
-    .tvOS(.v17),
-    .watchOS(.v10),
+    .iOS(.v13),
+    .macOS(.v10_15),
+    .tvOS(.v13),
+    .watchOS(.v6),
   ],
   products: [
     // Products define the executables and libraries a package produces, making them visible to other packages.
@@ -52,9 +50,6 @@ let package = Package(
       name: "CoreDataEvolutionTests",
       dependencies: [
         "CoreDataEvolution"
-      ],
-      resources: [
-        .process("Resources")
       ],
     ),
     .executableTarget(name: "CoreDataEvolutionClient", dependencies: ["CoreDataEvolution"]),

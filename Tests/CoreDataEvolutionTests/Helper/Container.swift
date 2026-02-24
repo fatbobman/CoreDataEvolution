@@ -18,11 +18,18 @@ final class TestStack {
   }
 
   static let model: NSManagedObjectModel = {
-    guard let modelURL = Bundle.module.url(forResource: "TestModel", withExtension: "momd"),
-      let model = NSManagedObjectModel(contentsOf: modelURL)
-    else {
-      fatalError("Can't load DataModel")
-    }
+    let model = NSManagedObjectModel()
+    let itemEntity = NSEntityDescription()
+    itemEntity.name = "Item"
+    itemEntity.managedObjectClassName = NSStringFromClass(Item.self)
+
+    let timestampAttribute = NSAttributeDescription()
+    timestampAttribute.name = "timestamp"
+    timestampAttribute.attributeType = .dateAttributeType
+    timestampAttribute.isOptional = true
+
+    itemEntity.properties = [timestampAttribute]
+    model.entities = [itemEntity]
     return model
   }()
 

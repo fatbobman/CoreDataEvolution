@@ -19,12 +19,16 @@ public final class NSModelObjectContextExecutor: @unchecked Sendable, SerialExec
     self.context = context
   }
 
-  public func enqueue(_ job: consuming ExecutorJob) {
-    let unownedJob = UnownedJob(job)
+  public func enqueue(_ job: UnownedJob) {
     let unownedExecutor = asUnownedSerialExecutor()
     context.perform {
-      unownedJob.runSynchronously(on: unownedExecutor)
+      job.runSynchronously(on: unownedExecutor)
     }
+  }
+
+  @available(macOS 14.0, iOS 17.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
+  public func enqueue(_ job: consuming ExecutorJob) {
+    enqueue(UnownedJob(job))
   }
 
   public func asUnownedSerialExecutor() -> UnownedSerialExecutor {

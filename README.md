@@ -1,6 +1,6 @@
 # CoreDataEvolution
 
-![Swift 6](https://img.shields.io/badge/Swift-6-orange?logo=swift) ![iOS](https://img.shields.io/badge/iOS-17.0+-green) ![macOS](https://img.shields.io/badge/macOS-14.0+-green) ![watchOS](https://img.shields.io/badge/watchOS-10.0+-green) ![visionOS](https://img.shields.io/badge/visionOS-1.0+-green) ![tvOS](https://img.shields.io/badge/tvOS-17.0+-green) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/fatbobman/CoreDataEvolution)
+![Swift 6](https://img.shields.io/badge/Swift-6-orange?logo=swift) ![iOS](https://img.shields.io/badge/iOS-13.0+-green) ![macOS](https://img.shields.io/badge/macOS-10.15+-green) ![watchOS](https://img.shields.io/badge/watchOS-6.0+-green) ![visionOS](https://img.shields.io/badge/visionOS-1.0+-green) ![tvOS](https://img.shields.io/badge/tvOS-13.0+-green) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/fatbobman/CoreDataEvolution)
 
 ## Revolutionizing Core Data with SwiftData-inspired Concurrent Operations
 
@@ -23,7 +23,7 @@ SwiftData introduced modern concurrency features like `@ModelActor`, making it e
 ## Key Features
 
 - **Custom Executors for Core Data Actors**  
-  Using Swift 5.9's new `SerialExecutor` and `ExecutorJob` protocols, CoreDataEvolution provides custom executors that ensure all operations on managed objects are performed on the appropriate thread associated with their managed object context.
+  CoreDataEvolution provides custom executors that ensure all operations on managed objects are performed on the appropriate thread associated with their managed object context. On iOS 17+/macOS 14+, it uses the modern `ExecutorJob` path; on earlier systems, it uses a compatible `UnownedJob` path.
   
 - **@NSModelActor Macro**  
   The `@NSModelActor` macro simplifies Core Data concurrency, mirroring SwiftData’s `@ModelActor` macro. It generates the necessary boilerplate code to manage a Core Data stack within an actor, ensuring safe and efficient access to managed objects.
@@ -115,10 +115,10 @@ import CoreDataEvolution
 
 ## System Requirements
 
-- iOS 17.0+ / macOS 14.0+
+- iOS 13.0+ / macOS 10.15+ / watchOS 6.0+ / visionOS 1.0+ / tvOS 13.0+
 - Swift 6.0
 
-Note: Due to system limitations, custom executors and `SerialExecutor` are only available on iOS 17/macOS 14 and later.
+Note: On iOS 17+/macOS 14+, the executor uses the `ExecutorJob` API. On earlier supported systems, it uses a compatible `UnownedJob` executor path.
 
 ## Contributing
 
@@ -131,6 +131,7 @@ CoreDataEvolution is available under the MIT license. See the LICENSE file for m
 ## Acknowledgments
 
 Special thanks to the Swift community for their continuous support and contributions.
+Thanks to [@rnine](https://github.com/rnine) for sharing and validating the iOS 13+ compatibility approach that inspired this adaptation.
 
 ## Support the project
 
