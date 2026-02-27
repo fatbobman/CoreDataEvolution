@@ -13,10 +13,25 @@ fi
 
 echo "🔍 检测到 Swift 文件变更，开始格式化..."
 
-# 检查是否安装了 swift-format (Apple 官方)
-if ! command -v swift-format &> /dev/null; then
+# 查找 swift-format，按优先级依次尝试：
+#   1. $PATH（终端环境、brew 安装等）
+#   2. swiftly 管理的路径
+#   3. active Xcode toolchain（xcrun）
+SWIFT_FORMAT=""
+if command -v swift-format &> /dev/null; then
+    SWIFT_FORMAT="swift-format"
+elif [ -f "$HOME/.swiftly/bin/swift-format" ]; then
+    SWIFT_FORMAT="$HOME/.swiftly/bin/swift-format"
+else
+    TOOLCHAIN_SF=$(xcrun --find swift-format 2>/dev/null)
+    if [ -n "$TOOLCHAIN_SF" ]; then
+        SWIFT_FORMAT="$TOOLCHAIN_SF"
+    fi
+fi
+
+if [ -z "$SWIFT_FORMAT" ]; then
     echo "⚠️  未找到 swift-format，跳过格式化"
-    echo "   安装方法: brew install swift-format"
+    echo "   可通过 swiftly 安装: swiftly install latest"
     echo ""
     echo "   或者跳过此检查: git commit --no-verify"
     exit 0
@@ -31,7 +46,7 @@ for file in $SWIFT_FILES; do
         echo "  📝 格式化: $file"
 
         # 格式化文件 (swift-format 会自动查找 .swift-format 配置)
-        swift-format format --in-place "$file"
+        "$SWIFT_FORMAT" format --in-place "$file"
 
         # 重新暂存格式化后的文件
         git add "$file"
