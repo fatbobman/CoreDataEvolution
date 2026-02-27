@@ -35,8 +35,17 @@ final class TestStack {
 
   let container: NSPersistentContainer
 
-  init(testName: String = #function) {
-    container = NSPersistentContainer.makeTest(model: Self.model, testName: testName)
+  init(
+    testName: String = "",
+    fileID: String = #fileID,
+    function: String = #function
+  ) {
+    container = NSPersistentContainer.makeTest(
+      model: Self.model,
+      testName: testName,
+      fileID: fileID,
+      function: function
+    )
     container.viewContext.automaticallyMergesChangesFromParent = true
   }
 }

@@ -110,8 +110,8 @@ struct WithContextTests {
       container.name
     }
 
-    // container.name is derived from the test function name via makeTest(testName: #function)
-    #expect(containerName == "containerOverloadReturnsValue()")
+    // container.name includes the call-site identity (default #fileID-#function).
+    #expect(containerName.hasSuffix(#function))
   }
 
   // MARK: - NSMainModelActor.withContext

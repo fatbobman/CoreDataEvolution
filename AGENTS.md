@@ -47,7 +47,7 @@ final class MainHandler { … }
 
 ### `NSPersistentContainer.makeTest(model:testName:subDirectory:)`
 
-Isolated on-disk SQLite store for tests. Deletes stale `.sqlite`/`.sqlite-shm`/`.sqlite-wal` before loading. `testName` defaults to `#function` — each test gets its own store. Never use `/dev/null` (shared store causes deadlocks under parallel execution).
+Isolated on-disk SQLite store for tests. Deletes stale `.sqlite`/`.sqlite-shm`/`.sqlite-wal` before loading. `testName` defaults to `#fileID-#function` — each test call site gets its own store. Never use `/dev/null` (shared store causes deadlocks under parallel execution).
 
 ```swift
 @Test func myTest() async throws {

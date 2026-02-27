@@ -17,7 +17,8 @@ extension NSPersistentContainer {
   /// unit tests.
   ///
   /// Each call produces a **fresh, independent store** by:
-  /// 1. Deriving a unique file name from `testName` (pass `#function` for automatic naming).
+  /// 1. Deriving a unique file name from `testName` (or from call-site `#fileID-#function`
+  ///    when `testName` is not provided).
   /// 2. Deleting any pre-existing SQLite files at that path (`.sqlite`, `.sqlite-shm`,
   ///    `.sqlite-wal`) before loading the store.
   ///
@@ -31,7 +32,7 @@ extension NSPersistentContainer {
   /// **Typical usage:**
   /// ```swift
   /// @Test func createItem() async throws {
-  ///     // testName defaults to #function — no need to pass it explicitly
+  ///     // testName defaults to #fileID-#function — no need to pass it explicitly
   ///     let container = NSPersistentContainer.makeTest(model: MyModel.objectModel)
   ///     let handler = DataHandler(container: container)
   ///     // … test body …
@@ -40,8 +41,10 @@ extension NSPersistentContainer {
   ///
   /// - Parameters:
   ///   - model: The `NSManagedObjectModel` describing your Core Data schema.
-  ///   - testName: A unique name for this test's store file. Pass `#function` to use the
-  ///     calling test function's name automatically.
+  ///   - testName: Optional explicit store name override. If omitted, a name is derived from
+  ///     call-site `#fileID` and `#function`.
+  ///   - fileID: Pass-through call-site file identity used when `testName` is omitted.
+  ///   - function: Pass-through call-site function identity used when `testName` is omitted.
   ///   - subDirectory: The temporary sub-directory used to store the SQLite files.
   ///     Defaults to `"CoreDataEvolutionTestTemp"`.
   /// - Returns: A fully loaded `NSPersistentContainer` ready for use.
@@ -51,9 +54,12 @@ extension NSPersistentContainer {
   ///   test completes, so they can be inspected for debugging if needed.
   public static func makeTest(
     model: NSManagedObjectModel,
-    testName: String = #function,
+    testName: String = "",
+    fileID: String = #fileID,
+    function: String = #function,
     subDirectory: String = "CoreDataEvolutionTestTemp"
   ) -> NSPersistentContainer {
+    let resolvedTestName = testName.isEmpty ? "\(fileID)-\(function)" : testName
     let testDirectory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(
       subDirectory)
 
@@ -64,7 +70,8 @@ extension NSPersistentContainer {
       )
     }
 
-    let storeURL = testDirectory.appendingPathComponent("\(testName).sqlite")
+    let sanitizedStoreName = sanitizeStoreFileName(resolvedTestName)
+    let storeURL = testDirectory.appendingPathComponent("\(sanitizedStoreName).sqlite")
 
     // Remove stale SQLite files (main + WAL journal sidecar files) before loading.
     for suffix in ["", "-shm", "-wal"] {
@@ -74,7 +81,7 @@ extension NSPersistentContainer {
       }
     }
 
-    let container = NSPersistentContainer(name: testName, managedObjectModel: model)
+    let container = NSPersistentContainer(name: resolvedTestName, managedObjectModel: model)
 
     let description = NSPersistentStoreDescription(url: storeURL)
     description.shouldAddStoreAsynchronously = false
@@ -82,10 +89,35 @@ extension NSPersistentContainer {
 
     container.loadPersistentStores { _, error in
       if let error {
-        fatalError("Failed to load test store '\(testName)': \(error)")
+        fatalError("Failed to load test store '\(resolvedTestName)': \(error)")
       }
     }
 
     return container
+  }
+
+  private static func sanitizeStoreFileName(_ rawName: String) -> String {
+    let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "._-"))
+    let sanitized = rawName.unicodeScalars.map { scalar in
+      allowed.contains(scalar) ? String(scalar) : "_"
+    }.joined()
+
+    var collapsed = ""
+    collapsed.reserveCapacity(sanitized.count)
+    var previousWasUnderscore = false
+    for character in sanitized {
+      if character == "_" {
+        if !previousWasUnderscore {
+          collapsed.append(character)
+        }
+        previousWasUnderscore = true
+      } else {
+        collapsed.append(character)
+        previousWasUnderscore = false
+      }
+    }
+
+    let trimmed = collapsed.trimmingCharacters(in: CharacterSet(charactersIn: "._-"))
+    return trimmed.isEmpty ? "CoreDataEvolutionTestStore" : trimmed
   }
 }
