@@ -123,7 +123,7 @@ try modelContext.save()
 
 ### withContext
 
-Provides direct, synchronous access to the actor's context (and optionally its container) from within the actor's isolation. The closure runs synchronously with no additional scheduling overhead.
+Provides direct, synchronous access to the actor's context from within the actor's isolation. The closure runs synchronously with no additional scheduling overhead.
 
 This method is primarily intended for **unit tests** — use it to inspect the persistent store state after a write operation, without going through the actor's higher-level API.
 
@@ -134,15 +134,10 @@ try await handler.withContext { context in
     let items = try context.fetch(request)
     #expect(items.count == 1)
 }
-
-// Access both context and container — useful for cross-context verification
-try await handler.withContext { context, container in
-    let verificationContext = container.newBackgroundContext()
-    let request = Item.fetchRequest()
-    let items = try verificationContext.fetch(request)
-    #expect(items.count == 1)
-}
 ```
+
+An overload also provides the `NSPersistentContainer` when needed:
+`withContext { context, container in ... }`.
 
 > **Note:** For production writes, prefer the actor's dedicated mutation methods so that save/rollback logic remains consistent.
 
@@ -171,7 +166,9 @@ Parameters:
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `model` | `NSManagedObjectModel` | — | The managed object model for your schema. |
-| `testName` | `String` | `#fileID-#function` | Unique name for the store file; defaults to call-site file + function. |
+| `testName` | `String` | `""` | Optional explicit store name. When empty, the name is derived from call-site `#fileID-#function`. |
+| `fileID` | `String` | `#fileID` | Call-site file identity used when `testName` is empty. |
+| `function` | `String` | `#function` | Call-site function identity used when `testName` is empty. |
 | `subDirectory` | `String` | `"CoreDataEvolutionTestTemp"` | Temp sub-directory that holds the SQLite files. |
 
 > **Note:** Store files are not deleted immediately after a test completes — they are cleaned up at the start of the *next* run with the same `testName`, so you can inspect them for debugging if needed.
