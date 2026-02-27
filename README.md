@@ -97,13 +97,62 @@ final class DataHandler {
 }
 ```
 
+## NSModelActor Protocol API
+
+All actors decorated with `@NSModelActor` or `@NSMainModelActor` automatically gain the following properties and methods through the `NSModelActor` protocol extension.
+
+### Properties
+
+| Property | Description |
+|---|---|
+| `modelContext: NSManagedObjectContext` | The managed object context associated with this actor. All Core Data operations should go through this context. |
+| `modelContainer: NSPersistentContainer` | The persistent container that owns this actor's context. |
+
+### Subscript
+
+Retrieve a managed object by its `NSManagedObjectID`, cast to the expected type. Returns `nil` if the object does not exist or the cast fails.
+
+```swift
+// Inside an actor method
+guard let item = self[objectID, as: Item.self] else {
+    throw MyError.objectNotFound
+}
+item.timestamp = .now
+try modelContext.save()
+```
+
+### withContext
+
+Provides direct, synchronous access to the actor's context (and optionally its container) from within the actor's isolation. The closure runs synchronously with no additional scheduling overhead.
+
+This method is primarily intended for **unit tests** — use it to inspect the persistent store state after a write operation, without going through the actor's higher-level API.
+
+```swift
+// Verify state after a write — single-context overload
+try await handler.withContext { context in
+    let request = Item.fetchRequest()
+    let items = try context.fetch(request)
+    #expect(items.count == 1)
+}
+
+// Access both context and container — useful for cross-context verification
+try await handler.withContext { context, container in
+    let verificationContext = container.newBackgroundContext()
+    let request = Item.fetchRequest()
+    let items = try verificationContext.fetch(request)
+    #expect(items.count == 1)
+}
+```
+
+> **Note:** For production writes, prefer the actor's dedicated mutation methods so that save/rollback logic remains consistent.
+
 ## Installation
 
 You can add CoreDataEvolution to your project using Swift Package Manager by adding the following dependency to your `Package.swift` file:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/fatbobman/CoreDataEvolution.git", .upToNextMajor(from: "0.3.0"))
+    .package(url: "https://github.com/fatbobman/CoreDataEvolution.git", .upToNextMajor(from: "0.6.0"))
 ]
 ```
 
