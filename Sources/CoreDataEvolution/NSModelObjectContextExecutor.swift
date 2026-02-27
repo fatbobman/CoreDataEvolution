@@ -26,11 +26,6 @@ public final class NSModelObjectContextExecutor: @unchecked Sendable, SerialExec
     }
   }
 
-  @available(macOS 14.0, iOS 17.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
-  public func enqueue(_ job: consuming ExecutorJob) {
-    enqueue(UnownedJob(job))
-  }
-
   public func asUnownedSerialExecutor() -> UnownedSerialExecutor {
     UnownedSerialExecutor(ordinary: self)
   }
