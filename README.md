@@ -23,13 +23,13 @@ SwiftData introduced modern concurrency features like `@ModelActor`, making it e
 ## Key Features
 
 - **Custom Executors for Core Data Actors**  
-  CoreDataEvolution provides custom executors that ensure all operations on managed objects are performed on the appropriate thread associated with their managed object context. On iOS 17+/macOS 14+, it uses the modern `ExecutorJob` path; on earlier systems, it uses a compatible `UnownedJob` path.
+  CoreDataEvolution provides custom executors that ensure all operations on managed objects are performed on the appropriate thread associated with their managed object context. It uses a `UnownedJob`-based serial executor path compatible with the minimum supported OS versions.
   
 - **@NSModelActor Macro**  
   The `@NSModelActor` macro simplifies Core Data concurrency, mirroring SwiftData’s `@ModelActor` macro. It generates the necessary boilerplate code to manage a Core Data stack within an actor, ensuring safe and efficient access to managed objects.
   
 - **NSMainModelActor Macro**
-  `NSMainModelActor` will provide the same functionality as `NSModelActor`, but it will be used to declare a class that runs on the main thread.
+  `NSMainModelActor` is the main-thread companion macro for classes. It binds `modelContext` to `viewContext` and provides the same convenience access APIs (`subscript`, `withContext`) through `NSMainModelActor` protocol extensions.
 
 - **Elegant Actor-based Concurrency**  
   CoreDataEvolution allows you to create actors with custom executors tied to Core Data contexts, ensuring that all operations within the actor are executed serially on the context’s thread.
@@ -81,7 +81,7 @@ public actor DataHandler {
 }
 ```
 
-NSMainModelActor will provide the same functionality as NSModelActor, but it will be used to declare a class that runs on the main thread:
+NSMainModelActor is the main-thread companion macro for classes:
 
 ```swift
 @MainActor
@@ -97,9 +97,9 @@ final class DataHandler {
 }
 ```
 
-## NSModelActor Protocol API
+## Protocol APIs
 
-All actors decorated with `@NSModelActor` or `@NSMainModelActor` automatically gain the following properties and methods through the `NSModelActor` protocol extension.
+Types decorated with `@NSModelActor` and `@NSMainModelActor` gain these APIs through their corresponding protocol extensions (`NSModelActor` and `NSMainModelActor`):
 
 ### Properties
 
@@ -182,7 +182,7 @@ You can add CoreDataEvolution to your project using Swift Package Manager by add
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/fatbobman/CoreDataEvolution.git", .upToNextMajor(from: "0.7.0"))
+    .package(url: "https://github.com/fatbobman/CoreDataEvolution.git", .upToNextMajor(from: "0.7.2"))
 ]
 ```
 
@@ -197,7 +197,7 @@ import CoreDataEvolution
 - iOS 13.0+ / macOS 10.15+ / watchOS 6.0+ / visionOS 1.0+ / tvOS 13.0+
 - Swift 6.0
 
-Note: On iOS 17+/macOS 14+, the executor uses the `ExecutorJob` API. On earlier supported systems, it uses a compatible `UnownedJob` executor path.
+Note: The custom executor uses a compatible `UnownedJob` serial-executor path to support the minimum deployment targets.
 
 ## Contributing
 

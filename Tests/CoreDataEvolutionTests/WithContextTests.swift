@@ -113,4 +113,38 @@ struct WithContextTests {
     // container.name is derived from the test function name via makeTest(testName: #function)
     #expect(containerName == "containerOverloadReturnsValue()")
   }
+
+  // MARK: - NSMainModelActor.withContext
+
+  /// Verifies that `withContext` is also available on @NSMainModelActor types.
+  @MainActor
+  @Test("main withContext - fetch items after creation")
+  func mainWithContextFetchItemsAfterCreation() throws {
+    let stack = TestStack()
+    let handler = MainHandler(modelContainer: stack.container)
+
+    _ = try handler.createNemItem()
+    _ = try handler.createNemItem()
+
+    let count = try handler.withContext { context in
+      let request = Item.fetchRequest()
+      return try context.fetch(request).count
+    }
+
+    #expect(count == 2)
+  }
+
+  /// Verifies the container overload on @NSMainModelActor types.
+  @MainActor
+  @Test("main withContext(container) - container is accessible")
+  func mainContainerOverloadWorks() throws {
+    let stack = TestStack()
+    let handler = MainHandler(modelContainer: stack.container)
+
+    let contextName = try handler.withContext { _, container in
+      container.viewContext.name
+    }
+
+    #expect(contextName == stack.container.viewContext.name)
+  }
 }
