@@ -35,14 +35,8 @@ final class TestStack {
 
   let container: NSPersistentContainer
 
-  init(url: URL = URL(fileURLWithPath: "/dev/null")) {
-    container = NSPersistentContainer(name: "TestModel", managedObjectModel: Self.model)
-    container.persistentStoreDescriptions.first!.url = url
-    container.loadPersistentStores { _, error in
-      if let error = error as NSError? {
-        fatalError("Unresolved error \(error), \(error.userInfo)")
-      }
-    }
+  init(testName: String = #function) {
+    container = NSPersistentContainer.makeTest(model: Self.model, testName: testName)
     container.viewContext.automaticallyMergesChangesFromParent = true
   }
 }

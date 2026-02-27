@@ -146,13 +146,43 @@ try await handler.withContext { context, container in
 
 > **Note:** For production writes, prefer the actor's dedicated mutation methods so that save/rollback logic remains consistent.
 
+## Testing Utilities
+
+### NSPersistentContainer.makeTest
+
+Creates an isolated, on-disk SQLite store for each test, avoiding the two most common pitfalls:
+
+- **`/dev/null` (shared in-memory)**: all tests sharing the same URL read from and write to the same store — parallel execution causes data leakage and deadlocks.
+- **Named in-memory stores**: WAL sidecar files (`.sqlite-shm`, `.sqlite-wal`) can linger between runs, producing phantom data.
+
+`makeTest` solves this by using `#function` as the default `testName`, so each test automatically gets its own store file. Stale files from the previous run are deleted before the store loads.
+
+```swift
+@Test func createItem() async throws {
+    // testName defaults to #function — each test gets its own store
+    let container = NSPersistentContainer.makeTest(model: MySchema.objectModel)
+    let handler = DataHandler(container: container)
+    // … test body …
+}
+```
+
+Parameters:
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `model` | `NSManagedObjectModel` | — | The managed object model for your schema. |
+| `testName` | `String` | `#function` | Unique name for the store file; pass `#function` to auto-derive from the test name. |
+| `subDirectory` | `String` | `"CoreDataEvolutionTestTemp"` | Temp sub-directory that holds the SQLite files. |
+
+> **Note:** Store files are not deleted immediately after a test completes — they are cleaned up at the start of the *next* run with the same `testName`, so you can inspect them for debugging if needed.
+
 ## Installation
 
 You can add CoreDataEvolution to your project using Swift Package Manager by adding the following dependency to your `Package.swift` file:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/fatbobman/CoreDataEvolution.git", .upToNextMajor(from: "0.6.0"))
+    .package(url: "https://github.com/fatbobman/CoreDataEvolution.git", .upToNextMajor(from: "0.7.0"))
 ]
 ```
 

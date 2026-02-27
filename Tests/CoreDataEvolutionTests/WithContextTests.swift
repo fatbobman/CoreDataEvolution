@@ -110,6 +110,7 @@ struct WithContextTests {
       container.name
     }
 
-    #expect(containerName == "TestModel")
+    // container.name is derived from the test function name via makeTest(testName: #function)
+    #expect(containerName == "containerOverloadReturnsValue()")
   }
 }
