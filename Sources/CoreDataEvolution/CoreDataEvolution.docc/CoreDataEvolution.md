@@ -14,7 +14,7 @@ SwiftData introduced modern concurrency features like `@ModelActor`, making it e
 
 ### Custom Executors for Core Data Actors
 
-CoreDataEvolution provides custom executors that ensure all operations on managed objects are performed on the appropriate thread associated with their managed object context. On iOS 17+/macOS 14+, it uses the modern `ExecutorJob` path; on earlier systems, it uses a compatible `UnownedJob` path.
+CoreDataEvolution provides custom executors that ensure all operations on managed objects are performed on the appropriate thread associated with their managed object context. It uses a compatible `UnownedJob`-based serial executor path across the supported deployment targets.
 
 ### @NSModelActor Macro
 
@@ -22,7 +22,7 @@ The `@NSModelActor` macro simplifies Core Data concurrency, mirroring SwiftData'
 
 ### NSMainModelActor Macro
 
-`NSMainModelActor` provides the same functionality as `NSModelActor`, but is used to declare a class that runs on the main thread.
+`NSMainModelActor` is the main-thread companion macro for classes. It binds `modelContext` to `viewContext` and is intended for `@MainActor` types.
 
 ### Elegant Actor-based Concurrency
 
@@ -101,7 +101,7 @@ Add CoreDataEvolution to your project using Swift Package Manager:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/fatbobman/CoreDataEvolution.git", .upToNextMajor(from: "0.3.0"))
+    .package(url: "https://github.com/fatbobman/CoreDataEvolution.git", .upToNextMajor(from: "0.7.5"))
 ]
 ```
 
@@ -116,7 +116,7 @@ import CoreDataEvolution
 - iOS 13.0+ / macOS 10.15+ / watchOS 6.0+ / visionOS 1.0+ / tvOS 13.0+
 - Swift 6.0
 
-> Important: On iOS 17+/macOS 14+, the executor uses the `ExecutorJob` API. On earlier supported systems, it uses a compatible `UnownedJob` executor path.
+> Important: The custom executor uses a compatible `UnownedJob` serial-executor path to support the minimum deployment targets.
 
 ## Acknowledgments
 
