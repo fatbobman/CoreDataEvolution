@@ -14,8 +14,18 @@ import Foundation
 
 extension NSPersistentContainer {
   /// Core Data store loading is not stable under extreme parallel test container creation.
-  /// Serialize the creation/loading path for test containers to avoid sporadic crashes inside
-  /// `loadPersistentStores`, while still allowing the tests themselves to execute in parallel.
+  ///
+  /// This lock exists because real-world suites can create many `NSPersistentContainer`
+  /// instances concurrently in the same process while still using shared static helpers such as
+  /// a single `NSManagedObjectModel` factory.
+  ///
+  /// That exact pattern showed up in `PersistentHistoryTrackingKit`'s tests:
+  /// many Core Data-heavy test cases, one process, shared static test model/container helpers,
+  /// unique SQLite store URLs, and still sporadic crashes or deadlocks during
+  /// `loadPersistentStores`.
+  ///
+  /// Serialize the container creation/loading path for test containers to avoid those failures,
+  /// while still allowing the tests themselves to execute in parallel after initialization.
   private static let testContainerCreationLock = NSLock()
 
   /// Creates an `NSPersistentContainer` backed by an isolated on-disk SQLite store for use in
@@ -33,6 +43,11 @@ extension NSPersistentContainer {
   ///   deadlocks.
   /// - **Named in-memory stores**: SQLite's WAL journal and shared-memory sidecar files can
   ///   linger between runs when using a named in-memory store, leading to phantom data.
+  ///
+  /// It also guards against a separate issue: even with unique store URLs, creating many Core
+  /// Data containers concurrently in one process can still crash or hang inside
+  /// `loadPersistentStores`. `makeTest` serializes only the container creation/loading path to
+  /// keep parallel test execution viable.
   ///
   /// **Typical usage:**
   /// ```swift

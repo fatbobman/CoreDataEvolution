@@ -101,7 +101,7 @@ Add CoreDataEvolution to your project using Swift Package Manager:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/fatbobman/CoreDataEvolution.git", .upToNextMajor(from: "0.7.5"))
+    .package(url: "https://github.com/fatbobman/CoreDataEvolution.git", .upToNextMajor(from: "0.7.7"))
 ]
 ```
 

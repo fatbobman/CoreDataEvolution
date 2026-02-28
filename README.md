@@ -172,6 +172,8 @@ Parameters:
 | `subDirectory` | `String` | `"CoreDataEvolutionTestTemp"` | Temp sub-directory that holds the SQLite files. |
 
 > **Note:** Store files are not deleted immediately after a test completes — they are cleaned up at the start of the *next* run with the same `testName`, so you can inspect them for debugging if needed.
+>
+> Even if you do not use `CoreDataEvolution`'s `makeTest` helper, the same testing principle still applies: use unique store URLs per test, prefer a shared static `NSManagedObjectModel`, and serialize `NSPersistentContainer` creation / `loadPersistentStores` when many Core Data-heavy tests run concurrently in the same process.
 
 ## Installation
 
@@ -179,7 +181,7 @@ You can add CoreDataEvolution to your project using Swift Package Manager by add
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/fatbobman/CoreDataEvolution.git", .upToNextMajor(from: "0.7.5"))
+    .package(url: "https://github.com/fatbobman/CoreDataEvolution.git", .upToNextMajor(from: "0.7.7"))
 ]
 ```
 
