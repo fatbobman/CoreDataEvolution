@@ -113,6 +113,9 @@ The tests encode several important constraints. Preserve them.
 - Use `NSPersistentContainer.makeTest(...)` for test stores.
 - Do not use `/dev/null` as a Core Data store URL. This repo explicitly avoids it because parallel tests can share state and deadlock.
 - `makeTest` uses an on-disk SQLite store under a temp subdirectory and deletes stale `.sqlite`, `.sqlite-shm`, and `.sqlite-wal` files before loading.
+- `makeTest` intentionally serializes `NSPersistentContainer` creation and `loadPersistentStores` with a global lock.
+- Reason: under extreme parallel test execution, Core Data can crash inside `loadPersistentStores` with `EXC_BAD_ACCESS` even when every test uses a unique SQLite store URL.
+- Do not remove that lock unless the container initialization path is reworked and revalidated under repeated parallel stress runs.
 - `testName` defaults to call-site identity via `#fileID` and `#function`. That isolation is intentional.
 - Test model definitions should use `static let` for `NSManagedObjectModel`; multiple model instances for the same schema can break store registration.
 - Test helper files use `@preconcurrency import CoreData` to suppress Swift 6 sendability noise around Core Data types.

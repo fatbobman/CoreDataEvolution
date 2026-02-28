@@ -13,6 +13,11 @@ import Foundation
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
 extension NSPersistentContainer {
+  /// Core Data store loading is not stable under extreme parallel test container creation.
+  /// Serialize the creation/loading path for test containers to avoid sporadic crashes inside
+  /// `loadPersistentStores`, while still allowing the tests themselves to execute in parallel.
+  private static let testContainerCreationLock = NSLock()
+
   /// Creates an `NSPersistentContainer` backed by an isolated on-disk SQLite store for use in
   /// unit tests.
   ///
@@ -59,6 +64,9 @@ extension NSPersistentContainer {
     function: String = #function,
     subDirectory: String = "CoreDataEvolutionTestTemp"
   ) -> NSPersistentContainer {
+    testContainerCreationLock.lock()
+    defer { testContainerCreationLock.unlock() }
+
     let resolvedTestName = testName.isEmpty ? "\(fileID)-\(function)" : testName
     let testDirectory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(
       subDirectory)
