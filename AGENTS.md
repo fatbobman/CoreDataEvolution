@@ -44,7 +44,7 @@ Useful targeted runs:
 ```bash
 swift test --filter NSModelActorTests
 swift test --filter WithContextTests
-swift test --filter IntegrationModelTests
+swift test --filter IntegrationModel
 ```
 
 Formatting, if `swift-format` is installed:
@@ -141,6 +141,9 @@ The tests encode several important constraints. Preserve them.
 - Test helper files use `@preconcurrency import CoreData` to suppress Swift 6 sendability noise around Core Data types.
 - `TestStack` sets `container.viewContext.automaticallyMergesChangesFromParent = true`; keep that in mind when changing tests involving background writes.
 - Main-thread tests are explicitly marked `@MainActor`.
+- For tests that verify real persistence behavior, prefer suite-local `@NSModelActor` handlers over directly manipulating contexts in test functions.
+- If a test needs direct context/container access for assertions, use `try await handler.withContext { ... }` so operations stay in the actor isolation domain.
+- Use `@MainActor` test suites only when the behavior under test is explicitly main-actor/viewContext specific.
 
 ## Test Plan
 

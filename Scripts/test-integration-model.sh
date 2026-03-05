@@ -20,4 +20,4 @@ if [[ -z "${CDE_INTEGRATION_MODEL_MOMD:-}" ]]; then
 fi
 
 cd "$ROOT_DIR"
-swift test --filter IntegrationModelTests "$@"
+swift test --filter IntegrationModel "$@"
