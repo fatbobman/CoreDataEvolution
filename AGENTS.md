@@ -143,6 +143,33 @@ When making code changes:
 - Keep main-actor and background-actor behavior aligned where appropriate; the two protocol extensions intentionally expose similar APIs.
 - Be conservative around availability, executor behavior, and Core Data threading assumptions.
 
+## Current WIP (TypedPath)
+
+There is active WIP for typed path mapping and NSPredicate construction.
+
+- Source location: `Sources/CoreDataEvolution/TypedPath/`
+- Test location: `Tests/CoreDataEvolutionTests/TypedPath/`
+- Purpose: support `Keys + path + __cdFieldTable` as the shared base for sort and `%K`-based predicate building.
+
+Current scope:
+
+- Typed sort construction from `Object.Keys` and `Object.path.*`
+- `%K` predicate building from mapped paths (including composition and relationships)
+- To-many predicate quantifiers: `any` / `all` / `none`
+- Composition metadata contract via `CDCompositionPathProviding` (no runtime reflection)
+
+Current boundaries:
+
+- Sort does **not** support to-many relationship paths.
+- Predicate layer currently stays on Foundation `NSPredicate` (no separate `CDPredicate` type).
+- `.none` and `.all` are expanded using `NOT (ANY ...)` forms for compatibility.
+
+When editing this area:
+
+- Keep mapping key space anchored to Swift paths in `__cdFieldTable`.
+- Keep `%K` as the only key interpolation path for predicate format strings.
+- Update both docs (`Specification.md`, `ImplementationPlan.md`, `DesignNotes.md`) and tests together.
+
 ## Files Worth Reading Before Nontrivial Changes
 
 - `Package.swift`
@@ -156,6 +183,8 @@ When making code changes:
 - `Tests/CoreDataEvolutionTests/NSModelActorTests.swift`
 - `Tests/CoreDataEvolutionTests/WithContextTests.swift`
 - `Tests/CoreDataEvolutionTests/Helper/Container.swift`
+- `Sources/CoreDataEvolution/TypedPath/`
+- `Tests/CoreDataEvolutionTests/TypedPath/`
 
 ## Documentation Scope
 

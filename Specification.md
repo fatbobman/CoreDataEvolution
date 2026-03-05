@@ -137,7 +137,7 @@ enum RelationshipGenerationPolicy { case none, warning, plain }
 必须支持两类构造：
 
 1. 平面 key 构造：`NSSortDescriptor(Item.self, key: .date, ascending: true)`  
-2. 子路径构造：`NSSortDescriptor(Item.self, path: Item.Paths.magnitude.richter, order: .desc)`  
+2. 子路径构造：`NSSortDescriptor(Item.self, path: Item.path.magnitude.richter, order: .desc)`  
 
 支持参数：
 
@@ -145,9 +145,18 @@ enum RelationshipGenerationPolicy { case none, warning, plain }
 - `collation`
 - `mode`（区分 storeCompatible / inMemory）
 
+约束：
+
+- sort 不支持 to-many 关系路径；遇到 to-many 路径需给出明确错误。  
+
 ## 7. Predicate Contract
 
 查询条件优先使用 `NSPredicate`。
+
+推荐通过 `%K` + 路径映射构建：
+
+- 平面字段：`Item.Keys.xxx.rawValue`
+- 路径字段：`Item.path.xxx.raw`（或等价映射结果）
 
 `#Predicate` 在下列场景不作为规范路径：
 
@@ -159,6 +168,12 @@ enum RelationshipGenerationPolicy { case none, warning, plain }
 ```swift
 NSPredicate(format: "%K == %@", Item.Keys.status.rawValue, status.rawValue)
 ```
+
+关系量词建议：
+
+- `any` -> `ANY %K ...`
+- `all` -> `NOT (ANY %K <inverse-op> ...)`
+- `none` -> `NOT (ANY %K ...)`
 
 ## 8. Tool Contract
 
@@ -207,4 +222,3 @@ NSPredicate(format: "%K == %@", Item.Keys.status.rawValue, status.rawValue)
 [ERROR]   Item.tags: relationship has no inverse set (required by this convention)
 [MIGRATION] Open xcdatamodeld -> Item.tags, set Inverse to Tag.items (or matching inverse relationship), then rerun validation
 ```
-

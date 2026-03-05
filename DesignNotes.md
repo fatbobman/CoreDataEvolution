@@ -502,7 +502,7 @@ extension Item: CoreDataKeys {
 }
 ```
 
-`enum Keys` 保留用于平面字段；子路径能力通过 `Paths` + `CDPath` 提供（包含 relationship / composition 子路径）。
+`enum Keys` 保留用于平面字段；子路径能力通过 `Paths` + `CDPath` 提供（包含 relationship / composition 子路径）。对外调用可提供 `Model.path.*` 作为 `Paths` 的薄封装，减少样板代码。
 
 ### NSSortDescriptor 扩展（v1）
 
@@ -542,10 +542,11 @@ extension NSSortDescriptor {
 
 // 使用
 NSSortDescriptor(Item.self, key: .date, ascending: true)
-NSSortDescriptor(Item.self, path: Item.Paths.magnitude.richter, order: .desc)
+NSSortDescriptor(Item.self, path: Item.path.magnitude.richter, order: .desc)
 ```
 
 说明：`mode` 与 `collation` 用于区分“可下推到 store 的排序”与“需要内存排序的本地化比较”，以支持更多排序构造样式。
+补充约束：sort 不支持 to-many 关系路径，遇到时应给出明确错误。
 
 ### 谓词中的安全 Key
 
@@ -565,6 +566,12 @@ NSPredicate(format: "%K > %@", Item.Keys.date.rawValue, someDate as CVarArg)
 - Swift 类型与持久化存储类型不一致（如 `enum` 对应 `rawValue` 存储）
 
 因此在上述场景中应统一使用 `NSPredicate`（配合 `%K` + `Keys.rawValue`）。
+
+对于 relationship/composition 子路径，建议统一通过路径映射后的 `%K` 构建；to-many 量词语义建议采用：
+
+- `any` -> `ANY %K ...`
+- `all` -> `NOT (ANY %K <inverse-op> ...)`
+- `none` -> `NOT (ANY %K ...)`
 
 ---
 

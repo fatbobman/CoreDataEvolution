@@ -59,8 +59,9 @@
 
 验收标准：
 
-- 可通过 `Item.Paths.magnitude.richter` 构造排序
+- 可通过 `Item.path.magnitude.richter` 构造排序
 - 对 renamed 属性使用 `Keys` 排序时落到持久化 key
+- to-many 路径用于 sort 时明确拒绝
 
 ### M3: Validate Tool
 
@@ -131,4 +132,3 @@
 - [ ] generate 工具完成并接入命令入口
 - [ ] 规范文档与实现行为一致
 - [ ] `tagsCount` 决策收敛
-
