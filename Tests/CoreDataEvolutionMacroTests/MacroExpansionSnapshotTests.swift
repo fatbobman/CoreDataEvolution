@@ -47,4 +47,9 @@ struct MacroExpansionSnapshotTests {
   func ignoreMarkerSnapshot() throws {
     try MacroTestSupport.assertExpansionSnapshot(fixtureName: "IgnoreMarker")
   }
+
+  @Test("PersistentModel basic snapshot")
+  func persistentModelBasicSnapshot() throws {
+    try MacroTestSupport.assertExpansionSnapshot(fixtureName: "PersistentModelBasic")
+  }
 }

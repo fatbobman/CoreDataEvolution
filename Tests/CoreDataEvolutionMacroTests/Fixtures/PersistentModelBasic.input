@@ -1,0 +1,22 @@
+import CoreData
+import CoreDataEvolution
+import Foundation
+
+@PersistentModel(
+  generateInit: true,
+  relationshipSetterPolicy: .plain,
+  relationshipCountPolicy: .none
+)
+final class Item: NSManagedObject {
+  @Attribute(originalName: "timestamp")
+  var date: Date?
+
+  var title: String = ""
+
+  @Ignore
+  var transientCache: [String: Int] = [:]
+
+  var tags: Set<Tag>
+  var orderedTags: [Tag]
+  var category: Category?
+}

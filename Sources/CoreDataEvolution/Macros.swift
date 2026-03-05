@@ -22,6 +22,12 @@ public enum AttributeDecodeFailurePolicy {
   case debugAssertNil
 }
 
+public enum RelationshipGenerationPolicy {
+  case none
+  case warning
+  case plain
+}
+
 @attached(member, names: named(modelExecutor), named(modelContainer), named(init))
 @attached(extension, conformances: NSModelActor)
 public macro NSModelActor(disableGenerateInit: Bool = false) =
@@ -44,6 +50,25 @@ public macro Composition() =
 @attached(peer)
 public macro Ignore() =
   #externalMacro(module: "CoreDataEvolutionMacros", type: "IgnoreMacro")
+
+@attached(accessor)
+@attached(peer)
+public macro _CDRelationship(
+  setterPolicy: RelationshipGenerationPolicy = .none,
+  _fromPersistentModel: Bool = false
+) = #externalMacro(module: "CoreDataEvolutionMacros", type: "RelationshipMacro")
+
+@attached(memberAttribute)
+@attached(
+  member,
+  names: named(Keys), named(Paths), named(PathRoot), named(path), named(__cdFieldTable), named(init)
+)
+@attached(extension, conformances: PersistentEntity)
+public macro PersistentModel(
+  generateInit: Bool = true,
+  relationshipSetterPolicy: RelationshipGenerationPolicy = .none,
+  relationshipCountPolicy: RelationshipGenerationPolicy = .none
+) = #externalMacro(module: "CoreDataEvolutionMacros", type: "PersistentModelMacro")
 
 @attached(accessor)
 @attached(peer)

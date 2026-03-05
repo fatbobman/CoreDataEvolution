@@ -13,6 +13,68 @@ import Testing
 
 @Suite("Macro Diagnostics")
 struct MacroDiagnosticTests {
+  @Test("PersistentModel rejects non-class declaration")
+  func persistentModelRejectsNonClassDeclaration() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        @PersistentModel
+        struct S {}
+        """
+    )
+    #expect(
+      result.diagnostics.contains { $0.contains("can only be attached to a class declaration") })
+  }
+
+  @Test("PersistentModel rejects unknown argument")
+  func persistentModelRejectsUnknownArgument() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        @PersistentModel(relationshipGetterPolicy: .plain)
+        final class S: NSManagedObject {}
+        """
+    )
+    #expect(
+      result.diagnostics.contains {
+        $0.contains("unknown argument label `relationshipGetterPolicy`")
+      })
+  }
+
+  @Test("PersistentModel auto-applies Attribute to unannotated persisted var")
+  func persistentModelAutoAppliesAttributeToUnannotatedPersistedVar() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        @PersistentModel
+        final class Item: NSManagedObject {
+          var title: String = ""
+        }
+        """
+    )
+    #expect(result.diagnostics.isEmpty)
+    #expect(result.expandedSource.contains("value(forKey: \"title\") as? String"))
+    #expect(result.expandedSource.contains("setValue(newValue, forKey: \"title\")"))
+  }
+
+  @Test("_CDRelationship rejects manual use outside PersistentModel")
+  func relationshipRejectsManualUseOutsidePersistentModel() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        final class Item: NSManagedObject {
+          @_CDRelationship
+          var category: Category?
+        }
+        """
+    )
+    #expect(
+      result.diagnostics.contains {
+        $0.contains("can only be used inside @PersistentModel types")
+      })
+  }
+
   @Test("Attribute default accepts primitive type")
   func attributeDefaultAcceptsPrimitive() throws {
     let result = try MacroTestSupport.expand(

@@ -45,6 +45,10 @@ enum MacroTestSupport {
   static let indentationWidth: Trivia = .spaces(2)
 
   static let macroSpecs: [String: MacroSpec] = [
+    "PersistentModel": MacroSpec(
+      type: PersistentModelMacro.self,
+      conformances: ["PersistentEntity"]
+    ),
     "Attribute": MacroSpec(
       type: AttributeMacro.self
     ),
@@ -54,6 +58,9 @@ enum MacroTestSupport {
     ),
     "Ignore": MacroSpec(
       type: IgnoreMacro.self
+    ),
+    "_CDRelationship": MacroSpec(
+      type: RelationshipMacro.self
     ),
   ]
 
