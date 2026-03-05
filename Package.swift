@@ -24,9 +24,14 @@ let package = Package(
       name: "CoreDataEvolutionClient",
       targets: ["CoreDataEvolutionClient"],
     ),
+    .executable(
+      name: "cde-tool",
+      targets: ["CDETool"],
+    ),
   ],
   dependencies: [
-    .package(url: "https://github.com/swiftlang/swift-syntax", "600.0.0"..<"603.0.0")
+    .package(url: "https://github.com/swiftlang/swift-syntax", "600.0.0"..<"603.0.0"),
+    .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
   ],
   targets: [
     // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -73,6 +78,12 @@ let package = Package(
       ]
     ),
     .executableTarget(name: "CoreDataEvolutionClient", dependencies: ["CoreDataEvolution"]),
+    .executableTarget(
+      name: "CDETool",
+      dependencies: [
+        .product(name: "ArgumentParser", package: "swift-argument-parser")
+      ]
+    ),
   ],
   swiftLanguageModes: [.v6],
 )

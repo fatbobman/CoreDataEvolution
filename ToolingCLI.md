@@ -1,0 +1,293 @@
+# CoreDataEvolution Tooling CLI (WIP)
+
+## 1. 目标与范围
+
+CLI v1 先解决两件事：
+
+- `generate`: 根据 Core Data 模型生成 Swift 模型代码（宏风格）。
+- `validate`: 验证模型与代码是否对齐，提前发现漂移。
+
+后续的 SPM Plugin 和 GUI 版本都复用同一套核心引擎（解析 -> IR -> 生成 -> 校验），只替换入口层。
+
+## 2. 命令草案
+
+### `cde-tool generate`
+
+用途：从 `.xcdatamodeld`（或已编译 `.momd`）生成 Swift 文件。
+
+### `cde-tool validate`
+
+用途：检查“模型文件 + 已有代码”是否一致，不写文件。
+
+### `cde-tool inspect`（可选，v1.1）
+
+用途：输出解析后的中间模型（IR），便于调试和 GUI 展示。
+
+### `cde-tool init-config`
+
+用途：导出默认配置模板 JSON，作为项目配置起点。
+
+## 3. 配置文件（JSON）
+
+为避免每次传入大量参数，CLI 支持：
+
+- `--config <path/to/cde-tool.json>`
+
+参数优先级：
+
+- 命令行参数 > 配置文件 > 内置默认值
+
+推荐结构（按命令分段）：
+
+```json
+{
+  "generate": {
+    "modelPath": "Models/AppModel.xcdatamodeld",
+    "modelVersion": null,
+    "momcBin": null,
+    "outputDir": "Generated/CoreDataEvolution",
+    "moduleName": "AppModels",
+    "accessLevel": "internal",
+    "singleFile": false,
+    "splitByEntity": true,
+    "overwrite": "none",
+    "cleanStale": false,
+    "dryRun": false,
+    "format": "swift-format",
+    "headerTemplate": null,
+    "generateInit": false,
+    "relationshipSetterPolicy": "warning",
+    "relationshipCountPolicy": "none",
+    "defaultDecodeFailurePolicy": "fallbackToDefaultValue"
+  },
+  "validate": {
+    "modelPath": "Models/AppModel.xcdatamodeld",
+    "modelVersion": null,
+    "sourceDir": "Sources/AppModels",
+    "moduleName": "AppModels",
+    "include": [],
+    "exclude": [],
+    "level": "quick",
+    "report": "text",
+    "failOnWarning": false,
+    "maxIssues": 200
+  }
+}
+```
+
+配置读取规则：
+
+- 运行 `cde-tool generate` 时读取 `generate` 节点。
+- 运行 `cde-tool validate` 时读取 `validate` 节点。
+- 命令行显式传入参数优先覆盖配置文件同名字段。
+
+### 3.1 默认配置模板导出
+
+建议支持：
+
+- `cde-tool init-config --output cde-tool.json`
+- `cde-tool init-config --stdout`
+
+参数草案：
+
+- `--output <path>`
+  - 可选，默认 `./cde-tool.json`。
+- `--stdout`
+  - 可选。输出到标准输出，不写文件。
+- `--force`
+  - 可选。覆盖已存在配置文件。
+- `--preset <minimal|full>`
+  - 可选，默认 `full`。
+  - `minimal`: 仅输出 required 字段。
+  - `full`: 输出完整字段及默认值。
+
+行为约束：
+
+- 目标文件已存在且未指定 `--force` 时返回非零退出码。
+- 生成模板始终使用最新 schema 版本字段。
+- 模板中可添加 `"$schemaVersion"` 方便后续升级迁移。
+
+### 3.2 `init-config` 退出码与错误文案
+
+退出码建议：
+
+- `0`: 成功导出模板。
+- `1`: 用户可修复错误（参数冲突、目标文件已存在、路径不可写）。
+- `2`: 运行时异常（I/O 异常、编码失败、未知内部错误）。
+
+标准错误文案建议：
+
+| 场景 | 文案示例 | 退出码 |
+| --- | --- | --- |
+| `--output` 与 `--stdout` 同时出现 | `error: --output and --stdout cannot be used together.` | `1` |
+| 目标文件存在且未 `--force` | `error: config file already exists at '<path>'. Use --force to overwrite.` | `1` |
+| `--preset` 非法值 | `error: unsupported preset '<value>'. Allowed: minimal, full.` | `1` |
+| 输出目录不存在 | `error: output directory does not exist: '<dir>'.` | `1` |
+| 无写权限 | `error: cannot write config file to '<path>' (permission denied).` | `1` |
+| JSON 序列化失败 | `error: failed to encode config template as JSON.` | `2` |
+| 未知内部错误 | `error: init-config failed due to an internal error.` | `2` |
+
+日志约定建议：
+
+- 成功写文件时输出：`wrote config template to <path>`
+- `--stdout` 模式下不输出额外日志，仅输出 JSON 内容。
+
+## 4. `generate` 参数设计（v1）
+
+### 4.1 模型输入参数
+
+- `--model-path <path>`
+  - 支持：`.xcdatamodeld`、`.xcdatamodel`、`.momd`。
+  - v1 推荐主输入：`.xcdatamodeld`。
+- `--model-version <name>`
+  - 可选。用于显式指定 `.xcdatamodeld` 版本。
+  - 未指定时：默认使用当前版本（`*.xccurrentversion`），若缺失则回退到最新版本。
+- `--momc-bin <path>`
+  - 可选。覆盖 `xcrun --find momc` 自动查找逻辑。
+
+### 4.2 输出参数
+
+- `--output-dir <path>`
+  - 生成文件目标目录。
+- `--module-name <name>`
+  - 代码中 `import` 与类型引用需要的模块名。
+- `--access-level <internal|public>`
+  - 生成代码默认可见性。
+- `--single-file`
+  - 单文件输出模式（默认 false）。
+- `--split-by-entity`
+  - 按实体拆分多个文件（默认 true）。
+
+### 4.3 生成行为参数
+
+- `--overwrite <mode>`
+  - `none`: 默认，目标存在则失败。
+  - `changed`: 仅覆盖内容不同且带生成标记的文件。
+  - `all`: 覆盖所有目标文件（限目标目录）。
+- `--clean-stale`
+  - 删除旧的“已生成但本轮不存在”的文件（仅处理带生成标记的文件）。
+- `--dry-run`
+  - 不写磁盘，打印变更摘要。
+- `--format <none|swift-format>`
+  - 是否在写入前格式化。
+- `--header-template <path>`
+  - 自定义文件头模板（如项目统一版权头）。
+
+### 4.4 宏生成策略参数（映射到当前宏能力）
+
+- `--generate-init <true|false>`
+- `--relationship-setter-policy <none|warning|plain>`
+- `--relationship-count-policy <none|warning|plain>`
+- `--default-decode-failure-policy <fallbackToDefaultValue|debugAssertNil>`
+
+说明：这些参数作为“生成代码默认策略”，具体属性仍允许在代码层用 `@Attribute(...)` 覆盖。
+
+### 4.5 `generate` 配置约束（schema 级别）
+
+- `modelPath`: required, string，无默认值。
+- `modelVersion`: optional, string/null，默认 `null`（自动选择当前版本，缺失则最新）。
+- `momcBin`: optional, string/null，默认 `null`（自动发现）。
+- `outputDir`: required, string，无默认值。
+- `moduleName`: required, string，无默认值。
+- `accessLevel`: optional, enum(`internal`,`public`)，默认 `internal`。
+- `singleFile`: optional, bool，默认 `false`。
+- `splitByEntity`: optional, bool，默认 `true`。
+- `overwrite`: optional, enum(`none`,`changed`,`all`)，默认 `none`。
+- `cleanStale`: optional, bool，默认 `false`。
+- `dryRun`: optional, bool，默认 `false`。
+- `format`: optional, enum(`none`,`swift-format`)，默认 `none`。
+- `headerTemplate`: optional, string/null，默认 `null`。
+- `generateInit`: optional, bool，默认 `false`。
+- `relationshipSetterPolicy`: optional, enum(`none`,`warning`,`plain`)，默认 `warning`。
+- `relationshipCountPolicy`: optional, enum(`none`,`warning`,`plain`)，默认 `none`。
+- `defaultDecodeFailurePolicy`: optional, enum(`fallbackToDefaultValue`,`debugAssertNil`)，默认 `fallbackToDefaultValue`。
+
+## 5. `validate` 参数设计（v1）
+
+### 5.1 输入范围
+
+- `--model-path <path>`
+- `--source-dir <path>`
+- `--module-name <name>`
+- `--include <glob>`
+- `--exclude <glob>`
+
+### 5.2 校验级别
+
+- `--level <quick|strict>`
+  - `quick`: 只做结构映射检查（实体/字段/关系/类型映射）。
+  - `strict`: 额外做“可编译性 + 运行时基础校验”。
+
+### 5.3 输出与退出码
+
+- `--report <text|json|sarif>`
+- `--fail-on-warning`
+- `--max-issues <n>`
+
+退出码约定：
+
+- `0`: 无错误。
+- `1`: 存在验证错误。
+- `2`: 参数或运行时异常（例如模型读取失败）。
+
+### 5.4 `validate` 配置约束（schema 级别）
+
+- `modelPath`: required, string，无默认值。
+- `modelVersion`: optional, string/null，默认 `null`（自动选择当前版本，缺失则最新）。
+- `sourceDir`: required, string，无默认值。
+- `moduleName`: required, string，无默认值。
+- `include`: optional, array<string>，默认 `[]`。
+- `exclude`: optional, array<string>，默认 `[]`。
+- `level`: optional, enum(`quick`,`strict`)，默认 `quick`。
+- `report`: optional, enum(`text`,`json`,`sarif`)，默认 `text`。
+- `failOnWarning`: optional, bool，默认 `false`。
+- `maxIssues`: optional, integer，默认 `200`。
+
+### 5.5 全局退出码约定（建议统一）
+
+- `0`: 命令执行成功（包括 `validate` 无错误）。
+- `1`: 业务层失败或用户输入错误（可通过修改参数/输入修复）。
+- `2`: 运行时异常或内部错误（通常需要查看日志或修复实现）。
+
+## 6. 覆盖与安全策略（关键约定）
+
+- 默认不覆盖（`overwrite=none`）。
+- 只管理“带生成标记”的文件，避免误改手写代码。
+- 生成文件统一放在独立目录（建议：`Generated/CoreDataEvolution`）。
+- 关系到破坏性操作（`--clean-stale`）必须有明确提示，并限制在 `output-dir` 下。
+- `dry-run` 输出应包含：
+  - 将新增哪些文件。
+  - 将修改哪些文件。
+  - 将删除哪些文件（若启用 `clean-stale`）。
+
+## 7. 漂移检测（Drift）建议规则
+
+至少检查以下项：
+
+- 实体是否一一对应。
+- 属性名与 `originalName` 映射是否一致。
+- 存储策略是否匹配（`default/raw/codable/composition/transformed`）。
+- 关系方向、to-one/to-many、是否有序是否一致。
+- composition 子路径映射（如 `location.x`）是否存在。
+- `Keys` / `path` / `__cdFieldTable` 与模型 persistent key 是否一致。
+
+## 8. 面向 SPM Plugin / GUI 的演进路径
+
+- 抽出 `CoreEngine`（纯 Swift 库，无命令行依赖）。
+- CLI 只负责参数解析、日志、exit code。
+- SPM Plugin 复用 `CoreEngine`，把 target 信息转换成 CLI/Engine 参数。
+- GUI 复用 `CoreEngine` 的 `inspect + generate + validate` API，显示差异视图。
+
+## 9. v1 非目标（明确不做）
+
+- 不做自动迁移推断（migration plan 自动生成）。
+- 不做运行中数据库变更工具。
+- 不做完整图形化编辑器。
+- 不处理非 Core Data 模型来源（例如 YAML/JSON schema）。
+
+## 10. 待拍板项（下一轮讨论）
+
+- 生成文件命名规则（实体一文件 vs 功能分文件）。
+- 是否默认生成“注释提示模板”（例如建议 init / count 用法）。
+- `validate --strict` 是否要执行真实 SQLite 集成验证（速度 vs 可靠性）。
+- 与现有宏测试快照体系的联动方式（是否生成 golden files）。
