@@ -52,17 +52,14 @@ public macro Ignore() =
   #externalMacro(module: "CoreDataEvolutionMacros", type: "IgnoreMacro")
 
 @attached(accessor)
-@attached(peer)
+@attached(peer, names: arbitrary)
 public macro _CDRelationship(
   setterPolicy: RelationshipGenerationPolicy = .none,
   _fromPersistentModel: Bool = false
 ) = #externalMacro(module: "CoreDataEvolutionMacros", type: "RelationshipMacro")
 
 @attached(memberAttribute)
-@attached(
-  member,
-  names: named(Keys), named(Paths), named(PathRoot), named(path), named(__cdFieldTable), named(init)
-)
+@attached(member, names: arbitrary)
 @attached(extension, conformances: PersistentEntity)
 public macro PersistentModel(
   generateInit: Bool = false,
@@ -71,7 +68,7 @@ public macro PersistentModel(
 ) = #externalMacro(module: "CoreDataEvolutionMacros", type: "PersistentModelMacro")
 
 @attached(accessor)
-@attached(peer)
+@attached(peer, names: arbitrary)
 public macro Attribute(
   originalName: String? = nil,
   storageMethod: AttributeStorageMethod? = nil,

@@ -14,6 +14,7 @@ import Foundation
 /// Type that exposes the global path metadata table.
 public protocol CoreDataPathTable {
   static var __cdFieldTable: [String: CDFieldMeta] { get }
+  static var __cdRelationshipProjectionTable: [String: CDFieldMeta] { get }
 }
 
 /// Type that exposes flat string keys for sort/filter APIs.
@@ -28,6 +29,10 @@ public protocol CoreDataPathDSLProviding: CoreDataPathTable {
 }
 
 extension CoreDataPathTable {
+  public static var __cdRelationshipProjectionTable: [String: CDFieldMeta] {
+    __cdFieldTable
+  }
+
   public static func __cdMeta(forSwiftPath swiftPath: [String]) -> CDFieldMeta? {
     __cdFieldTable[swiftPath.joined(separator: ".")]
   }

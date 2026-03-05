@@ -53,6 +53,9 @@ let package = Package(
       dependencies: [
         "CoreDataEvolution"
       ],
+      exclude: [
+        "CoreDataEvolution-Package.xctestplan"
+      ]
     ),
     .testTarget(
       name: "CoreDataEvolutionMacroTests",

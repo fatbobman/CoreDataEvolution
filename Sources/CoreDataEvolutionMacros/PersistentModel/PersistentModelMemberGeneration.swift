@@ -145,11 +145,11 @@ func makeFieldTableDecl(
   modelTypeName: String,
   model: PersistentModelAnalysis
 ) -> DeclSyntax {
-  var rows: [String] = []
+  var attributeRows: [String] = []
   for attribute in model.attributes {
     let supportsStoreSort = supportsStoreSort(attribute.storageMethod)
     let kind = attribute.storageMethod == .composition ? ".composition" : ".attribute"
-    rows.append(
+    attributeRows.append(
       """
       "\(attribute.propertyName)": .init(
         kind: \(kind),
@@ -161,8 +161,28 @@ func makeFieldTableDecl(
       """
     )
   }
+  let attributeLiteralBody = attributeRows.joined(separator: ",\n")
+
+  var compositionMergeLines: [String] = []
+  for attribute in model.attributes where attribute.storageMethod == .composition {
+    compositionMergeLines.append(
+      """
+      table.merge(
+        CoreDataEvolution.CDCompositionTableBuilder.makeModelFieldEntries(
+          modelSwiftPathPrefix: ["\(attribute.propertyName)"],
+          modelPersistentPathPrefix: ["\(attribute.persistentName)"],
+          composition: \(attribute.typeName).self
+        ),
+        uniquingKeysWith: { _, new in new }
+      )
+      """
+    )
+  }
+  let compositionMergeBlock = compositionMergeLines.joined(separator: "\n")
+
+  var relationshipRows: [String] = []
   for relation in model.relationships {
-    rows.append(
+    relationshipRows.append(
       """
       "\(relation.propertyName)": .init(
         kind: .relationship,
@@ -175,13 +195,13 @@ func makeFieldTableDecl(
       """
     )
   }
-  let literalBody = rows.joined(separator: ",\n")
+  let relationshipLiteralBody = relationshipRows.joined(separator: ",\n")
 
-  var mergeLines: [String] = []
+  var relationshipMergeLines: [String] = []
   for relation in model.relationships {
     switch relation.kind {
     case .toOne:
-      mergeLines.append(
+      relationshipMergeLines.append(
         """
         table.merge(
           CoreDataEvolution.CDRelationshipTableBuilder.makeToOneFieldEntries(
@@ -194,7 +214,7 @@ func makeFieldTableDecl(
         """
       )
     case .toManySet, .toManyArray:
-      mergeLines.append(
+      relationshipMergeLines.append(
         """
         table.merge(
           CoreDataEvolution.CDRelationshipTableBuilder.makeToManyFieldEntries(
@@ -208,28 +228,26 @@ func makeFieldTableDecl(
       )
     }
   }
-  for attribute in model.attributes where attribute.storageMethod == .composition {
-    mergeLines.append(
-      """
-      table.merge(
-        CoreDataEvolution.CDCompositionTableBuilder.makeModelFieldEntries(
-          modelSwiftPathPrefix: ["\(attribute.propertyName)"],
-          modelPersistentPathPrefix: ["\(attribute.persistentName)"],
-          composition: \(attribute.typeName).self
-        ),
-        uniquingKeysWith: { _, new in new }
-      )
-      """
-    )
-  }
-  let mergeBlock = mergeLines.joined(separator: "\n")
+  let relationshipMergeBlock = relationshipMergeLines.joined(separator: "\n")
   return
     """
-    \(raw: accessModifier)static let __cdFieldTable: [String: CoreDataEvolution.CDFieldMeta] = {
+    \(raw: accessModifier)static let __cdRelationshipProjectionTable: [String: CoreDataEvolution.CDFieldMeta] = {
       var table: [String: CoreDataEvolution.CDFieldMeta] = [
-      \(raw: literalBody)
+      \(raw: attributeLiteralBody)
       ]
-    \(raw: mergeBlock)
+    \(raw: compositionMergeBlock)
+      return table
+    }()
+
+    \(raw: accessModifier)static let __cdFieldTable: [String: CoreDataEvolution.CDFieldMeta] = {
+      var table: [String: CoreDataEvolution.CDFieldMeta] = __cdRelationshipProjectionTable
+      table.merge(
+        [
+      \(raw: relationshipLiteralBody)
+        ],
+        uniquingKeysWith: { _, new in new }
+      )
+    \(raw: relationshipMergeBlock)
       return table
     }()
     """

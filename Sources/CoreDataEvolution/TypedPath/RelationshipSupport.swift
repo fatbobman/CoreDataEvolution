@@ -82,7 +82,12 @@ public enum CDRelationshipTableBuilder {
     isToMany: Bool
   ) -> [String: CDFieldMeta] {
     var result: [String: CDFieldMeta] = [:]
-    for (_, leaf) in target.__cdFieldTable {
+    for (_, leaf) in target.__cdRelationshipProjectionTable {
+      // Prevent recursive expansion across relationship cycles (A -> B -> A).
+      // Relationship subpaths should project target value/composition leaves only.
+      if leaf.kind == .relationship {
+        continue
+      }
       let swiftPath = modelSwiftPathPrefix + leaf.swiftPath
       let persistentPath = modelPersistentPathPrefix + leaf.persistentPath
       let key = swiftPath.joined(separator: ".")

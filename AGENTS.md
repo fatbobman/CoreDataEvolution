@@ -44,6 +44,7 @@ Useful targeted runs:
 ```bash
 swift test --filter NSModelActorTests
 swift test --filter WithContextTests
+swift test --filter IntegrationModelTests
 ```
 
 Formatting, if `swift-format` is installed:
@@ -51,6 +52,24 @@ Formatting, if `swift-format` is installed:
 ```bash
 swift-format format --in-place <path-to-file.swift>
 ```
+
+Integration model compile + run (for real `.momd` verification):
+
+```bash
+bash Scripts/compile-integration-model.sh
+bash Scripts/test-integration-model.sh
+```
+
+Path/toolchain behavior for integration model scripts:
+
+- Do not hardcode toolchain paths. `Scripts/compile-integration-model.sh` resolves `momc` in this order:
+  1. `CDE_MOMC_BIN`
+  2. `xcrun --find momc`
+  3. `momc` from `$PATH`
+- Model source can be overridden by `CDE_INTEGRATION_MODEL_SOURCE`.
+- Output `.momd` can be overridden by `CDE_INTEGRATION_MODEL_OUTPUT`.
+- Tests can consume a precompiled model via `CDE_INTEGRATION_MODEL_MOMD`.
+- If `CDE_INTEGRATION_MODEL_MOMD` is not set, integration tests compile the model on demand via `Scripts/compile-integration-model.sh`.
 
 ## Release Tag Convention
 

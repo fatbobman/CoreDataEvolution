@@ -132,7 +132,7 @@ final class Item: NSManagedObject {
     .init()
   }
 
-  static let __cdFieldTable: [String: CoreDataEvolution.CDFieldMeta] = {
+  static let __cdRelationshipProjectionTable: [String: CoreDataEvolution.CDFieldMeta] = {
     var table: [String: CoreDataEvolution.CDFieldMeta] = [
       "date": .init(
         kind: .attribute,
@@ -148,40 +148,49 @@ final class Item: NSManagedObject {
         storageMethod: .default,
         supportsStoreSort: true
       ),
-      "tags": .init(
-        kind: .relationship,
-        swiftPath: ["tags"],
-        persistentPath: ["tags"],
-        storageMethod: .default,
-        supportsStoreSort: false,
-        isToManyRelationship: true
-      ),
-      "orderedTags": .init(
-        kind: .relationship,
-        swiftPath: ["orderedTags"],
-        persistentPath: ["orderedTags"],
-        storageMethod: .default,
-        supportsStoreSort: false,
-        isToManyRelationship: true
-      ),
-      "category": .init(
-        kind: .relationship,
-        swiftPath: ["category"],
-        persistentPath: ["category"],
-        storageMethod: .default,
-        supportsStoreSort: false,
-        isToManyRelationship: false
-      ),
     ]
+
+    return table
+  }()
+
+  static let __cdFieldTable: [String: CoreDataEvolution.CDFieldMeta] = {
+    var table: [String: CoreDataEvolution.CDFieldMeta] = __cdRelationshipProjectionTable
+    table.merge(
+      [
+        "tags": .init(
+          kind: .relationship,
+          swiftPath: ["tags"],
+          persistentPath: ["tags"],
+          storageMethod: .default,
+          supportsStoreSort: false,
+          isToManyRelationship: true
+        ),
+        "orderedTags": .init(
+          kind: .relationship,
+          swiftPath: ["orderedTags"],
+          persistentPath: ["orderedTags"],
+          storageMethod: .default,
+          supportsStoreSort: false,
+          isToManyRelationship: true
+        ),
+        "category": .init(
+          kind: .relationship,
+          swiftPath: ["category"],
+          persistentPath: ["category"],
+          storageMethod: .default,
+          supportsStoreSort: false,
+          isToManyRelationship: false
+        ),
+      ],
+      uniquingKeysWith: { _, new in new }
+    )
     table.merge(
       CoreDataEvolution.CDRelationshipTableBuilder.makeToManyFieldEntries(
         modelSwiftPathPrefix: ["tags"],
         modelPersistentPathPrefix: ["tags"],
         target: Tag.self
       ),
-      uniquingKeysWith: { _, new in
-        new
-      }
+      uniquingKeysWith: { _, new in new }
     )
     table.merge(
       CoreDataEvolution.CDRelationshipTableBuilder.makeToManyFieldEntries(
@@ -189,9 +198,7 @@ final class Item: NSManagedObject {
         modelPersistentPathPrefix: ["orderedTags"],
         target: Tag.self
       ),
-      uniquingKeysWith: { _, new in
-        new
-      }
+      uniquingKeysWith: { _, new in new }
     )
     table.merge(
       CoreDataEvolution.CDRelationshipTableBuilder.makeToOneFieldEntries(
@@ -199,9 +206,7 @@ final class Item: NSManagedObject {
         modelPersistentPathPrefix: ["category"],
         target: Category.self
       ),
-      uniquingKeysWith: { _, new in
-        new
-      }
+      uniquingKeysWith: { _, new in new }
     )
     return table
   }()
