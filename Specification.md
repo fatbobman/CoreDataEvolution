@@ -41,7 +41,7 @@
 - `Keys`（平面 key）
 - `Paths`（可组合子路径，含 relationship/composition）
 - `__cdFieldTable`（路径映射元信息）
-- `convenience init`（可通过 `generateInit: false` 关闭）
+- `convenience init`（默认不生成；可通过 `generateInit: true` 开启）
 
 `@objc` 注入规则：
 
@@ -61,9 +61,9 @@ enum RelationshipGenerationPolicy { case none, warning, plain }
 
 ```swift
 @PersistentModel(
-  generateInit: true,
+  generateInit: false,
   relationshipSetterPolicy: .none,   // 仅对 Set<T> 生效
-  relationshipCountPolicy: .none     // 对 Set<T>/[T] 的 *Count 访问器生效
+  relationshipCountPolicy: .none
 )
 ```
 
@@ -71,10 +71,10 @@ enum RelationshipGenerationPolicy { case none, warning, plain }
 
 - 对多 getter（`Set<T>` / `[T]`）在 v1 **固定生成**，不提供单独策略开关。
 - `relationshipSetterPolicy` 影响 `Set<T>` 的属性 setter 以及批量替换 helper（`replaceXxx(with:)`）。
-- `relationshipCountPolicy` 控制对多关系 `*Count` 访问器生成：
-  - `.none`：不生成
-  - `.plain`：生成
-  - `.warning`：生成并附 deprecated 提示
+- `relationshipCountPolicy` 在 v1 为“规范引导参数”：
+  - 非 `.none` 会给出 warning 提示
+  - 不生成任何 `*Count` 访问器
+  - 推荐改用 `NSManagedObjectContext.count(for:)` + `NSPredicate`
 
 ### `@Attribute`
 
@@ -156,8 +156,8 @@ v1 声明约束（硬性）：
 
 ### Count
 
-- `relationshipCountPolicy: .plain/.warning` 时生成 `*Count`；`.none` 不生成。  
-- `Set<T>` 使用 `mutableSetValue(forKey:)` 计数；`[T]` 使用 `mutableOrderedSetValue(forKey:)` 计数。  
+- v1 不自动生成 `*Count`。  
+- 若配置 `relationshipCountPolicy != .none`，宏会给出“请使用 `context.count(for:)`”的 warning 引导。  
 
 ## 5. Constructor Contract
 
@@ -245,7 +245,7 @@ NSPredicate(format: "%K == %@", Item.Keys.status.rawValue, status.rawValue)
 
 1. `@objc` 规则：改为“显式声明强校验”（非自动注入）。
 2. 关系目标类型：宏展开阶段已强制 `T: PersistentEntity`。
-3. `relationshipCountPolicy`：已生成 `*Count`，并支持 `.warning` 退化提示。
+3. `relationshipCountPolicy`：改为规范引导 warning，不自动生成 `*Count`。
 
 ## 8. Tool Contract
 

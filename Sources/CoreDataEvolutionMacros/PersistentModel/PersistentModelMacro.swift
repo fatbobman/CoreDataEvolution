@@ -124,6 +124,15 @@ extension PersistentModelMacro: MemberMacro {
     else {
       return []
     }
+    if arguments.relationshipCountPolicy != .none {
+      MacroDiagnosticReporter.warning(
+        "@PersistentModel `relationshipCountPolicy` is guidance-only in v1. No `*Count` accessors are generated. Use NSManagedObjectContext.count(for:) with NSPredicate.",
+        domain: persistentModelMacroDomain,
+        id: "relationship-count-guidance",
+        in: context,
+        node: node
+      )
+    }
 
     let accessModifier = accessModifierText(from: declaration)
     let modelTypeName = classDecl.name.text
@@ -166,8 +175,7 @@ extension PersistentModelMacro: MemberMacro {
     members += makeToManyHelpers(
       accessModifier: accessModifier,
       model: model,
-      setterPolicy: arguments.relationshipSetterPolicy,
-      countPolicy: arguments.relationshipCountPolicy
+      setterPolicy: arguments.relationshipSetterPolicy
     )
     return members
   }

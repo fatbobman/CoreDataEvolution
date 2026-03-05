@@ -65,7 +65,7 @@ public macro _CDRelationship(
 )
 @attached(extension, conformances: PersistentEntity)
 public macro PersistentModel(
-  generateInit: Bool = true,
+  generateInit: Bool = false,
   relationshipSetterPolicy: RelationshipGenerationPolicy = .none,
   relationshipCountPolicy: RelationshipGenerationPolicy = .none
 ) = #externalMacro(module: "CoreDataEvolutionMacros", type: "PersistentModelMacro")

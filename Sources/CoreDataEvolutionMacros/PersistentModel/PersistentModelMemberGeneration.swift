@@ -266,8 +266,7 @@ func makeInitDecl(
 func makeToManyHelpers(
   accessModifier: String,
   model: PersistentModelAnalysis,
-  setterPolicy: ParsedRelationshipGenerationPolicy,
-  countPolicy: ParsedRelationshipGenerationPolicy
+  setterPolicy: ParsedRelationshipGenerationPolicy
 ) -> [DeclSyntax] {
   var result: [DeclSyntax] = []
   for relation in model.relationships {
@@ -305,19 +304,6 @@ func makeToManyHelpers(
           """
         )
       }
-      if countPolicy != .none {
-        let maybeDeprecated =
-          countPolicy == .warning
-          ? "@available(*, deprecated, message: \"Relationship count accessor may hide loading costs. Prefer explicit fetch/count requests for large datasets.\")\\n"
-          : ""
-        result.append(
-          """
-          \(raw: maybeDeprecated)\(raw: accessModifier)var \(raw: key)Count: Int {
-            mutableSetValue(forKey: "\(raw: key)").count
-          }
-          """
-        )
-      }
     case .toManyArray:
       result.append(
         """
@@ -333,19 +319,6 @@ func makeToManyHelpers(
         }
         """
       )
-      if countPolicy != .none {
-        let maybeDeprecated =
-          countPolicy == .warning
-          ? "@available(*, deprecated, message: \"Relationship count accessor may hide loading costs. Prefer explicit fetch/count requests for large datasets.\")\\n"
-          : ""
-        result.append(
-          """
-          \(raw: maybeDeprecated)\(raw: accessModifier)var \(raw: key)Count: Int {
-            mutableOrderedSetValue(forKey: "\(raw: key)").count
-          }
-          """
-        )
-      }
     }
   }
   return result

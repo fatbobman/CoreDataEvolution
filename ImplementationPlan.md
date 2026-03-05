@@ -136,7 +136,7 @@
 - [ ] validate 工具完成并接入 CI
 - [ ] generate 工具完成并接入命令入口
 - [ ] 规范文档与实现行为一致
-- [x] `tagsCount` 决策收敛（v1 已按 `relationshipCountPolicy` 生成 `*Count`）
+- [x] `tagsCount` 决策收敛（v1 不自动生成 `*Count`，通过文档与诊断引导 `context.count(for:)`）
 
 ## 7. Current Sprint Plan (PersistentModel)
 
@@ -164,5 +164,5 @@
 - 关系声明基础诊断（to-many 不可选、to-one 必须可选）
 - `relationshipSetterPolicy: .warning` 对 setter 与 helper 的 deprecation 提示
 - 关系目标类型 `T: PersistentEntity` 约束（由 `_CDRelationshipMacroValidation.requirePersistentEntity` 编译期强制）
-- `relationshipCountPolicy` 对应 `*Count` 生成（`.warning` 时附带 deprecated 提示）
+- `relationshipCountPolicy` 在 v1 仅作规范引导（非 `.none` 给 warning，不生成 `*Count`）
 - `@objc(ClassName)` 显式声明强校验（缺失时报错；当前宏角色不支持自动注入类型属性）

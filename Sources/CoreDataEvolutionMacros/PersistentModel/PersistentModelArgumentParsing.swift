@@ -19,13 +19,13 @@ func parsePersistentModelArguments(
 ) -> PersistentModelArguments? {
   guard let list = node.arguments?.as(LabeledExprListSyntax.self) else {
     return PersistentModelArguments(
-      generateInit: true,
+      generateInit: false,
       relationshipSetterPolicy: .none,
       relationshipCountPolicy: .none
     )
   }
 
-  var generateInit = true
+  var generateInit = false
   var setter: ParsedRelationshipGenerationPolicy = .none
   var count: ParsedRelationshipGenerationPolicy = .none
 

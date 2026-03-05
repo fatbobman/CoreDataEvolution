@@ -57,8 +57,8 @@ struct MacroDiagnosticTests {
       })
   }
 
-  @Test("PersistentModel count policy generates to-many count accessors")
-  func persistentModelCountPolicyGeneratesToManyCountAccessors() throws {
+  @Test("PersistentModel count policy emits guidance and no count accessors")
+  func persistentModelCountPolicyEmitsGuidanceAndNoCountAccessors() throws {
     let result = try MacroTestSupport.expand(
       source: """
         import CoreData
@@ -71,11 +71,12 @@ struct MacroDiagnosticTests {
         }
         """
     )
-    #expect(result.diagnostics.isEmpty)
-    #expect(result.expandedSource.contains("var tagsCount: Int"))
-    #expect(result.expandedSource.contains("mutableSetValue(forKey: \"tags\").count"))
-    #expect(result.expandedSource.contains("var orderedTagsCount: Int"))
-    #expect(result.expandedSource.contains("mutableOrderedSetValue(forKey: \"orderedTags\").count"))
+    #expect(
+      result.diagnostics.contains {
+        $0.contains("relationshipCountPolicy` is guidance-only in v1")
+      })
+    #expect(result.expandedSource.contains("var tagsCount: Int") == false)
+    #expect(result.expandedSource.contains("var orderedTagsCount: Int") == false)
   }
 
   @Test("PersistentModel warning setter policy marks to-many setter deprecated")
@@ -139,6 +140,23 @@ struct MacroDiagnosticTests {
     #expect(result.expandedSource.contains("setValue(newValue, forKey: \"title\")"))
   }
 
+  @Test("PersistentModel default does not generate init")
+  func persistentModelDefaultDoesNotGenerateInit() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        @objc(Item)
+        @PersistentModel
+        final class Item: NSManagedObject {
+          var title: String = ""
+        }
+        """
+    )
+    #expect(result.diagnostics.isEmpty)
+    #expect(result.expandedSource.contains("convenience init(") == false)
+  }
+
   @Test("PersistentModel init excludes relationships and includes Ignore without defaults")
   func persistentModelInitExcludesRelationshipsAndIncludesIgnoreWithoutDefaults() throws {
     let result = try MacroTestSupport.expand(
@@ -146,7 +164,7 @@ struct MacroDiagnosticTests {
         import CoreData
         import CoreDataEvolution
         @objc(Item)
-        @PersistentModel
+        @PersistentModel(generateInit: true)
         final class Item: NSManagedObject {
           var title: String = ""
           @Ignore

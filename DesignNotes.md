@@ -147,8 +147,10 @@ func removeFromTags(_ tag: Tag) {
     mutableSetValue(forKey: "tags").remove(tag)
 }
 
-var tagsCount: Int {
-    mutableSetValue(forKey: "tags").count
+func tagsCount(in context: NSManagedObjectContext, item: Item) throws -> Int {
+    let request = NSFetchRequest<Tag>(entityName: "Tag")
+    request.predicate = NSPredicate(format: "ANY items == %@", item)
+    return try context.count(for: request)
 }
 ```
 
@@ -157,7 +159,7 @@ var tagsCount: Int {
 ```swift
 @PersistentModel(
     relationshipSetterPolicy: .none,       // 仅影响 Set<T>：plain / warning / none
-    relationshipCountPolicy: .none         // 控制 Set<T>/[T] 的 *Count 生成
+    relationshipCountPolicy: .none         // v1 仅作规范引导（不自动生成 *Count）
 )
 ```
 
@@ -175,7 +177,7 @@ enum RelationshipGenerationPolicy {
 
 - 对多 getter（`Set<T>` / `[T]`）在 v1 固定生成，不提供独立策略
 - `relationshipSetterPolicy`：控制 `Set<T>` setter；当为 `.warning` 时，setter 与批量替换 helper 都会带 deprecated 提示
-- `relationshipCountPolicy`：控制 `*Count` 访问器生成；`.warning` 会给 count 访问器添加 deprecated 提示
+- `relationshipCountPolicy`：v1 不生成 `*Count`；当值非 `.none` 时给出 warning，引导使用 `context.count(for:)`
 
 当策略为 `.warning` 时，宏可通过 `@available(*, deprecated, message: "...")` 提示“该 API 可能带来性能或语义风险，优先使用 add/remove 或 fetch”。
 
@@ -204,7 +206,7 @@ enum RelationshipGenerationPolicy {
 
 ### 自动生成构造方法
 
-`@PersistentModel` 默认生成一个构造方法（可通过参数关闭），将所有非关系实例存储属性作为参数列出（包含 `@Ignore`）。
+`@PersistentModel` 默认不生成构造方法；可通过 `generateInit: true` 开启。开启后会将所有非关系实例存储属性作为参数列出（包含 `@Ignore`）。
 
 **规则**：
 - 参数一律不带默认值，调用方必须显式传入
@@ -338,7 +340,7 @@ func removeFromTags(_ tag: Tag) {
 - **无 RelationshipInfo 注释**：默认模式下跳过，输出 `[INFO]` 提示；`--strict` 模式下视为警告
 
 无论是否存在 RelationshipInfo 注释，工具都会强制检查模型层 inverse 是否配置；缺失 inverse 一律为 `[ERROR]`。
-`*Count` 的生成仅受 `relationshipCountPolicy` 控制，与是否存在 RelationshipInfo 注释无关。
+v1 不自动生成 `*Count`；若需要数量，推荐通过 `NSManagedObjectContext.count(for:)` + `NSPredicate` 计算。
 
 ```
 // 默认模式
@@ -386,7 +388,7 @@ public final class Item: NSManagedObject {
 
     // 宏生成的关系便利方法
     public func addToTags(_ tag: Tag) { ... }
-    public var tagsCount: Int { ... }
+    // v1 不自动生成 tagsCount，需使用 context.count(for:)
 }
 ```
 
@@ -618,7 +620,7 @@ final class Item: NSManagedObject, Identifiable, CoreDataKeys {
 ### @PersistentModel 状态
 
 1. 关系目标类型已在宏展开阶段强约束（`T: PersistentEntity`）。
-2. `relationshipCountPolicy` 已驱动 `*Count` 代码生成。
+2. `relationshipCountPolicy` 在 v1 作为规范引导，不自动生成 `*Count`。
 
 ### 属性级错误策略（decodeFailurePolicy）
 
