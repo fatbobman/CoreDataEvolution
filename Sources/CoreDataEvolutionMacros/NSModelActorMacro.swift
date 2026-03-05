@@ -59,7 +59,7 @@ extension NSModelActorMacro: MemberMacro {
     in _: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
     let generateInitializer = shouldGenerateInitializer(from: node)
-    let accessModifier = accessModifierText(from: declaration)
+    let accessModifier = witnessAccessModifierText(from: declaration)
     let decl: DeclSyntax =
       """
       \(raw: accessModifier)nonisolated let modelExecutor: CoreDataEvolution.NSModelObjectContextExecutor

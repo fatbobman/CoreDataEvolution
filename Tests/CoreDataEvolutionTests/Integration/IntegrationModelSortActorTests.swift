@@ -15,7 +15,7 @@ import Foundation
 import Testing
 
 @NSModelActor(disableGenerateInit: true)
-actor IntegrationSortHandler {
+private actor IntegrationSortHandler {
   init(container: NSPersistentContainer) {
     modelContainer = container
     let context = container.newBackgroundContext()

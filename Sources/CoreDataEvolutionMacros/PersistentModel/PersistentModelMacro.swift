@@ -134,7 +134,7 @@ extension PersistentModelMacro: MemberMacro {
       )
     }
 
-    let accessModifier = accessModifierText(from: declaration)
+    let accessModifier = witnessAccessModifierText(from: declaration)
     let modelTypeName = classDecl.name.text
     let model = analyzePersistentModelProperties(in: classDecl)
     let initProperties = analyzePersistentModelInitProperties(in: classDecl)

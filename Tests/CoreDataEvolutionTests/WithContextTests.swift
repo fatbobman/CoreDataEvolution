@@ -2,6 +2,14 @@ import CoreData
 import CoreDataEvolution
 import Testing
 
+@NSMainModelActor(disableGenerateInit: true)
+@MainActor
+private final class PrivateMainContextHandler {
+  init(modelContainer: NSPersistentContainer) {
+    self.modelContainer = modelContainer
+  }
+}
+
 /// Test suite for NSModelActor.withContext functionality.
 ///
 /// These tests verify that `withContext` correctly exposes the actor's
@@ -143,6 +151,19 @@ struct WithContextTests {
 
     let contextName = try handler.withContext { _, container in
       container.viewContext.name
+    }
+
+    #expect(contextName == stack.container.viewContext.name)
+  }
+
+  @MainActor
+  @Test("private NSMainModelActor type can use generated members")
+  func privateMainModelActorVisibilityWorks() throws {
+    let stack = TestStack()
+    let handler = PrivateMainContextHandler(modelContainer: stack.container)
+
+    let contextName = try handler.withContext { context in
+      context.name
     }
 
     #expect(contextName == stack.container.viewContext.name)

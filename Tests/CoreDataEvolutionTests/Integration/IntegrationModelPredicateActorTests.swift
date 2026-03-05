@@ -15,7 +15,7 @@ import Foundation
 import Testing
 
 @NSModelActor(disableGenerateInit: true)
-actor IntegrationPredicateHandler {
+private actor IntegrationPredicateHandler {
   init(container: NSPersistentContainer) {
     modelContainer = container
     let context = container.newBackgroundContext()
