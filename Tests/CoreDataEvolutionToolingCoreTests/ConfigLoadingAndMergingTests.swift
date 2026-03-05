@@ -42,8 +42,8 @@ struct ConfigLoadingAndMergingTests {
     let config = makeDefaultConfigTemplate(preset: .full)
     var overrides = GenerateRequestOverrides()
     overrides.modelVersion = "V2"
-    overrides.accessLevel = "public"
-    overrides.overwrite = "all"
+    overrides.accessLevel = .public
+    overrides.overwrite = .all
     overrides.generateInit = true
 
     let request = GenerateRequest(
@@ -53,10 +53,10 @@ struct ConfigLoadingAndMergingTests {
 
     #expect(request.modelPath == "Models/AppModel.xcdatamodeld")
     #expect(request.modelVersion == "V2")
-    #expect(request.accessLevel == "public")
-    #expect(request.overwrite == "all")
+    #expect(request.accessLevel == .public)
+    #expect(request.overwrite == .all)
     #expect(request.generateInit)
-    #expect(request.relationshipSetterPolicy == "warning")
+    #expect(request.relationshipSetterPolicy == .warning)
   }
 
   @Test("validate request merges config defaults when overrides are empty")
@@ -68,8 +68,8 @@ struct ConfigLoadingAndMergingTests {
 
     #expect(request.modelPath == "Models/AppModel.xcdatamodeld")
     #expect(request.sourceDir == "Sources/AppModels")
-    #expect(request.level == "quick")
-    #expect(request.report == "text")
+    #expect(request.level == .quick)
+    #expect(request.report == .text)
     #expect(request.maxIssues == 200)
   }
 }

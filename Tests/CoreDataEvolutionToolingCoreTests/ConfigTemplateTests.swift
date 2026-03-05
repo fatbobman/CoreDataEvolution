@@ -35,14 +35,16 @@ struct ConfigTemplateTests {
     let template = makeDefaultConfigTemplate(preset: .full)
 
     #expect(template.schemaVersion == 1)
-    #expect(template.generate?.accessLevel == "internal")
+    #expect(template.generate?.accessLevel == .internal)
     #expect(template.generate?.splitByEntity == true)
-    #expect(template.generate?.overwrite == "none")
-    #expect(template.generate?.relationshipSetterPolicy == "warning")
-    #expect(template.generate?.relationshipCountPolicy == "none")
-    #expect(template.generate?.defaultDecodeFailurePolicy == "fallbackToDefaultValue")
-    #expect(template.validate?.level == "quick")
-    #expect(template.validate?.report == "text")
+    #expect(template.generate?.overwrite == ToolingOverwriteMode.none)
+    #expect(template.generate?.relationshipSetterPolicy == .warning)
+    #expect(
+      template.generate?.relationshipCountPolicy == ToolingRelationshipGenerationPolicy.none
+    )
+    #expect(template.generate?.defaultDecodeFailurePolicy == .fallbackToDefaultValue)
+    #expect(template.validate?.level == .quick)
+    #expect(template.validate?.report == .text)
     #expect(template.validate?.maxIssues == 200)
   }
 

@@ -46,18 +46,18 @@ public struct GenerateTemplate: Codable, Sendable, Equatable {
   public let momcBin: String?
   public let outputDir: String
   public let moduleName: String
-  public let accessLevel: String?
+  public let accessLevel: ToolingAccessLevel?
   public let singleFile: Bool?
   public let splitByEntity: Bool?
-  public let overwrite: String?
+  public let overwrite: ToolingOverwriteMode?
   public let cleanStale: Bool?
   public let dryRun: Bool?
-  public let format: String?
+  public let format: ToolingFormatMode?
   public let headerTemplate: String?
   public let generateInit: Bool?
-  public let relationshipSetterPolicy: String?
-  public let relationshipCountPolicy: String?
-  public let defaultDecodeFailurePolicy: String?
+  public let relationshipSetterPolicy: ToolingRelationshipGenerationPolicy?
+  public let relationshipCountPolicy: ToolingRelationshipGenerationPolicy?
+  public let defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy?
 
   public init(
     modelPath: String,
@@ -65,18 +65,18 @@ public struct GenerateTemplate: Codable, Sendable, Equatable {
     momcBin: String?,
     outputDir: String,
     moduleName: String,
-    accessLevel: String?,
+    accessLevel: ToolingAccessLevel?,
     singleFile: Bool?,
     splitByEntity: Bool?,
-    overwrite: String?,
+    overwrite: ToolingOverwriteMode?,
     cleanStale: Bool?,
     dryRun: Bool?,
-    format: String?,
+    format: ToolingFormatMode?,
     headerTemplate: String?,
     generateInit: Bool?,
-    relationshipSetterPolicy: String?,
-    relationshipCountPolicy: String?,
-    defaultDecodeFailurePolicy: String?
+    relationshipSetterPolicy: ToolingRelationshipGenerationPolicy?,
+    relationshipCountPolicy: ToolingRelationshipGenerationPolicy?,
+    defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy?
   ) {
     self.modelPath = modelPath
     self.modelVersion = modelVersion
@@ -105,8 +105,8 @@ public struct ValidateTemplate: Codable, Sendable, Equatable {
   public let moduleName: String
   public let include: [String]?
   public let exclude: [String]?
-  public let level: String?
-  public let report: String?
+  public let level: ToolingValidationLevel?
+  public let report: ToolingReportFormat?
   public let failOnWarning: Bool?
   public let maxIssues: Int?
 
@@ -117,8 +117,8 @@ public struct ValidateTemplate: Codable, Sendable, Equatable {
     moduleName: String,
     include: [String]?,
     exclude: [String]?,
-    level: String?,
-    report: String?,
+    level: ToolingValidationLevel?,
+    report: ToolingReportFormat?,
     failOnWarning: Bool?,
     maxIssues: Int?
   ) {
@@ -182,18 +182,18 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         momcBin: nil,
         outputDir: "Generated/CoreDataEvolution",
         moduleName: "AppModels",
-        accessLevel: "internal",
+        accessLevel: .internal,
         singleFile: false,
         splitByEntity: true,
-        overwrite: "none",
+        overwrite: ToolingOverwriteMode.none,
         cleanStale: false,
         dryRun: false,
-        format: "swift-format",
+        format: .swiftFormat,
         headerTemplate: nil,
         generateInit: false,
-        relationshipSetterPolicy: "warning",
-        relationshipCountPolicy: "none",
-        defaultDecodeFailurePolicy: "fallbackToDefaultValue"
+        relationshipSetterPolicy: .warning,
+        relationshipCountPolicy: ToolingRelationshipGenerationPolicy.none,
+        defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       validate: .init(
         modelPath: "Models/AppModel.xcdatamodeld",
@@ -202,8 +202,8 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         moduleName: "AppModels",
         include: [],
         exclude: [],
-        level: "quick",
-        report: "text",
+        level: .quick,
+        report: .text,
         failOnWarning: false,
         maxIssues: 200
       )
@@ -270,21 +270,21 @@ extension GenerateRequest {
       momcBin: overrides.momcBin ?? config.momcBin,
       outputDir: overrides.outputDir ?? config.outputDir,
       moduleName: overrides.moduleName ?? config.moduleName,
-      accessLevel: overrides.accessLevel ?? config.accessLevel ?? "internal",
+      accessLevel: overrides.accessLevel ?? config.accessLevel ?? .internal,
       singleFile: overrides.singleFile ?? config.singleFile ?? false,
       splitByEntity: overrides.splitByEntity ?? config.splitByEntity ?? true,
-      overwrite: overrides.overwrite ?? config.overwrite ?? "none",
+      overwrite: overrides.overwrite ?? config.overwrite ?? .none,
       cleanStale: overrides.cleanStale ?? config.cleanStale ?? false,
       dryRun: overrides.dryRun ?? config.dryRun ?? false,
-      format: overrides.format ?? config.format ?? "none",
+      format: overrides.format ?? config.format ?? .none,
       headerTemplate: overrides.headerTemplate ?? config.headerTemplate,
       generateInit: overrides.generateInit ?? config.generateInit ?? false,
       relationshipSetterPolicy: overrides.relationshipSetterPolicy
-        ?? config.relationshipSetterPolicy ?? "warning",
+        ?? config.relationshipSetterPolicy ?? .warning,
       relationshipCountPolicy: overrides.relationshipCountPolicy
-        ?? config.relationshipCountPolicy ?? "none",
+        ?? config.relationshipCountPolicy ?? .none,
       defaultDecodeFailurePolicy: overrides.defaultDecodeFailurePolicy
-        ?? config.defaultDecodeFailurePolicy ?? "fallbackToDefaultValue"
+        ?? config.defaultDecodeFailurePolicy ?? .fallbackToDefaultValue
     )
   }
 }
@@ -298,8 +298,8 @@ extension ValidateRequest {
       moduleName: overrides.moduleName ?? config.moduleName,
       include: overrides.include ?? config.include ?? [],
       exclude: overrides.exclude ?? config.exclude ?? [],
-      level: overrides.level ?? config.level ?? "quick",
-      report: overrides.report ?? config.report ?? "text",
+      level: overrides.level ?? config.level ?? .quick,
+      report: overrides.report ?? config.report ?? .text,
       failOnWarning: overrides.failOnWarning ?? config.failOnWarning ?? false,
       maxIssues: overrides.maxIssues ?? config.maxIssues ?? 200
     )

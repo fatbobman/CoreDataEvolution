@@ -25,18 +25,18 @@ public struct GenerateRequest: Sendable, Equatable {
   public let momcBin: String?
   public let outputDir: String
   public let moduleName: String
-  public let accessLevel: String
+  public let accessLevel: ToolingAccessLevel
   public let singleFile: Bool
   public let splitByEntity: Bool
-  public let overwrite: String
+  public let overwrite: ToolingOverwriteMode
   public let cleanStale: Bool
   public let dryRun: Bool
-  public let format: String
+  public let format: ToolingFormatMode
   public let headerTemplate: String?
   public let generateInit: Bool
-  public let relationshipSetterPolicy: String
-  public let relationshipCountPolicy: String
-  public let defaultDecodeFailurePolicy: String
+  public let relationshipSetterPolicy: ToolingRelationshipGenerationPolicy
+  public let relationshipCountPolicy: ToolingRelationshipGenerationPolicy
+  public let defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy
 
   public init(
     modelPath: String,
@@ -44,18 +44,18 @@ public struct GenerateRequest: Sendable, Equatable {
     momcBin: String?,
     outputDir: String,
     moduleName: String,
-    accessLevel: String,
+    accessLevel: ToolingAccessLevel,
     singleFile: Bool,
     splitByEntity: Bool,
-    overwrite: String,
+    overwrite: ToolingOverwriteMode,
     cleanStale: Bool,
     dryRun: Bool,
-    format: String,
+    format: ToolingFormatMode,
     headerTemplate: String?,
     generateInit: Bool,
-    relationshipSetterPolicy: String,
-    relationshipCountPolicy: String,
-    defaultDecodeFailurePolicy: String
+    relationshipSetterPolicy: ToolingRelationshipGenerationPolicy,
+    relationshipCountPolicy: ToolingRelationshipGenerationPolicy,
+    defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy
   ) {
     self.modelPath = modelPath
     self.modelVersion = modelVersion
@@ -84,8 +84,8 @@ public struct ValidateRequest: Sendable, Equatable {
   public let moduleName: String
   public let include: [String]
   public let exclude: [String]
-  public let level: String
-  public let report: String
+  public let level: ToolingValidationLevel
+  public let report: ToolingReportFormat
   public let failOnWarning: Bool
   public let maxIssues: Int
 
@@ -96,8 +96,8 @@ public struct ValidateRequest: Sendable, Equatable {
     moduleName: String,
     include: [String],
     exclude: [String],
-    level: String,
-    report: String,
+    level: ToolingValidationLevel,
+    report: ToolingReportFormat,
     failOnWarning: Bool,
     maxIssues: Int
   ) {
@@ -130,18 +130,18 @@ public struct GenerateRequestOverrides: Sendable, Equatable {
   public var momcBin: String?
   public var outputDir: String?
   public var moduleName: String?
-  public var accessLevel: String?
+  public var accessLevel: ToolingAccessLevel?
   public var singleFile: Bool?
   public var splitByEntity: Bool?
-  public var overwrite: String?
+  public var overwrite: ToolingOverwriteMode?
   public var cleanStale: Bool?
   public var dryRun: Bool?
-  public var format: String?
+  public var format: ToolingFormatMode?
   public var headerTemplate: String?
   public var generateInit: Bool?
-  public var relationshipSetterPolicy: String?
-  public var relationshipCountPolicy: String?
-  public var defaultDecodeFailurePolicy: String?
+  public var relationshipSetterPolicy: ToolingRelationshipGenerationPolicy?
+  public var relationshipCountPolicy: ToolingRelationshipGenerationPolicy?
+  public var defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy?
 
   public init() {}
 }
@@ -153,8 +153,8 @@ public struct ValidateRequestOverrides: Sendable, Equatable {
   public var moduleName: String?
   public var include: [String]?
   public var exclude: [String]?
-  public var level: String?
-  public var report: String?
+  public var level: ToolingValidationLevel?
+  public var report: ToolingReportFormat?
   public var failOnWarning: Bool?
   public var maxIssues: Int?
 

@@ -37,10 +37,10 @@ struct ValidateCommand: ParsableCommand {
   var exclude: [String] = []
 
   @Option(name: .long, help: "Validation level: quick/strict.")
-  var level: String = "quick"
+  var level: ToolingValidationLevel = .quick
 
   @Option(name: .long, help: "Report format: text/json/sarif.")
-  var report: String = "text"
+  var report: ToolingReportFormat = .text
 
   @Flag(name: .long, help: "Treat warnings as errors.")
   var failOnWarning = false

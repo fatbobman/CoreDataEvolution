@@ -34,7 +34,7 @@ struct GenerateCommand: ParsableCommand {
   var moduleName: String
 
   @Option(name: .long, help: "Access level: internal/public.")
-  var accessLevel: String = "internal"
+  var accessLevel: ToolingAccessLevel = .internal
 
   @Flag(name: .long, help: "Generate a single output file.")
   var singleFile = false
@@ -43,7 +43,7 @@ struct GenerateCommand: ParsableCommand {
   var splitByEntity = true
 
   @Option(name: .long, help: "Overwrite mode: none/changed/all.")
-  var overwrite: String = "none"
+  var overwrite: ToolingOverwriteMode = .none
 
   @Flag(name: .long, help: "Clean stale generated files in output directory.")
   var cleanStale = false
@@ -52,7 +52,7 @@ struct GenerateCommand: ParsableCommand {
   var dryRun = false
 
   @Option(name: .long, help: "Format mode: none/swift-format.")
-  var format: String = "none"
+  var format: ToolingFormatMode = .none
 
   @Option(name: .long, help: "Header template path.")
   var headerTemplate: String?
@@ -61,13 +61,13 @@ struct GenerateCommand: ParsableCommand {
   var generateInit = false
 
   @Option(name: .long, help: "Relationship setter policy: none/warning/plain.")
-  var relationshipSetterPolicy: String = "warning"
+  var relationshipSetterPolicy: ToolingRelationshipGenerationPolicy = .warning
 
   @Option(name: .long, help: "Relationship count policy: none/warning/plain.")
-  var relationshipCountPolicy: String = "none"
+  var relationshipCountPolicy: ToolingRelationshipGenerationPolicy = .none
 
   @Option(name: .long, help: "Decode failure policy: fallbackToDefaultValue/debugAssertNil.")
-  var defaultDecodeFailurePolicy: String = "fallbackToDefaultValue"
+  var defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy = .fallbackToDefaultValue
 
   @Option(name: .long, help: "Path to JSON config file.")
   var config: String?
