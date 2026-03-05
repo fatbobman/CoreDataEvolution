@@ -18,3 +18,12 @@ public macro NSModelActor(disableGenerateInit: Bool = false) =
 @attached(extension, conformances: NSMainModelActor)
 public macro NSMainModelActor(disableGenerateInit: Bool = false) =
   #externalMacro(module: "CoreDataEvolutionMacros", type: "NSMainModelActorMacro")
+
+@attached(
+  member,
+  names: named(__cdCompositionFieldTable), named(__cdDecodeComposition),
+  named(__cdEncodeComposition)
+)
+@attached(extension, conformances: CDCompositionPathProviding, CDCompositionValueCodable)
+public macro Composition() =
+  #externalMacro(module: "CoreDataEvolutionMacros", type: "CompositionMacro")

@@ -12,18 +12,10 @@
 import CoreDataEvolution
 import Foundation
 
-struct PathLocationComposition: CDCompositionPathProviding {
-  // Simulated generated output by @Composition macro.
-  static let __cdCompositionFieldTable: [String: CDCompositionFieldMeta] = [
-    "x": .init(
-      swiftPath: ["x"],
-      persistentPath: ["x"]
-    ),
-    "y": .init(
-      swiftPath: ["y"],
-      persistentPath: ["y"]
-    ),
-  ]
+@Composition
+struct PathLocationComposition {
+  var x: Double
+  var y: Double?
 }
 
 final class PathTagModel: NSObject, CoreDataKeys, CoreDataPathDSLProviding {

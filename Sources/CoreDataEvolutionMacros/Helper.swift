@@ -10,6 +10,7 @@
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
 import Foundation
+import SwiftDiagnostics
 import SwiftSyntax
 /// Determines whether to generate an initializer based on the attribute node.
 ///
@@ -21,12 +22,6 @@ import SwiftSyntax
 /// - Returns: A boolean indicating whether to generate an initializer.
 import SwiftSyntaxMacros
 
-/// Checks if the access level of the declared type is public.
-///
-/// This function iterates through the modifiers of the declaration to check if the "public" access level is specified.
-///
-/// - Parameter declaration: The declaration to check.
-/// - Returns: A boolean indicating whether the access level is public.
 func shouldGenerateInitializer(from node: AttributeSyntax) -> Bool {
   guard let argumentList = node.arguments?.as(LabeledExprListSyntax.self) else {
     return true  // Default to true if no arguments are present.
@@ -41,8 +36,92 @@ func shouldGenerateInitializer(from node: AttributeSyntax) -> Bool {
   }
   return true  // Default to true if "disableGenerateInit" is not found or is set to false.
 }
-func isPublic(from declaration: some DeclGroupSyntax) -> Bool {
-  return declaration.modifiers.contains { modifier in
-    modifier.name.text == "public"  // Check if the "public" modifier is present.
+
+/// Returns explicit access modifier text with trailing space, or empty string for implicit internal.
+func accessModifierText(from declaration: some DeclGroupSyntax) -> String {
+  let accessLevels = ["open", "public", "package", "internal", "fileprivate", "private"]
+  for access in accessLevels {
+    if declaration.modifiers.contains(where: { $0.name.text == access }) {
+      return "\(access) "
+    }
   }
+  return ""
+}
+
+/// Shared diagnostics emitter for macro implementations.
+enum MacroDiagnosticReporter {
+  static func error(
+    _ message: String,
+    domain: String,
+    id: String = "invalid-declaration",
+    in context: some MacroExpansionContext,
+    node: some SyntaxProtocol
+  ) {
+    diagnose(
+      message: message,
+      severity: .error,
+      domain: domain,
+      id: id,
+      in: context,
+      node: node
+    )
+  }
+
+  static func warning(
+    _ message: String,
+    domain: String,
+    id: String = "warning",
+    in context: some MacroExpansionContext,
+    node: some SyntaxProtocol
+  ) {
+    diagnose(
+      message: message,
+      severity: .warning,
+      domain: domain,
+      id: id,
+      in: context,
+      node: node
+    )
+  }
+
+  static func note(
+    _ message: String,
+    domain: String,
+    id: String = "note",
+    in context: some MacroExpansionContext,
+    node: some SyntaxProtocol
+  ) {
+    diagnose(
+      message: message,
+      severity: .note,
+      domain: domain,
+      id: id,
+      in: context,
+      node: node
+    )
+  }
+
+  private static func diagnose(
+    message: String,
+    severity: DiagnosticSeverity,
+    domain: String,
+    id: String,
+    in context: some MacroExpansionContext,
+    node: some SyntaxProtocol
+  ) {
+    let diagnosticMessage = MacroDiagnosticMessage(
+      message: message,
+      severity: severity,
+      id: MessageID(domain: domain, id: id)
+    )
+    context.diagnose(Diagnostic(node: Syntax(node), message: diagnosticMessage))
+  }
+}
+
+private struct MacroDiagnosticMessage: DiagnosticMessage {
+  let message: String
+  let severity: DiagnosticSeverity
+  let id: MessageID
+
+  var diagnosticID: MessageID { id }
 }

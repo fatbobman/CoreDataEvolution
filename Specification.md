@@ -96,8 +96,27 @@ enum RelationshipGenerationPolicy { case none, warning, plain }
 ### `@Composition`
 
 - 标记 struct 以支持 `.composition` 存储策略。
-- 宏解析 struct 成员，自动生成 `[String: Any]` 字典的组装/解构代码。
+- 宏解析 struct 成员，自动生成 `[String: Any]` 字典的组装/解构代码与字段表元数据。
+- v1 生成成员（命名固定）：
+  - `static let __cdCompositionFieldTable`
+  - `static func __cdDecodeComposition(from:) -> Self?`
+  - `var __cdEncodeComposition: [String: Any]`
+- 解构规则：非可选字段缺失或类型不匹配时返回 `nil`。
+- 组装规则：可选字段为 `nil` 时不写入字典。
 - 仅支持 iOS 17+ / SQLite store。
+
+v1 声明约束（硬性）：
+
+1. 仅允许标注在 `struct` 上（不支持 class/actor/enum/protocol）。
+2. 不允许泛型 composition 类型（例如 `struct Box<T>`）。
+3. 仅处理实例 `var` 存储属性；不处理 `let`、计算属性、`static`、`lazy`、属性包装器。
+4. 字段类型仅允许基础类型（含可选）：`String`、`Bool`、`Int16`、`Int32`、`Int64`、`Float`、`Double`、`Date`、`Data`、`UUID`、`URL`。
+5. composition 内字段不支持转换策略（不支持 `.raw` / `.codable` / `.transformed`）。
+6. composition 内字段不支持重命名（v1）；持久化名必须与字段名一致。
+7. 不支持嵌套 composition。
+8. 必须生成静态元数据（如 composition 字段表），供主宏拼接 `__cdFieldTable`，不依赖反射。
+9. 生成成员访问权限与原类型访问权限保持一致。
+10. 违反以上任一约束时，宏必须给出编译期诊断错误。
 
 ## 4. Relationship Semantics
 

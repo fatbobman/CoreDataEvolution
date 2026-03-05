@@ -759,7 +759,7 @@ var color: UIColor? {
 
 iOS 17+ 专有，仅支持 SQLite store。内存表示为 `[String: Any]?` 字典。
 
-设计思路：配合 `@Composition` 标记的 struct，宏解析 struct 结构自动生成字典的组装/解构代码。
+设计思路：配合 `@Composition` 标记的 struct，宏解析 struct 结构自动生成字典的组装/解构代码与静态字段元数据。
 
 ```swift
 @Composition
@@ -771,20 +771,41 @@ struct Magnitude {
 @Attribute(original: "magnitude", storageMethod: .composition)
 var magnitude: Magnitude?
 
-// 预期展开：
+// 预期展开（v1）：
 var magnitude: Magnitude? {
     get {
         guard let dict = value(forKey: "magnitude") as? [String: Any] else { return nil }
-        return Magnitude(richter: dict["richter"] as? Double ?? 0,
-                         depth: dict["depth"] as? Double ?? 0)
+        return Magnitude.__cdDecodeComposition(from: dict)
     }
     set {
-        setValue(newValue.map { ["richter": $0.richter, "depth": $0.depth] }, forKey: "magnitude")
+        setValue(newValue?.__cdEncodeComposition, forKey: "magnitude")
     }
 }
 ```
 
+`@Composition` 生成成员（命名固定）：
+
+- `static let __cdCompositionFieldTable`
+- `static func __cdDecodeComposition(from:) -> Self?`
+- `var __cdEncodeComposition: [String: Any]`
+
+解码规则：非可选字段缺失或类型不匹配时返回 `nil`。  
+编码规则：可选字段为 `nil` 时不写入字典。
+
 v1 要求：`.composition` 必须可用，不再以“编译期错误占位”延后实现。若运行环境或存储后端不满足条件，工具需给出明确校验错误与迁移提示。
+
+`@Composition` 声明约束（v1）：
+
+- 仅允许 `struct`
+- 不允许泛型
+- 仅处理实例 `var` 存储属性（不处理 `let`、计算属性、`static`、`lazy`、属性包装器）
+- 字段类型仅允许基础类型（含可选）：`String`、`Bool`、`Int16`、`Int32`、`Int64`、`Float`、`Double`、`Date`、`Data`、`UUID`、`URL`
+- 不支持转换策略（`.raw` / `.codable` / `.transformed`）
+- 不支持字段重命名（v1）
+- 不支持嵌套 composition
+- 必须生成静态元数据供主宏拼接路径/字段表，不依赖反射
+- 生成访问权限与原类型保持一致
+- 违反约束时报编译期诊断
 
 ---
 

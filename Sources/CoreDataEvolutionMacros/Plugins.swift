@@ -13,5 +13,6 @@ struct CoreDataEvolutionMacrosPlugin: CompilerPlugin {
   let providingMacros: [Macro.Type] = [
     NSModelActorMacro.self,
     NSMainModelActorMacro.self,
+    CompositionMacro.self,
   ]
 }

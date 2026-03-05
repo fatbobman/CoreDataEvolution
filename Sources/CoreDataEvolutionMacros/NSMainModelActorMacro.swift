@@ -62,7 +62,7 @@ extension NSMainModelActorMacro: MemberMacro {
     in _: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
     let generateInitializer = shouldGenerateInitializer(from: node)
-    let accessModifier = isPublic(from: declaration) ? "public " : ""
+    let accessModifier = accessModifierText(from: declaration)
 
     let decl: DeclSyntax =
       """

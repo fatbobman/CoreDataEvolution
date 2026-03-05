@@ -1,0 +1,9 @@
+import CoreDataEvolution
+
+@Composition
+public struct Location {
+  public var x: Double
+  public var y: Double?
+  public var label: String
+  public var webpage: URL?
+}

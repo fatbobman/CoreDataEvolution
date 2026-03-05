@@ -36,6 +36,7 @@ let package = Package(
       dependencies: [
         .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
         .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
+        .product(name: "SwiftDiagnostics", package: "swift-syntax"),
       ],
     ),
     .target(
@@ -52,6 +53,21 @@ let package = Package(
       dependencies: [
         "CoreDataEvolution"
       ],
+    ),
+    .testTarget(
+      name: "CoreDataEvolutionMacroTests",
+      dependencies: [
+        "CoreDataEvolutionMacros",
+        .product(name: "SwiftParser", package: "swift-syntax"),
+        .product(name: "SwiftSyntax", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxMacroExpansion", package: "swift-syntax"),
+        .product(name: "SwiftBasicFormat", package: "swift-syntax"),
+      ],
+      exclude: [
+        "Fixtures",
+        "__Snapshots__",
+      ]
     ),
     .executableTarget(name: "CoreDataEvolutionClient", dependencies: ["CoreDataEvolution"]),
   ],

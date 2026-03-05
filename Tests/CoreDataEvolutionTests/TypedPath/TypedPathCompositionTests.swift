@@ -19,6 +19,22 @@ struct TypedPathCompositionTests {
     #expect(PathLocationComposition.__cdCompositionFieldTable["y"]?.persistentPath == ["y"])
   }
 
+  @Test func compositionTypeSupportsDictionaryRoundTrip() throws {
+    let source = PathLocationComposition(x: 3.2, y: nil)
+    let encoded = source.__cdEncodeComposition
+    #expect(encoded["x"] as? Double == 3.2)
+    #expect(encoded["y"] == nil)
+
+    let decoded = PathLocationComposition.__cdDecodeComposition(from: ["x": 3.2, "y": 8.8])
+    #expect(decoded?.x == 3.2)
+    #expect(decoded?.y == 8.8)
+  }
+
+  @Test func compositionDecodeFailsWhenRequiredFieldMissing() throws {
+    let decoded = PathLocationComposition.__cdDecodeComposition(from: ["y": 1.0])
+    #expect(decoded == nil)
+  }
+
   @Test func mainModelCanBuildCompositionEntriesWithoutReflection() throws {
     let entries = CDCompositionTableBuilder.makeModelFieldEntries(
       modelSwiftPathPrefix: ["location"],

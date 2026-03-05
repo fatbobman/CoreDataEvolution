@@ -156,7 +156,11 @@ Current scope:
 - Typed sort construction from `Object.Keys` and `Object.path.*`
 - `%K` predicate building from mapped paths (including composition and relationships)
 - To-many predicate quantifiers: `any` / `all` / `none`
-- Composition metadata contract via `CDCompositionPathProviding` (no runtime reflection)
+- Composition contracts via `CDCompositionPathProviding` + `CDCompositionValueCodable` (no runtime reflection)
+- `@Composition` currently generates:
+  - `__cdCompositionFieldTable`
+  - `__cdDecodeComposition(from:)`
+  - `__cdEncodeComposition`
 
 Current boundaries:
 
@@ -169,6 +173,31 @@ When editing this area:
 - Keep mapping key space anchored to Swift paths in `__cdFieldTable`.
 - Keep `%K` as the only key interpolation path for predicate format strings.
 - Update both docs (`Specification.md`, `ImplementationPlan.md`, `DesignNotes.md`) and tests together.
+
+## Macro Test Skeleton (Recommended)
+
+Before implementing new macros or changing generated members, set up macro tests first to prevent silent expansion drift.
+
+Recommended structure:
+
+- `Tests/CoreDataEvolutionMacroTests/`
+- `Tests/CoreDataEvolutionMacroTests/MacroTestSupport.swift`
+- `Tests/CoreDataEvolutionMacroTests/MacroExpansionSnapshotTests.swift`
+- `Tests/CoreDataEvolutionMacroTests/MacroDiagnosticTests.swift`
+- `Tests/CoreDataEvolutionMacroTests/Fixtures/`
+- `Tests/CoreDataEvolutionMacroTests/__Snapshots__/`
+
+Recommended workflow:
+
+1. Use snapshot tests for expanded source output.
+2. Use diagnostic tests for compile-time errors/warnings messages.
+3. Gate snapshot updates behind `UPDATE_SNAPSHOTS=1`; default CI behavior should fail on mismatch.
+
+Implementation notes:
+
+- Prefer using the same `SwiftSyntax` expansion pipeline pattern as `ObservableDefaultsMacroTests` (`SwiftParser` + `SwiftSyntaxMacroExpansion` + `BasicMacroExpansionContext`).
+- Keep one shared macro registry in `MacroTestSupport` for all test files.
+- When macro output changes intentionally, update snapshots and docs in the same change.
 
 ## Files Worth Reading Before Nontrivial Changes
 
