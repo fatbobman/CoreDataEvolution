@@ -22,6 +22,28 @@ import SwiftSyntax
 /// - Returns: A boolean indicating whether to generate an initializer.
 import SwiftSyntaxMacros
 
+let coreDataPrimitiveTypeNamesInOrder: [String] = [
+  "String",
+  "Bool",
+  "Int",
+  "Int16",
+  "Int32",
+  "Int64",
+  "Float",
+  "Double",
+  "Date",
+  "Data",
+  "UUID",
+  "URL",
+]
+
+let coreDataPrimitiveTypeNames: Set<String> = Set(coreDataPrimitiveTypeNamesInOrder)
+
+func coreDataPrimitiveTypeListDescription(includeOptionals: Bool = true) -> String {
+  let joined = coreDataPrimitiveTypeNamesInOrder.joined(separator: ", ")
+  return includeOptionals ? "\(joined) and optionals" : joined
+}
+
 func shouldGenerateInitializer(from node: AttributeSyntax) -> Bool {
   guard let argumentList = node.arguments?.as(LabeledExprListSyntax.self) else {
     return true  // Default to true if no arguments are present.

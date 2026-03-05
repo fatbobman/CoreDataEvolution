@@ -1,0 +1,11 @@
+import CoreDataEvolution
+
+enum Status: String {
+  case a
+  case b
+}
+
+struct Item {
+  @Attribute(storageMethod: .raw)
+  var status: Status? = .a
+}

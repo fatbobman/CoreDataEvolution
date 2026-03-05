@@ -157,7 +157,7 @@ extension CompositionMacro: MemberMacro {
 
         guard isAllowedFieldType(typeAnnotation.type) else {
           MacroDiagnosticReporter.error(
-            "@Composition field type is unsupported in v1. Allowed: String, Bool, Int16, Int32, Int64, Float, Double, Date, Data, UUID, URL (and optionals).",
+            "@Composition field type is unsupported in v1. Allowed: \(coreDataPrimitiveTypeListDescription()).",
             domain: "CoreDataEvolution.CompositionMacro",
             in: context,
             node: typeAnnotation.type
@@ -259,19 +259,7 @@ private func isAllowedFieldType(_ type: TypeSyntax) -> Bool {
   guard let base = normalizedBaseTypeName(type) else {
     return false
   }
-  return [
-    "String",
-    "Bool",
-    "Int16",
-    "Int32",
-    "Int64",
-    "Float",
-    "Double",
-    "Date",
-    "Data",
-    "UUID",
-    "URL",
-  ].contains(base)
+  return coreDataPrimitiveTypeNames.contains(base)
 }
 
 private func isOptionalType(_ type: TypeSyntax) -> Bool {

@@ -1,0 +1,6 @@
+import CoreDataEvolution
+
+final class Item {
+  @Ignore
+  var cache: [String: Int] = [:]
+}

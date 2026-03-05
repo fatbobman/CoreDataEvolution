@@ -1,0 +1,10 @@
+import CoreDataEvolution
+import Foundation
+
+struct Item {
+  @Attribute(originalName: "timestamp")
+  var date: Date? = nil
+
+  @Attribute
+  var count: Int? = nil
+}

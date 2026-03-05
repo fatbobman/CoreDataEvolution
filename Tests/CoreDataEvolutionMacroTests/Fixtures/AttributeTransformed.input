@@ -1,0 +1,9 @@
+import CoreDataEvolution
+import Foundation
+
+final class ColorTransformer: ValueTransformer {}
+
+struct Item {
+  @Attribute(storageMethod: .transformed(ColorTransformer.self))
+  var color: String? = nil
+}

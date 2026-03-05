@@ -9,6 +9,19 @@ import Foundation
 
 // MARK: - Core Data Macro
 
+public enum AttributeStorageMethod {
+  case `default`
+  case raw
+  case codable
+  case transformed(ValueTransformer.Type)
+  case composition
+}
+
+public enum AttributeDecodeFailurePolicy {
+  case fallbackToDefaultValue
+  case debugAssertNil
+}
+
 @attached(member, names: named(modelExecutor), named(modelContainer), named(init))
 @attached(extension, conformances: NSModelActor)
 public macro NSModelActor(disableGenerateInit: Bool = false) =
@@ -27,3 +40,15 @@ public macro NSMainModelActor(disableGenerateInit: Bool = false) =
 @attached(extension, conformances: CDCompositionPathProviding, CDCompositionValueCodable)
 public macro Composition() =
   #externalMacro(module: "CoreDataEvolutionMacros", type: "CompositionMacro")
+
+@attached(peer)
+public macro Ignore() =
+  #externalMacro(module: "CoreDataEvolutionMacros", type: "IgnoreMacro")
+
+@attached(accessor)
+@attached(peer)
+public macro Attribute(
+  originalName: String? = nil,
+  storageMethod: AttributeStorageMethod? = nil,
+  decodeFailurePolicy: AttributeDecodeFailurePolicy? = nil
+) = #externalMacro(module: "CoreDataEvolutionMacros", type: "AttributeMacro")

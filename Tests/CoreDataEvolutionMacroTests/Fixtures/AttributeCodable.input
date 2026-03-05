@@ -1,0 +1,11 @@
+import CoreDataEvolution
+import Foundation
+
+struct Config: Codable {
+  let name: String
+}
+
+struct Item {
+  @Attribute(storageMethod: .codable)
+  var config: Config? = nil
+}

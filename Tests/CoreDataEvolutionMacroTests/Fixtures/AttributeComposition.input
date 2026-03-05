@@ -1,0 +1,11 @@
+import CoreDataEvolution
+
+@Composition
+struct Magnitude {
+  var richter: Double
+}
+
+struct Item {
+  @Attribute(storageMethod: .composition)
+  var magnitude: Magnitude? = nil
+}

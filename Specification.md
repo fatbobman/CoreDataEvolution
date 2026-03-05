@@ -48,18 +48,6 @@
 
 - 宏生成的所有代码（计算属性、便利方法、`Keys`、`Paths`、`__cdFieldTable`、构造方法）严格继承类型本身的访问权限，不自动提升或降低。
 
-序列化错误策略参数：
-
-```swift
-enum SerializationErrorPolicy {
-    case silentNil    // 默认：吞错并返回 nil
-    case logAndNil    // 记录日志并返回 nil
-    case assertion    // Debug 下 assert，Release 返回 nil
-}
-```
-
-- `.codable` 与 `.transformed` 的展开代码统一走 `serializationErrorPolicy` 策略。
-
 关系生成策略参数（统一枚举）：
 
 ```swift
@@ -68,7 +56,6 @@ enum RelationshipGenerationPolicy { case none, warning, plain }
 
 ```swift
 @PersistentModel(
-  serializationErrorPolicy: .silentNil,
   generateInit: true,
   relationshipGetterPolicy: .plain,
   relationshipSetterPolicy: .none,   // 仅对 Set<T> 生效
@@ -78,9 +65,21 @@ enum RelationshipGenerationPolicy { case none, warning, plain }
 
 ### `@Attribute`
 
+- 参数：`originalName`（映射持久化字段名），`storageMethod`，`decodeFailurePolicy`。  
+- 持久化属性必须有默认值：非可选属性需显式默认值；可选属性可省略初始化器（视为默认 `nil`）。  
 - 对基础类型自动 `.default`。  
 - 非基础类型必须显式 `storageMethod`。  
 - 支持 `.raw` `.codable` `.transformed` `.composition`。  
+- `storageMethod: .default`（显式或隐式）仅允许基础类型（含可选）：
+  `String`、`Bool`、`Int`、`Int16`、`Int32`、`Int64`、`Float`、`Double`、`Date`、`Data`、`UUID`、`URL`。
+- `decodeFailurePolicy` 仅适用于 `.raw` / `.codable` / `.transformed`：
+  - `.fallbackToDefaultValue`（默认）
+  - `.debugAssertNil`
+- `.raw` 会在编译期约束属性类型满足 `RawRepresentable`。
+- `.codable` 会在编译期约束属性类型满足 `Codable`。
+- `.transformed` 要求传入 `ValueTransformer` 元类型（如 `MyTransformer.self`）。
+- `.composition` 会在编译期约束属性类型满足 `@Composition` 生成的协议能力（`CDCompositionPathProviding` + `CDCompositionValueCodable`）。
+- `decodeFailurePolicy` 同时用于 getter 解码失败与 setter 编码/转换失败。
 
 ### `@Ignore`
 
@@ -179,7 +178,7 @@ v1 声明约束（硬性）：
 
 `#Predicate` 在下列场景不作为规范路径：
 
-- 对外名与持久化名不一致（`@Attribute(original:)`）
+- 对外名与持久化名不一致（`@Attribute(originalName:)`）
 - Swift 类型与持久化类型不一致（例如 enum/rawValue）
 
 推荐写法：
@@ -202,6 +201,7 @@ NSPredicate(format: "%K == %@", Item.Keys.status.rawValue, status.rawValue)
 
 - Codegen = `Manual/None`
 - Attribute 映射/类型/optional/default/storageMethod
+- 持久化属性默认值约束（非可选必须显式默认值；可选省略初始化器按 `nil` 处理）
 - relationship 命名与可选性（代码层）
 - 模型层 to-many optional
 - 模型层 inverse

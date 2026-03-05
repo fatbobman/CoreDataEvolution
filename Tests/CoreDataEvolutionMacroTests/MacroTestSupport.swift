@@ -45,10 +45,16 @@ enum MacroTestSupport {
   static let indentationWidth: Trivia = .spaces(2)
 
   static let macroSpecs: [String: MacroSpec] = [
+    "Attribute": MacroSpec(
+      type: AttributeMacro.self
+    ),
     "Composition": MacroSpec(
       type: CompositionMacro.self,
       conformances: ["CDCompositionPathProviding", "CDCompositionValueCodable"]
-    )
+    ),
+    "Ignore": MacroSpec(
+      type: IgnoreMacro.self
+    ),
   ]
 
   static func expandFixture(named fixtureName: String) throws -> MacroExpansionResult {
