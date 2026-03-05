@@ -25,6 +25,7 @@ public enum ToolingOverwriteMode: String, Codable, Sendable, Equatable {
 public enum ToolingFormatMode: String, Codable, Sendable, Equatable {
   case none
   case swiftFormat = "swift-format"
+  case swiftformat
 }
 
 public enum ToolingRelationshipGenerationPolicy: String, Codable, Sendable, Equatable {

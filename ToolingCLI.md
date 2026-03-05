@@ -47,13 +47,19 @@ CLI v1 先解决两件事：
     "momcBin": null,
     "outputDir": "Generated/CoreDataEvolution",
     "moduleName": "AppModels",
+    "attributeMappings": {
+      "Item": {
+        "name": "title",
+        "created_at": "createdAt"
+      }
+    },
     "accessLevel": "internal",
     "singleFile": false,
     "splitByEntity": true,
     "overwrite": "none",
     "cleanStale": false,
     "dryRun": false,
-    "format": "swift-format",
+    "format": "none",
     "headerTemplate": null,
     "generateInit": false,
     "relationshipSetterPolicy": "warning",
@@ -65,6 +71,12 @@ CLI v1 先解决两件事：
     "modelVersion": null,
     "sourceDir": "Sources/AppModels",
     "moduleName": "AppModels",
+    "attributeMappings": {
+      "Item": {
+        "name": "title",
+        "created_at": "createdAt"
+      }
+    },
     "include": [],
     "exclude": [],
     "level": "quick",
@@ -80,6 +92,15 @@ CLI v1 先解决两件事：
 - 运行 `cde-tool generate` 时读取 `generate` 节点。
 - 运行 `cde-tool validate` 时读取 `validate` 节点。
 - 命令行显式传入参数优先覆盖配置文件同名字段。
+
+`attributeMappings` 约定：
+
+- 结构：`EntityName.persistentField -> swiftProperty`
+- 示例：`"Item": { "name": "title" }`
+- 作用：
+  - `generate` 用于生成 `@Attribute(originalName: "name") var title ...`
+  - `validate` 用于按同一规则校验代码与模型是否一致
+- v1 仅用于 attribute，不用于 relationship
 
 ### 3.1 默认配置模板导出
 
@@ -151,6 +172,8 @@ CLI v1 先解决两件事：
   - 生成文件目标目录。
 - `--module-name <name>`
   - 代码中 `import` 与类型引用需要的模块名。
+- `--attribute-mappings`
+  - v1 不单独提供 CLI 参数，推荐在 JSON 配置中声明。
 - `--access-level <internal|public>`
   - 生成代码默认可见性。
 - `--single-file`
@@ -168,8 +191,11 @@ CLI v1 先解决两件事：
   - 删除旧的“已生成但本轮不存在”的文件（仅处理带生成标记的文件）。
 - `--dry-run`
   - 不写磁盘，打印变更摘要。
-- `--format <none|swift-format>`
+- `--format <none|swift-format|swiftformat>`
   - 是否在写入前格式化。
+  - `swift-format` 对应 Apple `swift-format`。
+  - `swiftformat` 对应 Nick Lockwood `SwiftFormat`。
+  - formatter 执行属于 CLI/adapter 层，`ToolingCore` 只表达模式，不直接依赖外部工具。
 - `--header-template <path>`
   - 自定义文件头模板（如项目统一版权头）。
 
@@ -195,13 +221,14 @@ CLI v1 先解决两件事：
 - `momcBin`: optional, string/null，默认 `null`（自动发现）。
 - `outputDir`: required, string，无默认值。
 - `moduleName`: required, string，无默认值。
+- `attributeMappings`: optional, object，默认 `{}`。
 - `accessLevel`: optional, enum(`internal`,`public`)，默认 `internal`。
 - `singleFile`: optional, bool，默认 `false`。
 - `splitByEntity`: optional, bool，默认 `true`。
 - `overwrite`: optional, enum(`none`,`changed`,`all`)，默认 `none`。
 - `cleanStale`: optional, bool，默认 `false`。
 - `dryRun`: optional, bool，默认 `false`。
-- `format`: optional, enum(`none`,`swift-format`)，默认 `none`。
+- `format`: optional, enum(`none`,`swift-format`,`swiftformat`)，默认 `none`。
 - `headerTemplate`: optional, string/null，默认 `null`。
 - `generateInit`: optional, bool，默认 `false`。
 - `relationshipSetterPolicy`: optional, enum(`none`,`warning`,`plain`)，默认 `warning`。
@@ -215,6 +242,8 @@ CLI v1 先解决两件事：
 - `--model-path <path>`
 - `--source-dir <path>`
 - `--module-name <name>`
+- `--attribute-mappings`
+  - v1 不单独提供 CLI 参数，推荐在 JSON 配置中声明。
 - `--include <glob>`
 - `--exclude <glob>`
 
@@ -242,6 +271,7 @@ CLI v1 先解决两件事：
 - `modelVersion`: optional, string/null，默认 `null`（自动选择当前版本，缺失则最新）。
 - `sourceDir`: required, string，无默认值。
 - `moduleName`: required, string，无默认值。
+- `attributeMappings`: optional, object，默认 `{}`。
 - `include`: optional, array<string>，默认 `[]`。
 - `exclude`: optional, array<string>，默认 `[]`。
 - `level`: optional, enum(`quick`,`strict`)，默认 `quick`。

@@ -25,6 +25,7 @@ public struct GenerateRequest: Sendable, Equatable {
   public let momcBin: String?
   public let outputDir: String
   public let moduleName: String
+  public let attributeMappings: ToolingAttributeMappings
   public let accessLevel: ToolingAccessLevel
   public let singleFile: Bool
   public let splitByEntity: Bool
@@ -44,6 +45,7 @@ public struct GenerateRequest: Sendable, Equatable {
     momcBin: String?,
     outputDir: String,
     moduleName: String,
+    attributeMappings: ToolingAttributeMappings,
     accessLevel: ToolingAccessLevel,
     singleFile: Bool,
     splitByEntity: Bool,
@@ -62,6 +64,7 @@ public struct GenerateRequest: Sendable, Equatable {
     self.momcBin = momcBin
     self.outputDir = outputDir
     self.moduleName = moduleName
+    self.attributeMappings = attributeMappings
     self.accessLevel = accessLevel
     self.singleFile = singleFile
     self.splitByEntity = splitByEntity
@@ -82,6 +85,7 @@ public struct ValidateRequest: Sendable, Equatable {
   public let modelVersion: String?
   public let sourceDir: String
   public let moduleName: String
+  public let attributeMappings: ToolingAttributeMappings
   public let include: [String]
   public let exclude: [String]
   public let level: ToolingValidationLevel
@@ -94,6 +98,7 @@ public struct ValidateRequest: Sendable, Equatable {
     modelVersion: String?,
     sourceDir: String,
     moduleName: String,
+    attributeMappings: ToolingAttributeMappings,
     include: [String],
     exclude: [String],
     level: ToolingValidationLevel,
@@ -105,6 +110,7 @@ public struct ValidateRequest: Sendable, Equatable {
     self.modelVersion = modelVersion
     self.sourceDir = sourceDir
     self.moduleName = moduleName
+    self.attributeMappings = attributeMappings
     self.include = include
     self.exclude = exclude
     self.level = level

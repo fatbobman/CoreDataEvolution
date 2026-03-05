@@ -46,6 +46,7 @@ public struct GenerateTemplate: Codable, Sendable, Equatable {
   public let momcBin: String?
   public let outputDir: String
   public let moduleName: String
+  public let attributeMappings: ToolingAttributeMappings?
   public let accessLevel: ToolingAccessLevel?
   public let singleFile: Bool?
   public let splitByEntity: Bool?
@@ -65,6 +66,7 @@ public struct GenerateTemplate: Codable, Sendable, Equatable {
     momcBin: String?,
     outputDir: String,
     moduleName: String,
+    attributeMappings: ToolingAttributeMappings?,
     accessLevel: ToolingAccessLevel?,
     singleFile: Bool?,
     splitByEntity: Bool?,
@@ -83,6 +85,7 @@ public struct GenerateTemplate: Codable, Sendable, Equatable {
     self.momcBin = momcBin
     self.outputDir = outputDir
     self.moduleName = moduleName
+    self.attributeMappings = attributeMappings
     self.accessLevel = accessLevel
     self.singleFile = singleFile
     self.splitByEntity = splitByEntity
@@ -103,6 +106,7 @@ public struct ValidateTemplate: Codable, Sendable, Equatable {
   public let modelVersion: String?
   public let sourceDir: String
   public let moduleName: String
+  public let attributeMappings: ToolingAttributeMappings?
   public let include: [String]?
   public let exclude: [String]?
   public let level: ToolingValidationLevel?
@@ -115,6 +119,7 @@ public struct ValidateTemplate: Codable, Sendable, Equatable {
     modelVersion: String?,
     sourceDir: String,
     moduleName: String,
+    attributeMappings: ToolingAttributeMappings?,
     include: [String]?,
     exclude: [String]?,
     level: ToolingValidationLevel?,
@@ -126,6 +131,7 @@ public struct ValidateTemplate: Codable, Sendable, Equatable {
     self.modelVersion = modelVersion
     self.sourceDir = sourceDir
     self.moduleName = moduleName
+    self.attributeMappings = attributeMappings
     self.include = include
     self.exclude = exclude
     self.level = level
@@ -147,6 +153,7 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         momcBin: nil,
         outputDir: "Generated/CoreDataEvolution",
         moduleName: "AppModels",
+        attributeMappings: nil,
         accessLevel: nil,
         singleFile: nil,
         splitByEntity: nil,
@@ -165,6 +172,7 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         modelVersion: nil,
         sourceDir: "Sources/AppModels",
         moduleName: "AppModels",
+        attributeMappings: nil,
         include: nil,
         exclude: nil,
         level: nil,
@@ -182,13 +190,14 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         momcBin: nil,
         outputDir: "Generated/CoreDataEvolution",
         moduleName: "AppModels",
+        attributeMappings: .init(),
         accessLevel: .internal,
         singleFile: false,
         splitByEntity: true,
         overwrite: ToolingOverwriteMode.none,
         cleanStale: false,
         dryRun: false,
-        format: .swiftFormat,
+        format: ToolingFormatMode.none,
         headerTemplate: nil,
         generateInit: false,
         relationshipSetterPolicy: .warning,
@@ -200,6 +209,7 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         modelVersion: nil,
         sourceDir: "Sources/AppModels",
         moduleName: "AppModels",
+        attributeMappings: .init(),
         include: [],
         exclude: [],
         level: .quick,
@@ -270,6 +280,7 @@ extension GenerateRequest {
       momcBin: overrides.momcBin ?? config.momcBin,
       outputDir: overrides.outputDir ?? config.outputDir,
       moduleName: overrides.moduleName ?? config.moduleName,
+      attributeMappings: config.attributeMappings ?? .init(),
       accessLevel: overrides.accessLevel ?? config.accessLevel ?? .internal,
       singleFile: overrides.singleFile ?? config.singleFile ?? false,
       splitByEntity: overrides.splitByEntity ?? config.splitByEntity ?? true,
@@ -296,6 +307,7 @@ extension ValidateRequest {
       modelVersion: overrides.modelVersion ?? config.modelVersion,
       sourceDir: overrides.sourceDir ?? config.sourceDir,
       moduleName: overrides.moduleName ?? config.moduleName,
+      attributeMappings: config.attributeMappings ?? .init(),
       include: overrides.include ?? config.include ?? [],
       exclude: overrides.exclude ?? config.exclude ?? [],
       level: overrides.level ?? config.level ?? .quick,

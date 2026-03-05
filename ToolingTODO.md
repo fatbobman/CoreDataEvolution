@@ -23,6 +23,7 @@
 - `[x]` 创建 diagnostics / issue 数据结构
 - `[x]` 创建 schema version 校验与升级提示逻辑
 - `[x]` 创建配置文件读取与命令行覆盖合并逻辑
+- `[x]` 创建共享 `attributeMappings` 配置模型
 
 ## 2. Model Loading
 
@@ -54,6 +55,7 @@
 - `[ ]` 生成关系声明
 - `[ ]` 生成 composition 对应代码
 - `[ ]` 生成 `@Attribute(...)` 参数
+- `[ ]` 根据 `attributeMappings` 生成重命名属性
 - `[ ]` 生成 `@Ignore` 对应保留逻辑
 - `[ ]` 支持 `generateInit`
 - `[ ]` 支持 `relationshipSetterPolicy`
@@ -73,11 +75,14 @@
 - `[ ]` 限制 stale 清理只在 `outputDir` 内进行
 - `[ ]` 支持 `dryRun`
 - `[ ]` 支持 `swift-format`
+- `[ ]` 支持 `SwiftFormat`
+- `[ ]` 将 formatter 执行限制在 CLI/adapter 层
 
 ## 6. Validate Engine
 
 - `[ ]` 校验实体是否一一对应
 - `[ ]` 校验属性名与 `originalName`
+- `[ ]` 根据 `attributeMappings` 校验属性重命名
 - `[ ]` 校验 storage method
 - `[ ]` 校验关系方向与基数
 - `[ ]` 校验 ordered / unordered to-many

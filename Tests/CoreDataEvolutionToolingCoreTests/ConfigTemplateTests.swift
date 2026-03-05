@@ -23,10 +23,12 @@ struct ConfigTemplateTests {
     #expect(template.generate?.modelPath == "Models/AppModel.xcdatamodeld")
     #expect(template.generate?.outputDir == "Generated/CoreDataEvolution")
     #expect(template.generate?.moduleName == "AppModels")
+    #expect(template.generate?.attributeMappings == nil)
     #expect(template.generate?.relationshipSetterPolicy == nil)
     #expect(template.validate?.modelPath == "Models/AppModel.xcdatamodeld")
     #expect(template.validate?.sourceDir == "Sources/AppModels")
     #expect(template.validate?.moduleName == "AppModels")
+    #expect(template.validate?.attributeMappings == nil)
     #expect(template.validate?.level == nil)
   }
 
@@ -35,14 +37,17 @@ struct ConfigTemplateTests {
     let template = makeDefaultConfigTemplate(preset: .full)
 
     #expect(template.schemaVersion == 1)
+    #expect(template.generate?.attributeMappings == .init())
     #expect(template.generate?.accessLevel == .internal)
     #expect(template.generate?.splitByEntity == true)
     #expect(template.generate?.overwrite == ToolingOverwriteMode.none)
+    #expect(template.generate?.format == ToolingFormatMode.none)
     #expect(template.generate?.relationshipSetterPolicy == .warning)
     #expect(
       template.generate?.relationshipCountPolicy == ToolingRelationshipGenerationPolicy.none
     )
     #expect(template.generate?.defaultDecodeFailurePolicy == .fallbackToDefaultValue)
+    #expect(template.validate?.attributeMappings == .init())
     #expect(template.validate?.level == .quick)
     #expect(template.validate?.report == .text)
     #expect(template.validate?.maxIssues == 200)

@@ -51,7 +51,7 @@ struct GenerateCommand: ParsableCommand {
   @Flag(name: .long, help: "Preview changes without writing files.")
   var dryRun = false
 
-  @Option(name: .long, help: "Format mode: none/swift-format.")
+  @Option(name: .long, help: "Format mode: none/swift-format/swiftformat.")
   var format: ToolingFormatMode = .none
 
   @Option(name: .long, help: "Header template path.")
