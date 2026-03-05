@@ -6,7 +6,7 @@
 
 ### v1
 
-- 宏：`@PersistentModel` `@Attribute` `@Ignore` `@RelationshipInfo`
+- 宏：`@PersistentModel` `@Attribute` `@Ignore` `@Composition`
 - 存储策略：`.default` `.raw` `.codable` `.transformed` `.composition`
 - 排序能力：`Keys + Paths + __cdFieldTable`
 - 查询规范：优先 `NSPredicate`
@@ -88,6 +88,7 @@ enum RelationshipGenerationPolicy { case none, warning, plain }
 - `.transformed` 要求传入 `ValueTransformer` 元类型（如 `MyTransformer.self`）。
 - 兼容既有数据库：对于模型里已配置为 `Transformable` 的数组/字典（如 `[String]`、`[String: String]`），可继续使用 `.transformed`；通常可不自定义 transformer 名称（使用系统默认安全反序列化路径），但建议在模型中显式指定系统 transformer 以增强可迁移性。
 - `.composition` 会在编译期约束属性类型满足 `@Composition` 生成的协议能力（`CDCompositionPathProviding` + `CDCompositionValueCodable`）。
+- `@Attribute` 不能标注关系属性（`T?` / `Set<T>` / `[T]` 且 `T: NSManagedObject`）；关系由主宏按类型自动识别并生成代码。
 - `decodeFailurePolicy` 同时用于 getter 解码失败与 setter 编码/转换失败。
 
 ### `@Ignore`
@@ -95,11 +96,11 @@ enum RelationshipGenerationPolicy { case none, warning, plain }
 - 被标记的 `var` 不参与持久化代码生成。  
 - `let` 无需标记，默认不参与持久化生成。  
 
-### `@RelationshipInfo`
+### RelationshipInfo 注释
 
-- 可选。
-- 存在时校验 `inverse/deleteRule/ordered` 与模型一致。
-- 关系元信息依赖功能（如 `*Count`）仅在存在 `@RelationshipInfo` 时允许生成。
+- v1 不提供 `@RelationshipInfo` 宏。
+- 关系元信息通过工具生成/维护的结构化注释承载（用于代码可读性与工具校验输入）。
+- 校验工具在注释存在时比对 `inverse/deleteRule/ordered` 与模型一致性。
 
 ### `@Composition`
 
@@ -143,7 +144,7 @@ v1 声明约束（硬性）：
 ### Count
 
 - `tagsCount` 能力是否在 v1 实现：待议。  
-- 若实现：仅在存在 `@RelationshipInfo` 且 `relationshipCountPolicy != .none` 时生成。  
+- 若实现：仅在存在 RelationshipInfo 注释且 `relationshipCountPolicy != .none` 时生成。  
 
 ## 5. Constructor Contract
 
@@ -222,7 +223,7 @@ NSPredicate(format: "%K == %@", Item.Keys.status.rawValue, status.rawValue)
 - relationship 命名与可选性（代码层）
 - 模型层 to-many optional
 - 模型层 inverse
-- `@RelationshipInfo` 一致性（若存在），含 `ordered` 与属性类型的自洽性
+- RelationshipInfo 注释一致性（若存在），含 `ordered` 与属性类型的自洽性
 - 孤立字段（模型中存在但 Swift 中无对应 `@Attribute`）
 - 孤立声明（Swift 中的 `@Attribute` 在模型中无对应字段）
 - Undefined 类型属性（宏不支持，需开发者处理）

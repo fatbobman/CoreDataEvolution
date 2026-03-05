@@ -35,6 +35,40 @@ struct Item {
     }
   }
 
+  private func __cd_attribute_validate_config_nonrelationship() {
+    func __cdDisallowRelationship<T>(_: T.Type) {
+    }
+    @available(
+      *, unavailable,
+      message:
+        "@Attribute cannot be applied to relationship properties. Remove @Attribute from this property."
+    )
+    func __cdDisallowRelationship<T: NSManagedObject>(_: T.Type) {
+    }
+    @available(
+      *, unavailable,
+      message:
+        "@Attribute cannot be applied to to-one relationship properties (`T?` where `T: NSManagedObject`)."
+    )
+    func __cdDisallowRelationship<T: NSManagedObject>(_: T?.Type) {
+    }
+    @available(
+      *, unavailable,
+      message:
+        "@Attribute cannot be applied to to-many relationship properties (`Set<T>` where `T: NSManagedObject`)."
+    )
+    func __cdDisallowRelationship<T: NSManagedObject>(_: Set<T>.Type) {
+    }
+    @available(
+      *, unavailable,
+      message:
+        "@Attribute cannot be applied to ordered to-many relationship properties (`[T]` where `T: NSManagedObject`)."
+    )
+    func __cdDisallowRelationship<T: NSManagedObject>(_: [T].Type) {
+    }
+    __cdDisallowRelationship(Config?.self)
+  }
+
   private func __cd_attribute_validate_config_codable() {
     func __cdRequireCodable<T: Codable>(_: T.Type) {
     }
