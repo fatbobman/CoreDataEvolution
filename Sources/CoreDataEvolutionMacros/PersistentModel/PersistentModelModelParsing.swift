@@ -45,6 +45,7 @@ func analyzePersistentModelProperties(in classDecl: ClassDeclSyntax)
 
       let propertyName = identifier.identifier.text
       let typeName = typeAnnotation.type.trimmedDescription
+      let nonOptionalTypeName = attributeOptionalWrappedTypeName(typeAnnotation.type) ?? typeName
       let defaultValueExpression = binding.initializer?.value.trimmedDescription
 
       if isOptionalToManyRelationshipType(typeAnnotation.type) {
@@ -60,6 +61,7 @@ func analyzePersistentModelProperties(in classDecl: ClassDeclSyntax)
             PersistentAttributeProperty(
               propertyName: propertyName,
               typeName: typeName,
+              nonOptionalTypeName: nonOptionalTypeName,
               persistentName: parsed.originalName ?? propertyName,
               storageMethod: parsed.storageMethod ?? .default,
               defaultValueExpression: defaultValueExpression
@@ -83,6 +85,7 @@ func analyzePersistentModelProperties(in classDecl: ClassDeclSyntax)
           PersistentAttributeProperty(
             propertyName: propertyName,
             typeName: typeName,
+            nonOptionalTypeName: nonOptionalTypeName,
             persistentName: propertyName,
             storageMethod: .default,
             defaultValueExpression: defaultValueExpression

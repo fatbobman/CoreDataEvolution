@@ -49,6 +49,7 @@ struct PersistentModelAnalysis {
 struct PersistentAttributeProperty {
   let propertyName: String
   let typeName: String
+  let nonOptionalTypeName: String
   let persistentName: String
   let storageMethod: ParsedAttributeStorageMethod
   let defaultValueExpression: String?
