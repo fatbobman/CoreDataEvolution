@@ -166,6 +166,18 @@ CLI v1 先解决两件事：
 - `--momc-bin <path>`
   - 可选。覆盖 `xcrun --find momc` 自动查找逻辑。
 
+自动选择“当前模型版本”的规则：
+
+1. 如果命令行或配置中显式提供 `modelVersion`，优先使用该版本。
+2. 否则读取 `.xcdatamodeld/.xccurrentversion` 中的 `_XCCurrentVersionName`。
+3. 如果 `.xccurrentversion` 缺失，再回退到目录中按标准自然排序后的最新 `.xcdatamodel`。
+
+说明：
+
+- `.xccurrentversion` 是 Xcode / Core Data 对“当前版本”的权威来源。
+- “回退到最新版本”仅是容错策略，不应替代对 `.xccurrentversion` 的维护。
+- `modelVersion` 同时接受 `V2` 和 `V2.xcdatamodel` 两种写法。
+
 ### 4.2 输出参数
 
 - `--output-dir <path>`

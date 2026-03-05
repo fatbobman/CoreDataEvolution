@@ -12,13 +12,19 @@
 import Foundation
 
 public enum ToolingErrorCode: String, Codable, Sendable {
-  case notImplemented = "CLI-NOT-IMPLEMENTED"
-  case configConflict = "CLI-CONFIG-CONFLICT"
-  case configExists = "CLI-CONFIG-EXISTS"
-  case configSchemaUnsupported = "CLI-CONFIG-SCHEMA-UNSUPPORTED"
-  case ioFailed = "CLI-IO-FAILED"
-  case internalError = "CLI-INTERNAL"
-  case jsonEncodeFailed = "CLI-JSON-ENCODE-FAILED"
-  case outputDirMissing = "CLI-OUTPUT-DIR-MISSING"
-  case writeDenied = "CLI-WRITE-DENIED"
+  case notImplemented = "TOOL-NOT-IMPLEMENTED"
+  case configConflict = "TOOL-CONFIG-CONFLICT"
+  case configExists = "TOOL-CONFIG-EXISTS"
+  case configSchemaUnsupported = "TOOL-CONFIG-SCHEMA-UNSUPPORTED"
+  case ioFailed = "TOOL-IO-FAILED"
+  case internalError = "TOOL-INTERNAL"
+  case jsonEncodeFailed = "TOOL-JSON-ENCODE-FAILED"
+  case modelCompileFailed = "TOOL-MODEL-COMPILE-FAILED"
+  case modelLoadFailed = "TOOL-MODEL-LOAD-FAILED"
+  case modelNotFound = "TOOL-MODEL-NOT-FOUND"
+  case modelUnsupported = "TOOL-MODEL-UNSUPPORTED"
+  case modelVersionNotFound = "TOOL-MODEL-VERSION-NOT-FOUND"
+  case momcNotFound = "TOOL-MOMC-NOT-FOUND"
+  case outputDirMissing = "TOOL-OUTPUT-DIR-MISSING"
+  case writeDenied = "TOOL-WRITE-DENIED"
 }

@@ -1,4 +1,4 @@
-# CoreDataEvolution CLI Error Catalog (WIP)
+# CoreDataEvolution Tooling Error Catalog (WIP)
 
 ## Exit Codes
 
@@ -19,23 +19,23 @@
 
 | Code | Exit | Command | Message Template |
 | --- | --- | --- | --- |
-| `CLI-CONFIG-CONFLICT` | `1` | `init-config` | `error[CLI-CONFIG-CONFLICT]: --output and --stdout cannot be used together.` |
-| `CLI-CONFIG-EXISTS` | `1` | `init-config` | `error[CLI-CONFIG-EXISTS]: config file already exists at '<path>'. Use --force to overwrite.` |
-| `CLI-CONFIG-SCHEMA-UNSUPPORTED` | `1` | `generate`, `validate` | `error[CLI-CONFIG-SCHEMA-UNSUPPORTED]: config schema version '<version>' is newer than supported '<supported-version>'. Please upgrade cde-tool.` |
-| `CLI-PRESET-INVALID` | `1` | `init-config` | `error[CLI-PRESET-INVALID]: unsupported preset '<value>'. Allowed: minimal, full.` |
-| `CLI-OUTPUT-DIR-MISSING` | `1` | `init-config`, `generate` | `error[CLI-OUTPUT-DIR-MISSING]: output directory does not exist: '<dir>'.` |
-| `CLI-WRITE-DENIED` | `1` | `init-config`, `generate` | `error[CLI-WRITE-DENIED]: cannot write to '<path>' (permission denied).` |
-| `CLI-MODEL-PATH-MISSING` | `1` | `generate`, `validate` | `error[CLI-MODEL-PATH-MISSING]: model path does not exist: '<path>'.` |
-| `CLI-SOURCE-DIR-MISSING` | `1` | `validate` | `error[CLI-SOURCE-DIR-MISSING]: source directory does not exist: '<path>'.` |
-| `CLI-MODEL-VERSION-NOT-FOUND` | `1` | `generate`, `validate` | `error[CLI-MODEL-VERSION-NOT-FOUND]: model version '<name>' not found in '<model-path>'.` |
-| `CLI-OVERWRITE-PROTECTED` | `1` | `generate` | `error[CLI-OVERWRITE-PROTECTED]: target file exists and overwrite mode is 'none': '<path>'.` |
-| `CLI-CLEAN-STALE-REFUSED` | `1` | `generate` | `error[CLI-CLEAN-STALE-REFUSED]: refusing to delete file outside output-dir: '<path>'.` |
-| `CLI-VALIDATION-FAILED` | `1` | `validate` | `error[CLI-VALIDATION-FAILED]: validation failed with <count> error(s).` |
-| `CLI-JSON-ENCODE-FAILED` | `2` | `init-config` | `error[CLI-JSON-ENCODE-FAILED]: failed to encode config template as JSON.` |
-| `CLI-MODEL-LOAD-FAILED` | `2` | `generate`, `validate` | `error[CLI-MODEL-LOAD-FAILED]: failed to load model from '<path>'.` |
-| `CLI-MOMC-FAILED` | `2` | `generate`, `validate` | `error[CLI-MOMC-FAILED]: model compilation failed (momc exit <status>).` |
-| `CLI-IO-FAILED` | `2` | all | `error[CLI-IO-FAILED]: I/O operation failed: <reason>.` |
-| `CLI-INTERNAL` | `2` | all | `error[CLI-INTERNAL]: unexpected internal error.` |
+| `TOOL-CONFIG-CONFLICT` | `1` | `init-config` | `error[TOOL-CONFIG-CONFLICT]: --output and --stdout cannot be used together.` |
+| `TOOL-CONFIG-EXISTS` | `1` | `init-config` | `error[TOOL-CONFIG-EXISTS]: config file already exists at '<path>'. Use --force to overwrite.` |
+| `TOOL-CONFIG-SCHEMA-UNSUPPORTED` | `1` | `generate`, `validate` | `error[TOOL-CONFIG-SCHEMA-UNSUPPORTED]: config schema version '<version>' is newer than supported '<supported-version>'. Please upgrade cde-tool.` |
+| `TOOL-PRESET-INVALID` | `1` | `init-config` | `error[TOOL-PRESET-INVALID]: unsupported preset '<value>'. Allowed: minimal, full.` |
+| `TOOL-OUTPUT-DIR-MISSING` | `1` | `init-config`, `generate` | `error[TOOL-OUTPUT-DIR-MISSING]: output directory does not exist: '<dir>'.` |
+| `TOOL-WRITE-DENIED` | `1` | `init-config`, `generate` | `error[TOOL-WRITE-DENIED]: cannot write to '<path>' (permission denied).` |
+| `TOOL-MODEL-PATH-MISSING` | `1` | `generate`, `validate` | `error[TOOL-MODEL-PATH-MISSING]: model path does not exist: '<path>'.` |
+| `TOOL-SOURCE-DIR-MISSING` | `1` | `validate` | `error[TOOL-SOURCE-DIR-MISSING]: source directory does not exist: '<path>'.` |
+| `TOOL-MODEL-VERSION-NOT-FOUND` | `1` | `generate`, `validate` | `error[TOOL-MODEL-VERSION-NOT-FOUND]: model version '<name>' not found in '<model-path>'.` |
+| `TOOL-OVERWRITE-PROTECTED` | `1` | `generate` | `error[TOOL-OVERWRITE-PROTECTED]: target file exists and overwrite mode is 'none': '<path>'.` |
+| `TOOL-CLEAN-STALE-REFUSED` | `1` | `generate` | `error[TOOL-CLEAN-STALE-REFUSED]: refusing to delete file outside output-dir: '<path>'.` |
+| `TOOL-VALIDATION-FAILED` | `1` | `validate` | `error[TOOL-VALIDATION-FAILED]: validation failed with <count> error(s).` |
+| `TOOL-JSON-ENCODE-FAILED` | `2` | `init-config` | `error[TOOL-JSON-ENCODE-FAILED]: failed to encode config template as JSON.` |
+| `TOOL-MODEL-LOAD-FAILED` | `2` | `generate`, `validate` | `error[TOOL-MODEL-LOAD-FAILED]: failed to load model from '<path>'.` |
+| `TOOL-MOMC-FAILED` | `2` | `generate`, `validate` | `error[TOOL-MOMC-FAILED]: model compilation failed (momc exit <status>).` |
+| `TOOL-IO-FAILED` | `2` | all | `error[TOOL-IO-FAILED]: I/O operation failed: <reason>.` |
+| `TOOL-INTERNAL` | `2` | all | `error[TOOL-INTERNAL]: unexpected internal error.` |
 
 ## Notes For Implementation
 

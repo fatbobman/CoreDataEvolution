@@ -27,14 +27,14 @@
 
 ## 2. Model Loading
 
-- `[ ]` 支持加载 `.xcdatamodeld`
-- `[ ]` 支持加载 `.xcdatamodel`
-- `[ ]` 支持加载 `.momd`
-- `[ ]` 支持 `modelVersion` 显式选择
-- `[ ]` 默认选择 `xccurrentversion`
-- `[ ]` 缺失 `xccurrentversion` 时回退到最新版本
-- `[ ]` 支持 `momc` 自动发现
-- `[ ]` 支持 `momcBin` 手动覆盖
+- `[x]` 支持加载 `.xcdatamodeld`
+- `[x]` 支持加载 `.xcdatamodel`
+- `[x]` 支持加载 `.momd`
+- `[x]` 支持 `modelVersion` 显式选择
+- `[x]` 默认选择 `xccurrentversion`
+- `[x]` 缺失 `xccurrentversion` 时回退到最新版本
+- `[x]` 支持 `momc` 自动发现
+- `[x]` 支持 `momcBin` 手动覆盖
 
 ## 3. IR
 
@@ -132,6 +132,7 @@
 - `[x]` config 合并测试
 - `[x]` `init-config` service 测试
 - `[ ]` 模型版本选择测试
+- `[x]` 模型版本选择测试
 - `[ ]` IR 构建测试
 - `[ ]` generate file plan 测试
 - `[ ]` overwrite / clean-stale 测试
