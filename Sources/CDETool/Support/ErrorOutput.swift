@@ -23,6 +23,11 @@ func failInternal(code: ToolingErrorCode, message: String, hint: String? = nil) 
   throw ExitCode(2)
 }
 
+func fail(_ failure: ToolingFailure) throws -> Never {
+  emitError(code: failure.code, message: failure.message, hint: failure.hint)
+  throw ExitCode(failure.exitCode)
+}
+
 func emitError(code: ToolingErrorCode, message: String, hint: String?) {
   fputs("error[\(code.rawValue)]: \(message)\n", stderr)
   if let hint {

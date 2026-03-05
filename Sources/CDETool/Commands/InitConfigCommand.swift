@@ -39,11 +39,15 @@ struct InitConfigCommand: ParsableCommand {
       )
     }
 
-    let template = makeDefaultConfigTemplate(preset: preset.toolingPreset)
-    let data = try encodeToolingJSON(template)
+    let result: InitConfigResult
+    do {
+      result = try InitConfigService.run(.init(preset: preset.toolingPreset))
+    } catch let failure as ToolingFailure {
+      try fail(failure)
+    }
 
     if stdout {
-      guard let text = String(data: data, encoding: .utf8) else {
+      guard let text = String(data: result.jsonData, encoding: .utf8) else {
         try failInternal(
           code: .jsonEncodeFailed,
           message: "failed to encode config template as UTF-8."
@@ -74,7 +78,7 @@ struct InitConfigCommand: ParsableCommand {
     }
 
     do {
-      try data.write(to: url, options: [.atomic])
+      try result.jsonData.write(to: url, options: [.atomic])
       print("wrote config template to \(url.path)")
     } catch {
       try failUser(

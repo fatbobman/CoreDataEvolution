@@ -18,11 +18,11 @@
 - `[x]` 创建独立 target：`CoreDataEvolutionToolingCore`
 - `[x]` 将默认配置模板迁移到 `ToolingCore`
 - `[x]` 将通用错误码模型迁移到 `ToolingCore`
-- `[ ]` 创建统一请求模型
-- `[ ]` 创建统一结果模型
-- `[ ]` 创建 diagnostics / issue 数据结构
-- `[ ]` 创建 schema version 校验与升级提示逻辑
-- `[ ]` 创建配置文件读取与命令行覆盖合并逻辑
+- `[x]` 创建统一请求模型
+- `[x]` 创建统一结果模型
+- `[x]` 创建 diagnostics / issue 数据结构
+- `[x]` 创建 schema version 校验与升级提示逻辑
+- `[x]` 创建配置文件读取与命令行覆盖合并逻辑
 
 ## 2. Model Loading
 
@@ -124,6 +124,8 @@
 - `[x]` 为 `ToolingCore` 创建独立测试 target
 - `[x]` 配置模板测试
 - `[x]` schema version 测试
+- `[x]` config 合并测试
+- `[x]` `init-config` service 测试
 - `[ ]` 模型版本选择测试
 - `[ ]` IR 构建测试
 - `[ ]` generate file plan 测试
@@ -136,7 +138,7 @@
 
 ## 11. Immediate Next Steps
 
-- `1.` 为 `ToolingCore` 定义请求/结果/diagnostic 基础模型
-- `2.` 将 `init-config` 进一步下沉到 `ToolingCore` 的 service 层
-- `3.` 创建 `ToolingCore` 测试 target 并先覆盖配置模板与 schema version
-- `4.` 开始实现 model loader 与版本选择
+- `1.` 开始实现 model loader 与版本选择
+- `2.` 为 `generate` / `validate` 建立 service 层入口
+- `3.` 定义基础 IR（entity / attribute / relationship / composition）
+- `4.` 将 CLI `--config` 接入 `ToolingCore`

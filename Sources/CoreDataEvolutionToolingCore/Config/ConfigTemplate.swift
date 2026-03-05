@@ -11,12 +11,14 @@
 
 import Foundation
 
+public let toolingSupportedSchemaVersion = 1
+
 public enum ToolingConfigTemplatePreset: String, Codable, Sendable {
   case minimal
   case full
 }
 
-public struct ToolingConfigTemplate: Codable, Sendable {
+public struct ToolingConfigTemplate: Codable, Sendable, Equatable {
   public let schemaVersion: Int
   public let generate: GenerateTemplate?
   public let validate: ValidateTemplate?
@@ -38,7 +40,7 @@ public struct ToolingConfigTemplate: Codable, Sendable {
   }
 }
 
-public struct GenerateTemplate: Codable, Sendable {
+public struct GenerateTemplate: Codable, Sendable, Equatable {
   public let modelPath: String
   public let modelVersion: String?
   public let momcBin: String?
@@ -96,7 +98,7 @@ public struct GenerateTemplate: Codable, Sendable {
   }
 }
 
-public struct ValidateTemplate: Codable, Sendable {
+public struct ValidateTemplate: Codable, Sendable, Equatable {
   public let modelPath: String
   public let modelVersion: String?
   public let sourceDir: String
@@ -138,7 +140,7 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
   switch preset {
   case .minimal:
     return .init(
-      schemaVersion: 1,
+      schemaVersion: toolingSupportedSchemaVersion,
       generate: .init(
         modelPath: "Models/AppModel.xcdatamodeld",
         modelVersion: nil,
@@ -173,7 +175,7 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
     )
   case .full:
     return .init(
-      schemaVersion: 1,
+      schemaVersion: toolingSupportedSchemaVersion,
       generate: .init(
         modelPath: "Models/AppModel.xcdatamodeld",
         modelVersion: nil,
@@ -213,4 +215,93 @@ public func encodeToolingJSON<T: Encodable>(_ value: T) throws -> Data {
   let encoder = JSONEncoder()
   encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
   return try encoder.encode(value)
+}
+
+private struct ToolingConfigSchemaEnvelope: Decodable {
+  let schemaVersion: Int?
+
+  enum CodingKeys: String, CodingKey {
+    case schemaVersion = "$schemaVersion"
+  }
+}
+
+public func loadToolingConfigTemplate(from data: Data) throws -> ToolingConfigTemplate {
+  let decoder = JSONDecoder()
+
+  do {
+    let envelope = try decoder.decode(ToolingConfigSchemaEnvelope.self, from: data)
+    let schemaVersion = envelope.schemaVersion ?? toolingSupportedSchemaVersion
+    guard schemaVersion <= toolingSupportedSchemaVersion else {
+      throw ToolingFailure.user(
+        .configSchemaUnsupported,
+        "config schema version '\(schemaVersion)' is newer than supported '\(toolingSupportedSchemaVersion)'. Please upgrade cde-tool."
+      )
+    }
+    return try decoder.decode(ToolingConfigTemplate.self, from: data)
+  } catch let failure as ToolingFailure {
+    throw failure
+  } catch {
+    throw ToolingFailure.runtime(
+      .ioFailed,
+      "failed to decode config file (\(error.localizedDescription))."
+    )
+  }
+}
+
+public func loadToolingConfigTemplate(at url: URL) throws -> ToolingConfigTemplate {
+  do {
+    let data = try Data(contentsOf: url)
+    return try loadToolingConfigTemplate(from: data)
+  } catch let failure as ToolingFailure {
+    throw failure
+  } catch {
+    throw ToolingFailure.runtime(
+      .ioFailed,
+      "failed to read config file at '\(url.path)' (\(error.localizedDescription))."
+    )
+  }
+}
+
+extension GenerateRequest {
+  public init(config: GenerateTemplate, overrides: GenerateRequestOverrides = .init()) {
+    self.init(
+      modelPath: overrides.modelPath ?? config.modelPath,
+      modelVersion: overrides.modelVersion ?? config.modelVersion,
+      momcBin: overrides.momcBin ?? config.momcBin,
+      outputDir: overrides.outputDir ?? config.outputDir,
+      moduleName: overrides.moduleName ?? config.moduleName,
+      accessLevel: overrides.accessLevel ?? config.accessLevel ?? "internal",
+      singleFile: overrides.singleFile ?? config.singleFile ?? false,
+      splitByEntity: overrides.splitByEntity ?? config.splitByEntity ?? true,
+      overwrite: overrides.overwrite ?? config.overwrite ?? "none",
+      cleanStale: overrides.cleanStale ?? config.cleanStale ?? false,
+      dryRun: overrides.dryRun ?? config.dryRun ?? false,
+      format: overrides.format ?? config.format ?? "none",
+      headerTemplate: overrides.headerTemplate ?? config.headerTemplate,
+      generateInit: overrides.generateInit ?? config.generateInit ?? false,
+      relationshipSetterPolicy: overrides.relationshipSetterPolicy
+        ?? config.relationshipSetterPolicy ?? "warning",
+      relationshipCountPolicy: overrides.relationshipCountPolicy
+        ?? config.relationshipCountPolicy ?? "none",
+      defaultDecodeFailurePolicy: overrides.defaultDecodeFailurePolicy
+        ?? config.defaultDecodeFailurePolicy ?? "fallbackToDefaultValue"
+    )
+  }
+}
+
+extension ValidateRequest {
+  public init(config: ValidateTemplate, overrides: ValidateRequestOverrides = .init()) {
+    self.init(
+      modelPath: overrides.modelPath ?? config.modelPath,
+      modelVersion: overrides.modelVersion ?? config.modelVersion,
+      sourceDir: overrides.sourceDir ?? config.sourceDir,
+      moduleName: overrides.moduleName ?? config.moduleName,
+      include: overrides.include ?? config.include ?? [],
+      exclude: overrides.exclude ?? config.exclude ?? [],
+      level: overrides.level ?? config.level ?? "quick",
+      report: overrides.report ?? config.report ?? "text",
+      failOnWarning: overrides.failOnWarning ?? config.failOnWarning ?? false,
+      maxIssues: overrides.maxIssues ?? config.maxIssues ?? 200
+    )
+  }
 }
