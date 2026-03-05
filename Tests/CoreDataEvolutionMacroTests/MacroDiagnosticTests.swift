@@ -13,6 +13,94 @@ import Testing
 
 @Suite("Macro Diagnostics")
 struct MacroDiagnosticTests {
+  @Test("NSModelActor private type uses fileprivate witnesses")
+  func nsModelActorPrivateUsesFileprivateWitnesses() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        @NSModelActor(disableGenerateInit: true)
+        private actor PrivateHandler {
+          init(container: NSPersistentContainer) {
+            modelContainer = container
+            modelExecutor = .init(context: container.newBackgroundContext())
+          }
+        }
+        """
+    )
+    #expect(result.diagnostics.isEmpty)
+    #expect(result.expandedSource.contains("fileprivate nonisolated let modelExecutor"))
+    #expect(result.expandedSource.contains("fileprivate nonisolated let modelContainer"))
+    #expect(
+      result.expandedSource.contains("extension PrivateHandler: CoreDataEvolution.NSModelActor {")
+    )
+    #expect(result.expandedSource.contains("fileprivate extension") == false)
+  }
+
+  @Test("NSModelActor public type keeps public witnesses")
+  func nsModelActorPublicKeepsPublicWitnesses() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        @NSModelActor(disableGenerateInit: true)
+        public actor PublicHandler {
+          public init(container: NSPersistentContainer) {
+            modelContainer = container
+            modelExecutor = .init(context: container.newBackgroundContext())
+          }
+        }
+        """
+    )
+    #expect(result.diagnostics.isEmpty)
+    #expect(result.expandedSource.contains("public nonisolated let modelExecutor"))
+    #expect(result.expandedSource.contains("public nonisolated let modelContainer"))
+  }
+
+  @Test("NSMainModelActor private type uses fileprivate witness")
+  func nsMainModelActorPrivateUsesFileprivateWitness() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        @NSMainModelActor(disableGenerateInit: true)
+        @MainActor
+        private final class PrivateMainHandler {
+          init(modelContainer: NSPersistentContainer) {
+            self.modelContainer = modelContainer
+          }
+        }
+        """
+    )
+    #expect(result.diagnostics.isEmpty)
+    #expect(result.expandedSource.contains("fileprivate let modelContainer"))
+    #expect(
+      result.expandedSource.contains(
+        "extension PrivateMainHandler: CoreDataEvolution.NSMainModelActor {")
+    )
+    #expect(result.expandedSource.contains("fileprivate extension") == false)
+  }
+
+  @Test("PersistentModel private type uses fileprivate generated members")
+  func persistentModelPrivateUsesFileprivateGeneratedMembers() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        @objc(PrivateItem)
+        @PersistentModel
+        private final class PrivateItem: NSManagedObject {
+          var title: String = ""
+        }
+        """
+    )
+    #expect(result.diagnostics.isEmpty)
+    #expect(result.expandedSource.contains("fileprivate enum Keys: String"))
+    #expect(result.expandedSource.contains("fileprivate enum Paths"))
+    #expect(result.expandedSource.contains("fileprivate static var path: PathRoot"))
+    #expect(result.expandedSource.contains("fileprivate static let __cdFieldTable"))
+  }
+
   @Test("PersistentModel rejects non-class declaration")
   func persistentModelRejectsNonClassDeclaration() throws {
     let result = try MacroTestSupport.expand(

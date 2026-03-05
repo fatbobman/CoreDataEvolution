@@ -9,6 +9,7 @@
 //  ------------------------------------------------
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
+import Foundation
 import SwiftSyntax
 
 func makeKeysDecl(
@@ -165,13 +166,14 @@ func makeFieldTableDecl(
 
   var compositionMergeLines: [String] = []
   for attribute in model.attributes where attribute.storageMethod == .composition {
+    let compositionType = unwrapOptionalTypeName(attribute.typeName)
     compositionMergeLines.append(
       """
       table.merge(
         CoreDataEvolution.CDCompositionTableBuilder.makeModelFieldEntries(
           modelSwiftPathPrefix: ["\(attribute.propertyName)"],
           modelPersistentPathPrefix: ["\(attribute.persistentName)"],
-          composition: \(attribute.typeName).self
+          composition: \(compositionType).self
         ),
         uniquingKeysWith: { _, new in new }
       )
@@ -359,4 +361,21 @@ private func supportsStoreSort(_ method: ParsedAttributeStorageMethod) -> Bool {
   case .codable, .transformed, .composition:
     return false
   }
+}
+
+private func unwrapOptionalTypeName(_ typeName: String) -> String {
+  let trimmed = trimWhitespace(typeName)
+  if trimmed.hasSuffix("?") {
+    return trimWhitespace(String(trimmed.dropLast()))
+  }
+  if trimmed.hasPrefix("Optional<"), trimmed.hasSuffix(">") {
+    let start = trimmed.index(trimmed.startIndex, offsetBy: "Optional<".count)
+    let end = trimmed.index(before: trimmed.endIndex)
+    return trimWhitespace(String(trimmed[start..<end]))
+  }
+  return trimmed
+}
+
+private func trimWhitespace(_ text: String) -> String {
+  text.trimmingCharacters(in: .whitespacesAndNewlines)
 }

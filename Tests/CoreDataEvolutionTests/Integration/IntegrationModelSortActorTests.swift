@@ -28,12 +28,12 @@ private actor IntegrationSortHandler {
     swift.label = "swift"
 
     let low = CDEItem(context: modelContext)
-    low.name = "alpha"
+    low.title = "alpha"
     low.priority = 1
     low.tag = swift
 
     let high = CDEItem(context: modelContext)
-    high.name = "beta"
+    high.title = "beta"
     high.priority = 9
     high.tag = swift
 
@@ -54,7 +54,7 @@ struct IntegrationModelSortActorTests {
       request.sortDescriptors = [
         try NSSortDescriptor(CDEItem.self, path: CDEItem.path.priority, order: .desc)
       ]
-      return try context.fetch(request).map(\.name)
+      return try context.fetch(request).map(\.title)
     }
 
     let firstLabel = try await handler.withContext { context in

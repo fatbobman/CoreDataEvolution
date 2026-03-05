@@ -31,12 +31,12 @@ private actor IntegrationPredicateHandler {
     objc.label = "ObjC"
 
     let alpha = CDEItem(context: modelContext)
-    alpha.name = "alpha"
+    alpha.title = "alpha"
     alpha.priority = 2
     alpha.tag = swift
 
     let beta = CDEItem(context: modelContext)
-    beta.name = "beta"
+    beta.title = "beta"
     beta.priority = 7
     beta.tag = objc
 
@@ -55,16 +55,19 @@ struct IntegrationModelPredicateActorTests {
     let result = try await handler.withContext { context in
       let itemsRequest = NSFetchRequest<CDEItem>(entityName: "CDEItem")
       itemsRequest.predicate = CDEItem.path.tag.label.equals("Swift")
-      let itemNames = try context.fetch(itemsRequest).map(\.name)
+      let itemNames = try context.fetch(itemsRequest).map(\.title)
 
       let tagsRequest = NSFetchRequest<CDETag>(entityName: "CDETag")
-      tagsRequest.predicate = CDETag.path.items.any.name.equals("alpha")
-      let tagLabels = try context.fetch(tagsRequest).map(\.label)
+      tagsRequest.predicate = CDETag.path.items.any.title.equals("alpha")
+      let tags = try context.fetch(tagsRequest)
+      let tagLabels = tags.map(\.label)
+      let inverseItemCount = tags.first?.items.count ?? 0
 
-      return (itemNames, tagLabels)
+      return (itemNames, tagLabels, inverseItemCount)
     }
 
     #expect(result.0 == ["alpha"])
     #expect(result.1 == ["Swift"])
+    #expect(result.2 == 1)
   }
 }

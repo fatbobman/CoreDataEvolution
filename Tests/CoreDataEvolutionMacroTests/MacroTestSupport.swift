@@ -62,6 +62,14 @@ enum MacroTestSupport {
     "_CDRelationship": MacroSpec(
       type: RelationshipMacro.self
     ),
+    "NSModelActor": MacroSpec(
+      type: NSModelActorMacro.self,
+      conformances: ["NSModelActor"]
+    ),
+    "NSMainModelActor": MacroSpec(
+      type: NSMainModelActorMacro.self,
+      conformances: ["NSMainModelActor"]
+    ),
   ]
 
   static func expandFixture(named fixtureName: String) throws -> MacroExpansionResult {
