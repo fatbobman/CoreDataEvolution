@@ -26,6 +26,20 @@ struct MacroDiagnosticTests {
     #expect(result.diagnostics.isEmpty)
   }
 
+  @Test("Attribute default accepts Decimal type")
+  func attributeDefaultAcceptsDecimal() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import Foundation
+        struct S {
+          @Attribute
+          var amount: Decimal? = nil
+        }
+        """
+    )
+    #expect(result.diagnostics.isEmpty)
+  }
+
   @Test("Attribute explicit default rejects non-primitive type")
   func attributeExplicitDefaultRejectsNonPrimitive() throws {
     let result = try MacroTestSupport.expand(
@@ -270,9 +284,11 @@ struct MacroDiagnosticTests {
   func compositionAcceptsAllowedFields() throws {
     let result = try MacroTestSupport.expand(
       source: """
+        import Foundation
         @Composition
         public struct Location {
           public var x: Double
+          public var amount: Decimal?
           public var name: String?
           public var webpage: URL?
         }

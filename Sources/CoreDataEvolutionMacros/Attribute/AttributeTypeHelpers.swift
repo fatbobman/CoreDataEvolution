@@ -53,6 +53,7 @@ func numberBridgeAccessor(forBaseType typeName: String) -> String? {
   case "Int64": return "int64Value"
   case "Float": return "floatValue"
   case "Double": return "doubleValue"
+  case "Decimal": return "decimalValue"
   case "Bool": return "boolValue"
   default: return nil
   }

@@ -91,6 +91,26 @@ struct DefaultAttributeAccessorBuilder: AttributeAccessorBuilder {
     let key = info.persistentName
 
     if numberBridgeAccessor(forBaseType: info.baseTypeName) != nil {
+      if info.baseTypeName == "Decimal" {
+        if info.isOptional {
+          return
+            """
+            set {
+              if let newValue {
+                setValue(NSDecimalNumber(decimal: newValue), forKey: "\(raw: key)")
+              } else {
+                setValue(nil, forKey: "\(raw: key)")
+              }
+            }
+            """
+        }
+        return
+          """
+          set {
+            setValue(NSDecimalNumber(decimal: newValue), forKey: "\(raw: key)")
+          }
+          """
+      }
       if info.isOptional {
         return
           """

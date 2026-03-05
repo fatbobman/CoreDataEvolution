@@ -31,6 +31,7 @@ let coreDataPrimitiveTypeNamesInOrder: [String] = [
   "Int64",
   "Float",
   "Double",
+  "Decimal",
   "Date",
   "Data",
   "UUID",

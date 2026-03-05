@@ -27,6 +27,8 @@
 7. 有序 to-many (`[T]`) 永不生成 setter。
 8. `@Ignore` 仅用于 `var`；`let` 默认忽略。
 9. 关系属性名必须与 xcdatamodeld 中的关系名保持一致，不支持重命名映射。
+10. 模型层 attribute 必须满足“可选或有默认值”：若 `Optional=false`，则必须在 xcdatamodeld 中提供默认值。
+11. 代码层持久化属性必须满足同构规则：若为非可选必须显式默认值；若为可选可省略初始化器（视为默认 `nil`，无需写 `= nil`）。
 
 ## 3. Macro Behavior
 
@@ -67,17 +69,24 @@ enum RelationshipGenerationPolicy { case none, warning, plain }
 
 - 参数：`originalName`（映射持久化字段名），`storageMethod`，`decodeFailurePolicy`。  
 - 持久化属性必须有默认值：非可选属性需显式默认值；可选属性可省略初始化器（视为默认 `nil`）。  
+- 上述代码规则必须与模型层规则一致：模型中非可选 attribute 必须配置默认值；可选 attribute 可以不配置默认值。  
 - 对基础类型自动 `.default`。  
 - 非基础类型必须显式 `storageMethod`。  
 - 支持 `.raw` `.codable` `.transformed` `.composition`。  
 - `storageMethod: .default`（显式或隐式）仅允许基础类型（含可选）：
-  `String`、`Bool`、`Int`、`Int16`、`Int32`、`Int64`、`Float`、`Double`、`Date`、`Data`、`UUID`、`URL`。
+  `String`、`Bool`、`Int`、`Int16`、`Int32`、`Int64`、`Float`、`Double`、`Decimal`、`Date`、`Data`、`UUID`、`URL`。
 - `decodeFailurePolicy` 仅适用于 `.raw` / `.codable` / `.transformed`：
   - `.fallbackToDefaultValue`（默认）
   - `.debugAssertNil`
+- 代码中的默认值**不用于自动落库初始化**（不会在属性级或主宏生成的 init 中额外写入持久化字段）。
+- 代码默认值在 v1 仅承担两类职责：
+  - 读取/解码/转换失败时的 fallback 值
+  - 作为属性语义与意图的显式声明
+- 持久化层默认值的真实来源是 xcdatamodeld；工具需校验“模型默认值 vs 代码默认值”一致性。
 - `.raw` 会在编译期约束属性类型满足 `RawRepresentable`。
 - `.codable` 会在编译期约束属性类型满足 `Codable`。
 - `.transformed` 要求传入 `ValueTransformer` 元类型（如 `MyTransformer.self`）。
+- 兼容既有数据库：对于模型里已配置为 `Transformable` 的数组/字典（如 `[String]`、`[String: String]`），可继续使用 `.transformed`；通常可不自定义 transformer 名称（使用系统默认安全反序列化路径），但建议在模型中显式指定系统 transformer 以增强可迁移性。
 - `.composition` 会在编译期约束属性类型满足 `@Composition` 生成的协议能力（`CDCompositionPathProviding` + `CDCompositionValueCodable`）。
 - `decodeFailurePolicy` 同时用于 getter 解码失败与 setter 编码/转换失败。
 
@@ -109,7 +118,7 @@ v1 声明约束（硬性）：
 1. 仅允许标注在 `struct` 上（不支持 class/actor/enum/protocol）。
 2. 不允许泛型 composition 类型（例如 `struct Box<T>`）。
 3. 仅处理实例 `var` 存储属性；不处理 `let`、计算属性、`static`、`lazy`、属性包装器。
-4. 字段类型仅允许基础类型（含可选）：`String`、`Bool`、`Int16`、`Int32`、`Int64`、`Float`、`Double`、`Date`、`Data`、`UUID`、`URL`。
+4. 字段类型仅允许基础类型（含可选）：`String`、`Bool`、`Int`、`Int16`、`Int32`、`Int64`、`Float`、`Double`、`Decimal`、`Date`、`Data`、`UUID`、`URL`。
 5. composition 内字段不支持转换策略（不支持 `.raw` / `.codable` / `.transformed`）。
 6. composition 内字段不支持重命名（v1）；持久化名必须与字段名一致。
 7. 不支持嵌套 composition。
@@ -143,6 +152,13 @@ v1 声明约束（硬性）：
 - 仅包含持久化 attribute 参数，不包含 relationship 参数。  
 - 不接收 `context`。  
 - 内部使用：`self.init(entity: Self.entity(), insertInto: nil)`。  
+- 不负责“默认值落库”补写；是否有持久化默认值由模型层（xcdatamodeld）决定。  
+
+原因（约束说明）：
+
+1. 本方案不是纯代码建模，模型层默认值是底层真值来源。  
+2. 若宏在 init 中再补写默认值，可能与模型默认值重复或冲突。  
+3. `generateInit` 是可选能力，默认值语义不应依赖它是否开启。  
 
 调用方规则：
 
@@ -202,6 +218,7 @@ NSPredicate(format: "%K == %@", Item.Keys.status.rawValue, status.rawValue)
 - Codegen = `Manual/None`
 - Attribute 映射/类型/optional/default/storageMethod
 - 持久化属性默认值约束（非可选必须显式默认值；可选省略初始化器按 `nil` 处理）
+- 模型层默认值约束（`Optional=false` 的 attribute 必须有默认值；`Optional=true` 可无默认值）
 - relationship 命名与可选性（代码层）
 - 模型层 to-many optional
 - 模型层 inverse
