@@ -182,6 +182,12 @@ CLI v1 先解决两件事：
 
 说明：这些参数作为“生成代码默认策略”，具体属性仍允许在代码层用 `@Attribute(...)` 覆盖。
 
+默认值差异说明：
+
+- CLI `generate` 默认 `relationshipSetterPolicy = warning`（更保守，优先提示关系批量写入成本）。
+- `@PersistentModel` 宏本身默认 `relationshipSetterPolicy = .none`。
+- 这是有意差异：CLI 作为“代码生成入口”采用更安全默认值，宏保持最小侵入默认行为。
+
 ### 4.5 `generate` 配置约束（schema 级别）
 
 - `modelPath`: required, string，无默认值。

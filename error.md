@@ -21,6 +21,7 @@
 | --- | --- | --- | --- |
 | `CLI-CONFIG-CONFLICT` | `1` | `init-config` | `error[CLI-CONFIG-CONFLICT]: --output and --stdout cannot be used together.` |
 | `CLI-CONFIG-EXISTS` | `1` | `init-config` | `error[CLI-CONFIG-EXISTS]: config file already exists at '<path>'. Use --force to overwrite.` |
+| `CLI-CONFIG-SCHEMA-UNSUPPORTED` | `1` | `generate`, `validate` | `error[CLI-CONFIG-SCHEMA-UNSUPPORTED]: config schema version '<version>' is newer than supported '<supported-version>'. Please upgrade cde-tool.` |
 | `CLI-PRESET-INVALID` | `1` | `init-config` | `error[CLI-PRESET-INVALID]: unsupported preset '<value>'. Allowed: minimal, full.` |
 | `CLI-OUTPUT-DIR-MISSING` | `1` | `init-config`, `generate` | `error[CLI-OUTPUT-DIR-MISSING]: output directory does not exist: '<dir>'.` |
 | `CLI-WRITE-DENIED` | `1` | `init-config`, `generate` | `error[CLI-WRITE-DENIED]: cannot write to '<path>' (permission denied).` |
@@ -46,4 +47,3 @@
   - `path` (if any)
   - `line` / `column` (if any)
   - `severity` (`error`/`warning`)
-
