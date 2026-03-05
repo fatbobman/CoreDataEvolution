@@ -34,43 +34,9 @@ struct Item {
     }
   }
 
-  private func __cd_attribute_validate_color_nonrelationship() {
-    func __cdDisallowRelationship<T>(_: T.Type) {
-    }
-    @available(
-      *, unavailable,
-      message:
-        "@Attribute cannot be applied to relationship properties. Remove @Attribute from this property."
-    )
-    func __cdDisallowRelationship<T: NSManagedObject>(_: T.Type) {
-    }
-    @available(
-      *, unavailable,
-      message:
-        "@Attribute cannot be applied to to-one relationship properties (`T?` where `T: NSManagedObject`)."
-    )
-    func __cdDisallowRelationship<T: NSManagedObject>(_: T?.Type) {
-    }
-    @available(
-      *, unavailable,
-      message:
-        "@Attribute cannot be applied to to-many relationship properties (`Set<T>` where `T: NSManagedObject`)."
-    )
-    func __cdDisallowRelationship<T: NSManagedObject>(_: Set<T>.Type) {
-    }
-    @available(
-      *, unavailable,
-      message:
-        "@Attribute cannot be applied to ordered to-many relationship properties (`[T]` where `T: NSManagedObject`)."
-    )
-    func __cdDisallowRelationship<T: NSManagedObject>(_: [T].Type) {
-    }
-    __cdDisallowRelationship(String?.self)
-  }
+  private static let __cd_attribute_validate_color_nonrelationship: Void = CoreDataEvolution
+    ._CDAttributeMacroValidation.requireNonRelationship(String?.self)
 
-  private func __cd_attribute_validate_color_transformed() {
-    func __cdRequireTransformer<T: ValueTransformer>(_: T.Type) {
-    }
-    __cdRequireTransformer(ColorTransformer.self)
-  }
+  private static let __cd_attribute_validate_color_transformed: Void = CoreDataEvolution
+    ._CDAttributeMacroValidation.requireTransformer(ColorTransformer.self.self)
 }
