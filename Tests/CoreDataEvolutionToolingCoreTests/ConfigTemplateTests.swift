@@ -1,0 +1,58 @@
+//
+//  ------------------------------------------------
+//  Original project: CoreDataEvolution
+//  Created on 2026/3/6 by Fatbobman(东坡肘子)
+//  X: @fatbobman
+//  Mastodon: @fatbobman@mastodon.social
+//  GitHub: @fatbobman
+//  Blog: https://fatbobman.com
+//  ------------------------------------------------
+//  Copyright © 2024-present Fatbobman. All rights reserved.
+
+import CoreDataEvolutionToolingCore
+import Foundation
+import Testing
+
+@Suite("Tooling Core Config Template Tests")
+struct ConfigTemplateTests {
+  @Test("minimal preset keeps only required fields")
+  func minimalPresetKeepsOnlyRequiredFields() throws {
+    let template = makeDefaultConfigTemplate(preset: .minimal)
+
+    #expect(template.schemaVersion == 1)
+    #expect(template.generate?.modelPath == "Models/AppModel.xcdatamodeld")
+    #expect(template.generate?.outputDir == "Generated/CoreDataEvolution")
+    #expect(template.generate?.moduleName == "AppModels")
+    #expect(template.generate?.relationshipSetterPolicy == nil)
+    #expect(template.validate?.modelPath == "Models/AppModel.xcdatamodeld")
+    #expect(template.validate?.sourceDir == "Sources/AppModels")
+    #expect(template.validate?.moduleName == "AppModels")
+    #expect(template.validate?.level == nil)
+  }
+
+  @Test("full preset includes documented defaults")
+  func fullPresetIncludesDocumentedDefaults() throws {
+    let template = makeDefaultConfigTemplate(preset: .full)
+
+    #expect(template.schemaVersion == 1)
+    #expect(template.generate?.accessLevel == "internal")
+    #expect(template.generate?.splitByEntity == true)
+    #expect(template.generate?.overwrite == "none")
+    #expect(template.generate?.relationshipSetterPolicy == "warning")
+    #expect(template.generate?.relationshipCountPolicy == "none")
+    #expect(template.generate?.defaultDecodeFailurePolicy == "fallbackToDefaultValue")
+    #expect(template.validate?.level == "quick")
+    #expect(template.validate?.report == "text")
+    #expect(template.validate?.maxIssues == 200)
+  }
+
+  @Test("encoded json uses schemaVersion key")
+  func encodedJSONUsesSchemaVersionKey() throws {
+    let template = makeDefaultConfigTemplate(preset: .full)
+    let data = try encodeToolingJSON(template)
+    let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+
+    #expect(json?["$schemaVersion"] as? Int == 1)
+    #expect(json?["schemaVersion"] == nil)
+  }
+}
