@@ -10,6 +10,7 @@
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
 import ArgumentParser
+import CoreDataEvolutionToolingCore
 
 struct ValidateCommand: ParsableCommand {
   static let configuration = CommandConfiguration(
@@ -52,7 +53,7 @@ struct ValidateCommand: ParsableCommand {
 
   mutating func run() throws {
     try failUser(
-      code: "CLI-NOT-IMPLEMENTED",
+      code: .notImplemented,
       message: "validate is not implemented yet."
     )
   }

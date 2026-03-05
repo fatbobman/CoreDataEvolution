@@ -10,6 +10,7 @@
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
 import ArgumentParser
+import CoreDataEvolutionToolingCore
 import Foundation
 
 struct InitConfigCommand: ParsableCommand {
@@ -17,11 +18,6 @@ struct InitConfigCommand: ParsableCommand {
     commandName: "init-config",
     abstract: "Export a default JSON config template."
   )
-
-  enum Preset: String, ExpressibleByArgument {
-    case minimal
-    case full
-  }
 
   @Option(name: .long, help: "Output config file path.")
   var output: String?
@@ -38,18 +34,18 @@ struct InitConfigCommand: ParsableCommand {
   mutating func run() throws {
     if stdout, output != nil {
       try failUser(
-        code: "CLI-CONFIG-CONFLICT",
+        code: .configConflict,
         message: "--output and --stdout cannot be used together."
       )
     }
 
-    let template = makeTemplate(preset: preset)
-    let data = try encodeJSON(template)
+    let template = makeDefaultConfigTemplate(preset: preset.toolingPreset)
+    let data = try encodeToolingJSON(template)
 
     if stdout {
       guard let text = String(data: data, encoding: .utf8) else {
         try failInternal(
-          code: "CLI-JSON-ENCODE-FAILED",
+          code: .jsonEncodeFailed,
           message: "failed to encode config template as UTF-8."
         )
       }
@@ -66,13 +62,13 @@ struct InitConfigCommand: ParsableCommand {
       || isDirectory.boolValue == false
     {
       try failUser(
-        code: "CLI-OUTPUT-DIR-MISSING",
+        code: .outputDirMissing,
         message: "output directory does not exist: '\(directory.path)'."
       )
     }
     if fm.fileExists(atPath: url.path), force == false {
       try failUser(
-        code: "CLI-CONFIG-EXISTS",
+        code: .configExists,
         message: "config file already exists at '\(url.path)'. Use --force to overwrite."
       )
     }
@@ -82,9 +78,25 @@ struct InitConfigCommand: ParsableCommand {
       print("wrote config template to \(url.path)")
     } catch {
       try failUser(
-        code: "CLI-WRITE-DENIED",
+        code: .writeDenied,
         message: "cannot write config file to '\(url.path)' (\(error.localizedDescription))."
       )
+    }
+  }
+}
+
+extension InitConfigCommand {
+  enum Preset: String, ExpressibleByArgument {
+    case minimal
+    case full
+
+    var toolingPreset: ToolingConfigTemplatePreset {
+      switch self {
+      case .minimal:
+        return .minimal
+      case .full:
+        return .full
+      }
     }
   }
 }

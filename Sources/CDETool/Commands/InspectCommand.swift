@@ -10,6 +10,7 @@
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
 import ArgumentParser
+import CoreDataEvolutionToolingCore
 
 struct InspectCommand: ParsableCommand {
   static let configuration = CommandConfiguration(
@@ -28,7 +29,7 @@ struct InspectCommand: ParsableCommand {
 
   mutating func run() throws {
     try failUser(
-      code: "CLI-NOT-IMPLEMENTED",
+      code: .notImplemented,
       message: "inspect is not implemented yet."
     )
   }
