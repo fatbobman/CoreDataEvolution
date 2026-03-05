@@ -147,13 +147,8 @@ func removeFromTags(_ tag: Tag) {
     mutableSetValue(forKey: "tags").remove(tag)
 }
 
-// [待议] 是否提供自动生成的 count 属性（tagsCount）仍待定
-// 若实现：仅在存在 RelationshipInfo 注释且 relationshipCountPolicy != .none 时生成
 var tagsCount: Int {
-    let request = NSFetchRequest<NSNumber>(entityName: "Tag")
-    request.predicate = NSPredicate(format: "ANY items == %@", self)  // inverse 来自 RelationshipInfo 注释
-    request.resultType = .countResultType
-    return (try? managedObjectContext?.count(for: request)) ?? 0
+    mutableSetValue(forKey: "tags").count
 }
 ```
 
@@ -161,9 +156,8 @@ var tagsCount: Int {
 
 ```swift
 @PersistentModel(
-    relationshipGetterPolicy: .plain,      // 对多 getter：plain / warning / none
     relationshipSetterPolicy: .none,       // 仅影响 Set<T>：plain / warning / none
-    relationshipCountPolicy: .none         // [待议] *Count：plain / warning / none（需 RelationshipInfo 注释）
+    relationshipCountPolicy: .none         // 控制 Set<T>/[T] 的 *Count 生成
 )
 ```
 
@@ -179,9 +173,9 @@ enum RelationshipGenerationPolicy {
 
 策略语义：
 
-- `relationshipGetterPolicy`：控制对多 getter 生成（`Set<T>` / `[T]`），默认建议 `.plain`
-- `relationshipSetterPolicy`：仅控制 `Set<T>` setter，默认 `.none`
-- `relationshipCountPolicy`：控制 `*Count` 属性（此能力是否实现待议）；若实现，默认 `.none`，且仅在存在 RelationshipInfo 注释时允许生成
+- 对多 getter（`Set<T>` / `[T]`）在 v1 固定生成，不提供独立策略
+- `relationshipSetterPolicy`：控制 `Set<T>` setter；当为 `.warning` 时，setter 与批量替换 helper 都会带 deprecated 提示
+- `relationshipCountPolicy`：控制 `*Count` 访问器生成；`.warning` 会给 count 访问器添加 deprecated 提示
 
 当策略为 `.warning` 时，宏可通过 `@available(*, deprecated, message: "...")` 提示“该 API 可能带来性能或语义风险，优先使用 add/remove 或 fetch”。
 
@@ -210,12 +204,10 @@ enum RelationshipGenerationPolicy {
 
 ### 自动生成构造方法
 
-`@PersistentModel` 默认生成一个构造方法（可通过参数关闭），将所有持久化属性作为参数列出。
+`@PersistentModel` 默认生成一个构造方法（可通过参数关闭），将所有非关系实例存储属性作为参数列出（包含 `@Ignore`）。
 
 **规则**：
-- 非可选属性且无默认值 → 必传参数
-- 有默认值的属性 → 带默认值的可选参数
-- 可选属性 → 默认为 `nil` 的可选参数
+- 参数一律不带默认值，调用方必须显式传入
 - **关系不出现在参数列表里**（构造方法不接收任何关系数据）
 - 构造方法不接收 `context` 参数
 - 构造方法内部统一使用 `self.init(entity: Self.entity(), insertInto: nil)` 创建实例
@@ -226,9 +218,9 @@ enum RelationshipGenerationPolicy {
 // 宏生成（便捷 init）
 extension Item {
     convenience init(
-        date: Date,            // 非可选，无默认值 → 必传
-        price: Double = 0.0,   // 有默认值 → 可省略
-        note: String? = nil    // 可选 → 默认 nil
+        date: Date,
+        price: Double,
+        note: String?
         // 关系不出现在参数列表
     ) {
         self.init(entity: Self.entity(), insertInto: nil)
@@ -246,7 +238,7 @@ extension Item {
 let tag = Tag(name: "Swift")
 context.insert(tag)
 
-let item = Item(date: .now, price: 9.9)
+let item = Item(date: .now, price: 9.9, note: nil)
 context.insert(item)
 
 // 第二阶段：建立关系（必须在双方都 insert 之后）
@@ -346,7 +338,7 @@ func removeFromTags(_ tag: Tag) {
 - **无 RelationshipInfo 注释**：默认模式下跳过，输出 `[INFO]` 提示；`--strict` 模式下视为警告
 
 无论是否存在 RelationshipInfo 注释，工具都会强制检查模型层 inverse 是否配置；缺失 inverse 一律为 `[ERROR]`。
-关系元信息依赖的生成项（如 `*Count`）仅在存在 RelationshipInfo 注释时生成；即使主宏策略允许，缺少注释也不会生成。
+`*Count` 的生成仅受 `relationshipCountPolicy` 控制，与是否存在 RelationshipInfo 注释无关。
 
 ```
 // 默认模式
@@ -394,7 +386,6 @@ public final class Item: NSManagedObject {
 
     // 宏生成的关系便利方法
     public func addToTags(_ tag: Tag) { ... }
-    // [待议] 仅当 RelationshipInfo 注释存在且 relationshipCountPolicy != .none 时生成
     public var tagsCount: Int { ... }
 }
 ```
@@ -594,10 +585,12 @@ NSPredicate(format: "%K > %@", Item.Keys.date.rawValue, someDate as CVarArg)
 
 附加在 `NSManagedObject` 子类上，负责：
 
-- 当且仅当类型上**未声明** `@objc(...)` 时，自动添加 `@objc(ClassName)` attribute
+- 自动分发属性级宏：
+  - 普通持久化属性 -> `@Attribute`
+  - 关系属性 -> 内部 `@_CDRelationship`
 - 收集所有 `@Attribute` 声明，自动生成 `Keys` / `Paths` / `__cdFieldTable`
 - 为类添加 `CoreDataKeys` conformance
-- 提供关系代码生成策略（getter/setter/count；其中 setter 仅 `Set<T>` 生效，count 需 RelationshipInfo 注释）
+- 提供关系代码生成策略（getter/setter/count；其中 setter 仅 `Set<T>` 生效）
 
 ```swift
 @PersistentModel
@@ -606,8 +599,7 @@ final class Item: NSManagedObject, Identifiable {
     var date: Date?
 }
 
-// 宏展开后等价于（原类型未手写 @objc 时）：
-@objc(Item)
+// 宏展开后等价于（示意）：
 final class Item: NSManagedObject, Identifiable, CoreDataKeys {
     var date: Date? {
         get { value(forKey: "timestamp") as? Date }
@@ -619,9 +611,14 @@ final class Item: NSManagedObject, Identifiable, CoreDataKeys {
 }
 ```
 
-宏类型：`@attached(attribute)` + `@attached(member)` + `@attached(extension)`
+宏类型：`@attached(memberAttribute)` + `@attached(member)` + `@attached(extension)`
 
-若类型已手写 `@objc(CustomName)`，宏不再重复注入，避免冲突。
+> `@objc(ClassName)` 由模型类型显式声明；主宏会在缺失时给出编译期错误。
+
+### @PersistentModel 状态
+
+1. 关系目标类型已在宏展开阶段强约束（`T: PersistentEntity`）。
+2. `relationshipCountPolicy` 已驱动 `*Count` 代码生成。
 
 ### 属性级错误策略（decodeFailurePolicy）
 

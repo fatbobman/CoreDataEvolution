@@ -20,12 +20,16 @@ extension RelationshipMacro: PeerMacro {
     providingPeersOf declaration: some DeclSyntaxProtocol,
     in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
-    _ = buildRelationshipInfo(
-      from: node,
-      declaration: declaration,
-      context: context
-    )
-    return []
+    guard
+      let info = buildRelationshipInfo(
+        from: node,
+        declaration: declaration,
+        context: context
+      )
+    else {
+      return []
+    }
+    return makeRelationshipValidationPeers(from: info)
   }
 }
 
@@ -166,12 +170,6 @@ private func buildRelationshipInfo(
       context: context
     )
   else {
-    MacroDiagnosticReporter.error(
-      "@_CDRelationship only supports to-one optional (`T?`) or to-many (`Set<T>` / `[T]`) relationship properties.",
-      domain: relationshipMacroDomain,
-      in: context,
-      node: typeAnnotation.type
-    )
     return nil
   }
 
@@ -259,6 +257,12 @@ private func parseRelationshipKind(
     }
     return .toOne(targetTypeName: wrapped.trimmedDescription)
   }
+  MacroDiagnosticReporter.error(
+    "To-one relationship properties must be optional (`T?`). If this property is not a relationship, annotate it with @Attribute(storageMethod: ...).",
+    domain: relationshipMacroDomain,
+    in: context,
+    node: type
+  )
   return nil
 }
 
@@ -293,13 +297,24 @@ private func makeRelationshipAccessors(from info: RelationshipInfo) -> [Accessor
     ]
 
     if info.setterPolicy != .none {
-      accessors.append(
-        """
-        set {
-          setValue(NSSet(set: newValue), forKey: "\(raw: key)")
-        }
-        """
-      )
+      if info.setterPolicy == .warning {
+        accessors.append(
+          """
+          @available(*, deprecated, message: "Bulk to-many setter may hide relationship mutation costs. Prefer add/remove helpers.")
+          set {
+            setValue(NSSet(set: newValue), forKey: "\(raw: key)")
+          }
+          """
+        )
+      } else {
+        accessors.append(
+          """
+          set {
+            setValue(NSSet(set: newValue), forKey: "\(raw: key)")
+          }
+          """
+        )
+      }
     }
     return accessors
 
@@ -314,6 +329,21 @@ private func makeRelationshipAccessors(from info: RelationshipInfo) -> [Accessor
       """
     ]
   }
+}
+
+private func makeRelationshipValidationPeers(from info: RelationshipInfo) -> [DeclSyntax] {
+  let targetType: String
+  switch info.kind {
+  case .toOne(let targetTypeName), .toManySet(let targetTypeName), .toManyArray(let targetTypeName):
+    targetType = targetTypeName
+  }
+
+  let memberName = "__cd_relationship_validate_\(info.propertyName)_entity"
+  return [
+    """
+    private static let \(raw: memberName): Void = CoreDataEvolution._CDRelationshipMacroValidation.requirePersistentEntity(\(raw: targetType).self)
+    """
+  ]
 }
 
 private func optionalWrappedType(_ type: TypeSyntax) -> TypeSyntax? {

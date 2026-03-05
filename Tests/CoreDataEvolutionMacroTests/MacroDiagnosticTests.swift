@@ -30,6 +30,7 @@ struct MacroDiagnosticTests {
     let result = try MacroTestSupport.expand(
       source: """
         import CoreData
+        @objc(S)
         @PersistentModel(relationshipGetterPolicy: .plain)
         final class S: NSManagedObject {}
         """
@@ -40,12 +41,93 @@ struct MacroDiagnosticTests {
       })
   }
 
+  @Test("PersistentModel requires explicit objc class name")
+  func persistentModelRequiresExplicitObjCClassName() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        @PersistentModel
+        final class S: NSManagedObject {}
+        """
+    )
+    #expect(
+      result.diagnostics.contains {
+        $0.contains("must declare @objc(ClassName) explicitly")
+      })
+  }
+
+  @Test("PersistentModel count policy generates to-many count accessors")
+  func persistentModelCountPolicyGeneratesToManyCountAccessors() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        @objc(Item)
+        @PersistentModel(relationshipCountPolicy: .plain)
+        final class Item: NSManagedObject {
+          var tags: Set<Tag>
+          var orderedTags: [Tag]
+        }
+        """
+    )
+    #expect(result.diagnostics.isEmpty)
+    #expect(result.expandedSource.contains("var tagsCount: Int"))
+    #expect(result.expandedSource.contains("mutableSetValue(forKey: \"tags\").count"))
+    #expect(result.expandedSource.contains("var orderedTagsCount: Int"))
+    #expect(result.expandedSource.contains("mutableOrderedSetValue(forKey: \"orderedTags\").count"))
+  }
+
+  @Test("PersistentModel warning setter policy marks to-many setter deprecated")
+  func persistentModelWarningSetterPolicyMarksToManySetterDeprecated() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        @objc(Item)
+        @PersistentModel(relationshipSetterPolicy: .warning)
+        final class Item: NSManagedObject {
+          var tags: Set<Tag>
+        }
+        """
+    )
+    #expect(result.diagnostics.isEmpty)
+    #expect(
+      result.expandedSource.contains(
+        "Bulk to-many setter may hide relationship mutation costs. Prefer add/remove helpers."))
+    #expect(result.expandedSource.contains("setValue(NSSet(set: newValue), forKey: \"tags\")"))
+  }
+
+  @Test("PersistentModel validates relationship target as PersistentEntity")
+  func persistentModelValidatesRelationshipTargetAsPersistentEntity() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        @objc(Item)
+        @PersistentModel
+        final class Item: NSManagedObject {
+          var category: Category?
+          var tags: Set<Tag>
+        }
+        """
+    )
+    #expect(result.diagnostics.isEmpty)
+    #expect(
+      result.expandedSource.contains(
+        "_CDRelationshipMacroValidation.requirePersistentEntity(Category.self)"))
+    #expect(
+      result.expandedSource.contains(
+        "_CDRelationshipMacroValidation.requirePersistentEntity(Tag.self)"))
+  }
+
   @Test("PersistentModel auto-applies Attribute to unannotated persisted var")
   func persistentModelAutoAppliesAttributeToUnannotatedPersistedVar() throws {
     let result = try MacroTestSupport.expand(
       source: """
         import CoreData
         import CoreDataEvolution
+        @objc(Item)
         @PersistentModel
         final class Item: NSManagedObject {
           var title: String = ""
@@ -55,6 +137,73 @@ struct MacroDiagnosticTests {
     #expect(result.diagnostics.isEmpty)
     #expect(result.expandedSource.contains("value(forKey: \"title\") as? String"))
     #expect(result.expandedSource.contains("setValue(newValue, forKey: \"title\")"))
+  }
+
+  @Test("PersistentModel init excludes relationships and includes Ignore without defaults")
+  func persistentModelInitExcludesRelationshipsAndIncludesIgnoreWithoutDefaults() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        @objc(Item)
+        @PersistentModel
+        final class Item: NSManagedObject {
+          var title: String = ""
+          @Ignore
+          var transientCache: [String: Int] = [:]
+          var tags: Set<Tag>
+          var category: Category?
+        }
+        """
+    )
+    #expect(result.diagnostics.isEmpty)
+    #expect(result.expandedSource.contains("convenience init("))
+    #expect(result.expandedSource.contains("title: String,"))
+    #expect(result.expandedSource.contains("transientCache: [String: Int]"))
+    #expect(result.expandedSource.contains("self.transientCache = transientCache"))
+    #expect(result.expandedSource.contains("self.title = title"))
+    #expect(result.expandedSource.contains("self.init(entity: Self.entity(), insertInto: nil)"))
+    #expect(
+      result.expandedSource.contains(
+        "convenience init(\n    title: String,\n    transientCache: [String: Int]\n  )"))
+  }
+
+  @Test("PersistentModel rejects optional to-many relationship declaration")
+  func persistentModelRejectsOptionalToManyRelationshipDeclaration() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        @objc(Item)
+        @PersistentModel
+        final class Item: NSManagedObject {
+          var tags: Set<Tag>?
+        }
+        """
+    )
+    #expect(
+      result.diagnostics.contains {
+        $0.contains("To-many relationship properties must be non-optional")
+      })
+  }
+
+  @Test("PersistentModel rejects non-optional to-one relationship declaration")
+  func persistentModelRejectsNonOptionalToOneRelationshipDeclaration() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        @objc(Item)
+        @PersistentModel
+        final class Item: NSManagedObject {
+          var category: Category
+        }
+        """
+    )
+    #expect(
+      result.diagnostics.contains {
+        $0.contains("To-one relationship properties must be optional")
+      })
   }
 
   @Test("_CDRelationship rejects manual use outside PersistentModel")

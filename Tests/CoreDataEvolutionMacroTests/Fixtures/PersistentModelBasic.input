@@ -2,6 +2,7 @@ import CoreData
 import CoreDataEvolution
 import Foundation
 
+@objc(Item)
 @PersistentModel(
   generateInit: true,
   relationshipSetterPolicy: .plain,

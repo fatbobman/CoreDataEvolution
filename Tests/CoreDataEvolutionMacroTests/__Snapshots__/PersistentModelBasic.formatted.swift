@@ -2,6 +2,7 @@ import CoreData
 import CoreDataEvolution
 import Foundation
 
+@objc(Item)
 final class Item: NSManagedObject {
   var date: Date? {
     get {
@@ -46,6 +47,9 @@ final class Item: NSManagedObject {
       setValue(NSSet(set: newValue), forKey: "tags")
     }
   }
+
+  private static let __cd_relationship_validate_tags_entity: Void = CoreDataEvolution
+    ._CDRelationshipMacroValidation.requirePersistentEntity(Tag.self)
   var orderedTags: [Tag] {
     (value(forKey: "orderedTags") as? NSOrderedSet)?
       .compactMap {
@@ -53,6 +57,9 @@ final class Item: NSManagedObject {
       }
       ?? []
   }
+
+  private static let __cd_relationship_validate_orderedTags_entity: Void = CoreDataEvolution
+    ._CDRelationshipMacroValidation.requirePersistentEntity(Tag.self)
   var category: Category? {
     get {
       value(forKey: "category") as? Category
@@ -61,6 +68,9 @@ final class Item: NSManagedObject {
       setValue(newValue, forKey: "category")
     }
   }
+
+  private static let __cd_relationship_validate_category_entity: Void = CoreDataEvolution
+    ._CDRelationshipMacroValidation.requirePersistentEntity(Category.self)
 
   enum Keys: String {
     case date = "timestamp"
@@ -197,12 +207,14 @@ final class Item: NSManagedObject {
   }()
 
   convenience init(
-    date: Date? = nil,
-    title: String = ""
+    date: Date?,
+    title: String,
+    transientCache: [String: Int]
   ) {
     self.init(entity: Self.entity(), insertInto: nil)
     self.date = date
     self.title = title
+    self.transientCache = transientCache
   }
 
   func addToTags(_ value: Tag) {

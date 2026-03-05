@@ -65,3 +65,8 @@ public enum _CDAttributeMacroValidation {
   )
   public static func requireNonRelationship<T: NSManagedObject>(_: [T].Type) {}
 }
+
+public enum _CDRelationshipMacroValidation {
+  @inlinable
+  public static func requirePersistentEntity<T: PersistentEntity>(_: T.Type) {}
+}

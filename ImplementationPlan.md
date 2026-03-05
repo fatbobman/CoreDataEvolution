@@ -12,10 +12,10 @@
 
 ### v1 (Must)
 
-- `@PersistentModel` / `@Attribute` / `@Ignore` / `@RelationshipInfo`
+- `@PersistentModel` / `@Attribute` / `@Ignore` / `@Composition`
 - `StorageMethod`: `.default` `.raw` `.codable` `.transformed` `.composition`
 - 类型安全排序：`Keys + Paths + __cdFieldTable`
-- 查询规范：优先 `NSPredicate`（`%K + Keys.rawValue`）
+- 查询规范：优先 `NSPredicate`（`%K + key/path 映射`）
 - 工具：`validate` 与 `generate` 的硬性校验与迁移提示
 
 ### v2 (Next)
@@ -26,8 +26,8 @@
 
 ### M1: Macro Skeleton + Hard Constraints
 
-- 完成 `@PersistentModel` 基本展开（`@objc` 注入规则、`CoreDataKeys` conformance、访问权限继承）
-- 完成 `@PersistentModel` 的 `serializationErrorPolicy` 参数，`.codable` / `.transformed` 展开代码统一走该策略
+- 完成 `@PersistentModel` 基本展开（`@objc` 规则校验、`CoreDataKeys` conformance、访问权限继承）
+- 完成 `@PersistentModel` 参数：`generateInit`、`relationshipSetterPolicy`、`relationshipCountPolicy`
 - 完成 `@Attribute` 的 `.default/.raw/.codable/.transformed/.composition` 展开
 - 完成 `@Composition` 宏：解析 struct 成员，生成 `[String: Any]` 字典组装/解构代码（`__cdDecodeComposition` / `__cdEncodeComposition`）
 - 落实 `@Composition` v1 约束：
@@ -41,8 +41,9 @@
 - 完成关系规则：
   - 代码层：to-many 非可选，to-one 可选
   - 关系属性名必须与 xcdatamodeld 一致，不支持重命名
+  - 对多 getter 固定生成（不提供 getter policy）
   - `Array` to-many 永不生成 setter
-  - `Set` to-many setter 受策略控制
+  - `Set` to-many 批量替换 helper 受 `relationshipSetterPolicy` 控制
 - 完成 `convenience init` 自动生成（可通过 `generateInit: false` 关闭）
 
 验收标准：
@@ -51,7 +52,7 @@
 - 违反关系声明规则时报编译期错误
 - `@Composition` struct 可正确展开字典读写代码，并可通过运行时 round-trip 测试
 - `@Composition` 违反约束时可稳定输出编译期诊断
-- 构造方法正确包含属性参数、排除关系参数
+- 构造方法正确包含所有非关系实例存储属性参数（含 `@Ignore`）、排除关系参数，且参数无默认值
 
 ### M2: Sort Metadata (v1 Must)
 
@@ -116,7 +117,7 @@
 
 4. Storage Mapping Validation
 - `.raw` 枚举映射
-- `.codable` 序列化失败策略（三种 `SerializationErrorPolicy`）
+- `.codable` 失败策略（`decodeFailurePolicy`）
 - `.transformed` 转换失败策略
 
 5. Constraint Validation
@@ -124,11 +125,7 @@
 
 ## 5. Open Decisions
 
-1. `tagsCount` 是否在 v1 实现（当前待议）
-- 若实现：仅在存在 `@RelationshipInfo` 且 `relationshipCountPolicy != .none` 时生成
-- 若不实现：删除 count 相关策略与示例
-
-2. `SortCollation` 与 `SortExecutionMode` 的最小支持集合
+1. `SortCollation` 与 `SortExecutionMode` 的最小支持集合
 - 明确哪些模式保证可下推 store，哪些仅内存有效
 
 ## 6. Delivery Checklist
@@ -139,4 +136,33 @@
 - [ ] validate 工具完成并接入 CI
 - [ ] generate 工具完成并接入命令入口
 - [ ] 规范文档与实现行为一致
-- [ ] `tagsCount` 决策收敛
+- [x] `tagsCount` 决策收敛（v1 已按 `relationshipCountPolicy` 生成 `*Count`）
+
+## 7. Current Sprint Plan (PersistentModel)
+
+当前冲刺按“实现一项 -> 立刻测试一项”推进：
+
+1. `TypedPath` 关系辅助类型编译通过。  
+   Test: `swift build`
+2. 文档参数与语义对齐（去除 `relationshipGetterPolicy`）。  
+   Test: `rg "relationshipGetterPolicy" Specification.md DesignNotes.md ImplementationPlan.md`
+3. 修复 `@PersistentModel` 参数解析（尤其 `.none`）。  
+   Test: `swift test --filter MacroDiagnosticTests`
+4. 建立 `PersistentModel` 展开快照基线。  
+   Test: `swift test --filter MacroExpansionSnapshotTests`
+5. 按子能力补齐（Keys/Paths/FieldTable/init/to-many helpers）的诊断与快照。  
+   Test: 每项新增测试后执行对应 `--filter`，最后 `swift test`
+
+## 8. PersistentModel Status (Now)
+
+已实现：
+
+- 参数解析：`generateInit` / `relationshipSetterPolicy` / `relationshipCountPolicy`
+- `Keys` / `Paths` / `PathRoot` / `path` / `__cdFieldTable`
+- 构造方法生成（仅非关系实例存储属性，含 `@Ignore`，无默认参数）
+- 关系 accessor 与 helper（通过内部 `@_CDRelationship`）
+- 关系声明基础诊断（to-many 不可选、to-one 必须可选）
+- `relationshipSetterPolicy: .warning` 对 setter 与 helper 的 deprecation 提示
+- 关系目标类型 `T: PersistentEntity` 约束（由 `_CDRelationshipMacroValidation.requirePersistentEntity` 编译期强制）
+- `relationshipCountPolicy` 对应 `*Count` 生成（`.warning` 时附带 deprecated 提示）
+- `@objc(ClassName)` 显式声明强校验（缺失时报错；当前宏角色不支持自动注入类型属性）

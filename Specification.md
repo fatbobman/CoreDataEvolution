@@ -37,6 +37,7 @@
 必须生成：
 
 - `CoreDataKeys` conformance
+- 对未标注 `@Attribute` 的持久化 attribute 属性自动附加 `@Attribute`（`@Ignore` / relationship 除外）
 - `Keys`（平面 key）
 - `Paths`（可组合子路径，含 relationship/composition）
 - `__cdFieldTable`（路径映射元信息）
@@ -44,7 +45,9 @@
 
 `@objc` 注入规则：
 
-- 仅在类型上未声明 `@objc(...)` 时自动注入 `@objc(ClassName)`。
+- v1 要求模型类型显式声明 `@objc(ClassName)`（或 `@_objcRuntimeName(...)`）。
+- 若缺失，`@PersistentModel` 会给出编译期错误并拒绝展开。
+- 说明：当前 Swift 宏角色不支持自动改写宿主类型属性，因此不做“自动注入”。
 
 访问权限继承规则：
 
@@ -59,11 +62,19 @@ enum RelationshipGenerationPolicy { case none, warning, plain }
 ```swift
 @PersistentModel(
   generateInit: true,
-  relationshipGetterPolicy: .plain,
   relationshipSetterPolicy: .none,   // 仅对 Set<T> 生效
-  relationshipCountPolicy: .none     // 是否实现待议
+  relationshipCountPolicy: .none     // 对 Set<T>/[T] 的 *Count 访问器生效
 )
 ```
+
+当前策略语义：
+
+- 对多 getter（`Set<T>` / `[T]`）在 v1 **固定生成**，不提供单独策略开关。
+- `relationshipSetterPolicy` 影响 `Set<T>` 的属性 setter 以及批量替换 helper（`replaceXxx(with:)`）。
+- `relationshipCountPolicy` 控制对多关系 `*Count` 访问器生成：
+  - `.none`：不生成
+  - `.plain`：生成
+  - `.warning`：生成并附 deprecated 提示
 
 ### `@Attribute`
 
@@ -131,26 +142,29 @@ v1 声明约束（硬性）：
 
 ### 类型到关系识别
 
-- `Set<T>` + `T: PersistentEntity` -> 无序 to-many  
-- `[T]` + `T: PersistentEntity` -> 有序 to-many  
-- `T?` + `T: PersistentEntity` -> to-one  
+- `Set<T>` -> 无序 to-many  
+- `[T]` -> 有序 to-many  
+- `T?` -> to-one  
+
+> 说明：关系目标类型在宏展开代码中通过 `_CDRelationshipMacroValidation.requirePersistentEntity(T.self)` 做编译期强约束。
 
 ### Getter / Setter
 
-- `Set<T>` getter 允许生成，setter 由 `relationshipSetterPolicy` 控制。  
-- `[T]` getter 允许生成，setter 永不生成。  
+- `Set<T>` getter 固定生成，批量 setter helper 由 `relationshipSetterPolicy` 控制。  
+- `[T]` getter 固定生成，setter 永不生成。  
 - `T?` 生成 getter/setter。  
 
 ### Count
 
-- `tagsCount` 能力是否在 v1 实现：待议。  
-- 若实现：仅在存在 RelationshipInfo 注释且 `relationshipCountPolicy != .none` 时生成。  
+- `relationshipCountPolicy: .plain/.warning` 时生成 `*Count`；`.none` 不生成。  
+- `Set<T>` 使用 `mutableSetValue(forKey:)` 计数；`[T]` 使用 `mutableOrderedSetValue(forKey:)` 计数。  
 
 ## 5. Constructor Contract
 
 构造方法规则：
 
-- 仅包含持久化 attribute 参数，不包含 relationship 参数。  
+- 包含所有非关系的实例存储属性参数（含 `@Ignore`），不包含 relationship 参数。  
+- 生成参数不带默认值，要求调用方显式传入。  
 - 不接收 `context`。  
 - 内部使用：`self.init(entity: Self.entity(), insertInto: nil)`。  
 - 不负责“默认值落库”补写；是否有持久化默认值由模型层（xcdatamodeld）决定。  
@@ -209,6 +223,29 @@ NSPredicate(format: "%K == %@", Item.Keys.status.rawValue, status.rawValue)
 - `any` -> `ANY %K ...`
 - `all` -> `NOT (ANY %K <inverse-op> ...)`
 - `none` -> `NOT (ANY %K ...)`
+
+## 9. Current Execution Plan (Main Macro)
+
+以下是当前 `@PersistentModel` 的实现顺序（与代码/测试同步）：
+
+1. **Build unblock**：TypedPath 关系辅助类型可编译。  
+   验证：`swift build`
+2. **Doc align**：统一参数与策略说明（无 `relationshipGetterPolicy`）。  
+   验证：文档自检 + `rg "relationshipGetterPolicy"`
+3. **Argument parser**：修复并覆盖 `relationshipCountPolicy` / `.none` 解析。  
+   验证：`swift test --filter MacroDiagnosticTests` + `swift test --filter MacroExpansionSnapshotTests`
+4. **Snapshot baseline**：补齐 `PersistentModelBasic` 快照。  
+   验证：`UPDATE_SNAPSHOTS=1 swift test --filter MacroExpansionSnapshotTests` 后再次无更新模式运行
+5. **Incremental features**：按 “参数 -> 展开成员 -> 关系 helper” 逐项补充测试再实现。  
+   验证：每项至少一条诊断测试或快照测试
+
+## 10. PersistentModel Closure
+
+此前挂起的三项能力已闭环：
+
+1. `@objc` 规则：改为“显式声明强校验”（非自动注入）。
+2. 关系目标类型：宏展开阶段已强制 `T: PersistentEntity`。
+3. `relationshipCountPolicy`：已生成 `*Count`，并支持 `.warning` 退化提示。
 
 ## 8. Tool Contract
 
