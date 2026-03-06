@@ -230,6 +230,7 @@ public enum CDRuntimeModelBuilder {
     let description = NSAttributeDescription()
     description.name = attribute.persistentName
     description.isOptional = attribute.isOptional
+    description.isTransient = attribute.isTransient
 
     switch attribute.storage {
     case .primitive(let primitive):

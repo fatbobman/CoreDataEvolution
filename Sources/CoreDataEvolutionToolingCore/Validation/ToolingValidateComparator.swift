@@ -266,6 +266,15 @@ public enum ToolingValidateComparator {
       )
     }
 
+    let actualTransient = sourceProperty.attribute?.isTransient ?? false
+    if actualTransient != attribute.isTransient {
+      diagnostics.append(
+        error(
+          "validate found transient mismatch for '\(entityName).\(expectedPropertyName)'. Expected '\(attribute.isTransient)', found '\(actualTransient)'."
+        )
+      )
+    }
+
     if attribute.storage.method == .transformed,
       sourceProperty.attribute?.transformerType != attribute.storage.transformerType
     {

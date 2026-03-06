@@ -36,6 +36,8 @@ public func validateToolingConfigTemplate(
 ) throws {
   try validateToolingConfigTemplate(template)
 
+  try validateSupportedToolingModelSurface(model)
+
   let entitiesByName: [String: NSEntityDescription] = Dictionary(
     uniqueKeysWithValues: model.entities.compactMap { entity in
       guard let name = entity.name else { return nil }
@@ -64,6 +66,11 @@ public func validateToolingConfigTemplate(
   }
 
   if let validate = template.validate {
+    try validateToolingModelConstraints(
+      entitiesByName: entitiesByName,
+      attributeRules: validate.attributeRules ?? .init(),
+      context: "validate"
+    )
     try validateAttributeRules(
       validate.attributeRules ?? .init(),
       context: "validate.attributeRules",
@@ -88,6 +95,19 @@ private func validateGenerateModelConstraints(
   attributeRules: ToolingAttributeRules,
   context: String
 ) throws {
+  try validateToolingModelConstraints(
+    entitiesByName: entitiesByName,
+    attributeRules: attributeRules,
+    context: context
+  )
+}
+
+/// Applies model-aware v1 tooling constraints that must hold for both generate and validate.
+private func validateToolingModelConstraints(
+  entitiesByName: [String: NSEntityDescription],
+  attributeRules: ToolingAttributeRules,
+  context: String
+) throws {
   for (entityName, entity) in entitiesByName {
     let rules = attributeRules[entity: entityName]
 
@@ -106,6 +126,14 @@ private func validateGenerateModelConstraints(
 
       let rule = rules[fieldName] ?? .init()
       let storageMethod = resolveToolingAttributeStorageMethod(rule)
+      if attribute.isTransient && storageMethod != .default {
+        throw configValidationFailure(
+          """
+          \(context) only supports transient attribute '\(entityName).\(fieldName)' with default storage. \
+          Remove the custom storage override before continuing.
+          """
+        )
+      }
       if storageMethod != .default, attribute.isOptional == false {
         throw configValidationFailure(
           """
@@ -127,6 +155,24 @@ private func validateGenerateModelConstraints(
       if relationship.inverseRelationship == nil {
         throw configValidationFailure(
           "\(context) requires relationship '\(entityName).\(fieldName)' to declare an inverse relationship."
+        )
+      }
+    }
+  }
+}
+
+/// Rejects Core Data features that the current generate/validate/runtime-schema pipeline does not model.
+/// Rejects Core Data features that the current tooling pipeline does not model at all.
+///
+/// Services that work directly from `NSManagedObjectModel` can call this even when they are not
+/// loading a full generate/validate config.
+public func validateSupportedToolingModelSurface(_ model: NSManagedObjectModel) throws {
+  for entity in model.entities {
+    guard let entityName = entity.name else { continue }
+    for (fieldName, attribute) in entity.attributesByName {
+      if isDerivedAttribute(attribute) {
+        throw configValidationFailure(
+          "tooling does not support derived attribute '\(entityName).\(fieldName)'."
         )
       }
     }
@@ -387,4 +433,8 @@ private func validateTypeResolutionCoverage(
 
 private func configValidationFailure(_ message: String) -> ToolingFailure {
   .user(.configInvalid, message)
+}
+
+private func isDerivedAttribute(_ attribute: NSAttributeDescription) -> Bool {
+  attribute is NSDerivedAttributeDescription
 }

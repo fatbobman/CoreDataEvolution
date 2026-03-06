@@ -156,6 +156,43 @@ struct ValidateServiceTests {
     )
   }
 
+  @Test("validate rejects transient trait drift")
+  func validateRejectsTransientTraitDrift() throws {
+    let fixture = try makeValidationFixture { contents in
+      contents.replacingOccurrences(
+        of: #"<attribute name="keywords_payload" optional="YES" attributeType="String"/>"#,
+        with: """
+          <attribute name="keywords_payload" optional="YES" attributeType="String"/>
+                <attribute name="scratch" optional="YES" attributeType="String" transient="YES"/>
+          """
+      )
+    }
+    defer { fixture.cleanUp() }
+
+    try rewriteEntityFile(
+      named: "CDEItem+CoreDataEvolution.swift",
+      in: fixture.sourceDirectory
+    ) { contents in
+      contents.replacingOccurrences(
+        of: "@Attribute(.transient)",
+        with: "@Attribute"
+      )
+    }
+
+    let result = try ValidateService.run(
+      makeValidateRequest(
+        sourceDirectory: fixture.sourceDirectory.path,
+        modelPath: fixture.modelPath)
+    )
+
+    #expect(result.errorCount == 1)
+    #expect(
+      result.diagnostics.contains {
+        $0.message.contains("transient mismatch for 'CDEItem.scratch'")
+      }
+    )
+  }
+
   @Test("validate emits note for custom members inside persistent model class")
   func validateEmitsNoteForCustomMembersInsideClass() throws {
     let fixture = try makeValidationFixture()
@@ -238,10 +275,12 @@ struct ValidateServiceTests {
     )
   }
 
-  private func makeValidationFixture() throws -> (
+  private func makeValidationFixture(
+    mutateContents: ((String) -> String)? = nil
+  ) throws -> (
     modelPath: String, sourceDirectory: URL, cleanUp: () -> Void
   ) {
-    let modelPath = try makeToolingSourceModelFixture().path
+    let modelPath = try makeToolingSourceModelFixture(mutateContents: mutateContents).path
     let temporaryDirectory = FileManager.default.temporaryDirectory
       .appendingPathComponent("CoreDataEvolutionToolingCoreTests", isDirectory: true)
       .appendingPathComponent(UUID().uuidString, isDirectory: true)

@@ -68,7 +68,8 @@ func analyzePersistentModelProperties(in classDecl: ClassDeclSyntax)
               storageMethod: parsed.storageMethod ?? .default,
               defaultValueExpression: defaultValueExpression
                 ?? optionalFallbackDefault(type: typeAnnotation.type),
-              isUnique: parsed.traits.contains(.unique)
+              isUnique: parsed.traits.contains(.unique),
+              isTransient: parsed.traits.contains(.transient)
             )
           )
         )
@@ -94,7 +95,8 @@ func analyzePersistentModelProperties(in classDecl: ClassDeclSyntax)
             storageMethod: .default,
             defaultValueExpression: defaultValueExpression
               ?? optionalFallbackDefault(type: typeAnnotation.type),
-            isUnique: false
+            isUnique: false,
+            isTransient: false
           )
         )
       )
@@ -341,6 +343,12 @@ private func parseAttributeTraitShallow(_ rawText: String) -> ParsedAttributeTra
     || raw == "CoreDataEvolution.AttributeTrait.unique"
   {
     return .unique
+  }
+  if raw == ".transient"
+    || raw == "AttributeTrait.transient"
+    || raw == "CoreDataEvolution.AttributeTrait.transient"
+  {
+    return .transient
   }
   return nil
 }

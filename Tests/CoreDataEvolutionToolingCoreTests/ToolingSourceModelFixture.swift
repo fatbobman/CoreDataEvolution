@@ -17,7 +17,10 @@ import Foundation
 /// The repository's integration model keeps Xcode code generation enabled for unrelated test
 /// coverage. Tooling tests need the opposite contract, so they copy the model and strip
 /// `codeGenerationType` to emulate Xcode's Manual/None serialization.
-func makeToolingSourceModelFixture(filePath: String = #filePath) throws -> URL {
+func makeToolingSourceModelFixture(
+  filePath: String = #filePath,
+  mutateContents: ((String) -> String)? = nil
+) throws -> URL {
   let repositoryRoot = try findToolingRepositoryRoot(filePath: filePath)
   let sourcePackageURL =
     repositoryRoot
@@ -57,6 +60,9 @@ func makeToolingSourceModelFixture(filePath: String = #filePath) throws -> URL {
             </uniquenessConstraints>
       """
   )
+  if let mutateContents {
+    contents = mutateContents(contents)
+  }
   try contents.write(to: contentsURL, atomically: true, encoding: .utf8)
 
   return temporaryPackageURL

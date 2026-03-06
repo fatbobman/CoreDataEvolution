@@ -264,17 +264,18 @@ func makeRuntimeEntitySchemaDecl(
   // the Swift source today, so runtime builders fall back to inference unless callers provide
   // hand-written schema metadata instead of the macro-emitted defaults.
   let attributeRows = model.attributes.map { attribute in
-    """
-    CoreDataEvolution.CDRuntimeAttributeSchema(
-      swiftName: "\(attribute.propertyName)",
-      persistentName: "\(attribute.persistentName)",
-      swiftTypeName: "\(attribute.typeName)",
-      isOptional: \(attribute.isOptional),
-      defaultValueExpression: \(runtimeDefaultValueExpression(attribute.defaultValueExpression)),
-      storage: \(runtimeStorageExpression(attribute)),
-      isUnique: \(attribute.isUnique)
-    )
-    """
+    let transientArgument = attribute.isTransient ? ",\n      isTransient: true" : ""
+    return """
+      CoreDataEvolution.CDRuntimeAttributeSchema(
+        swiftName: "\(attribute.propertyName)",
+        persistentName: "\(attribute.persistentName)",
+        swiftTypeName: "\(attribute.typeName)",
+        isOptional: \(attribute.isOptional),
+        defaultValueExpression: \(runtimeDefaultValueExpression(attribute.defaultValueExpression)),
+        storage: \(runtimeStorageExpression(attribute)),
+        isUnique: \(attribute.isUnique)\(transientArgument)
+      )
+      """
   }.joined(separator: ",\n")
 
   let relationshipRows = model.relationships.map { relationship in

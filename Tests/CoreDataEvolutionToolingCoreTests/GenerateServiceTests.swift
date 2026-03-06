@@ -213,6 +213,56 @@ struct GenerateServiceTests {
     #expect(stubPlan.contents.contains(toolingManagedFileMarker) == false)
   }
 
+  @Test("generate service renders transient attributes")
+  func generateServiceRendersTransientAttributes() throws {
+    let modelPath = try makeToolingSourceModelFixture { contents in
+      contents.replacingOccurrences(
+        of: #"<attribute name="keywords_payload" optional="YES" attributeType="String"/>"#,
+        with: """
+          <attribute name="keywords_payload" optional="YES" attributeType="String"/>
+                <attribute name="scratch" optional="YES" attributeType="String" transient="YES"/>
+          """
+      )
+    }
+    defer { try? FileManager.default.removeItem(at: modelPath.deletingLastPathComponent()) }
+
+    let result = try GenerateService.run(
+      .init(
+        modelPath: modelPath.path,
+        modelVersion: nil,
+        momcBin: nil,
+        outputDir: "Generated/CoreDataEvolution",
+        moduleName: "AppModels",
+        typeMappings: makeDefaultToolingTypeMappings(),
+        attributeRules: .init(
+          entities: [
+            "CDEItem": [
+              "location": .init(swiftType: "CDEItemLocation", storageMethod: .composition)
+            ]
+          ]
+        ),
+        accessLevel: .internal,
+        singleFile: false,
+        splitByEntity: true,
+        overwrite: .none,
+        cleanStale: false,
+        dryRun: true,
+        format: .none,
+        headerTemplate: nil,
+        generateInit: false,
+        relationshipSetterPolicy: .warning,
+        relationshipCountPolicy: .none,
+        defaultDecodeFailurePolicy: .fallbackToDefaultValue
+      )
+    )
+
+    let itemSource = try #require(
+      result.generatedSources.first(where: { $0.entityName == "CDEItem" })
+    )
+    #expect(itemSource.contents.contains("@Attribute(.transient)"))
+    #expect(itemSource.contents.contains("var scratch: String? = nil"))
+  }
+
   private func findRepositoryRoot(filePath: String = #filePath) throws -> URL {
     try findToolingRepositoryRoot(filePath: filePath)
   }

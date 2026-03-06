@@ -249,6 +249,41 @@ struct MacroDiagnosticTests {
         "persistentPropertyNames: [\"title\"]"))
   }
 
+  @Test("Attribute transient trait is accepted and feeds runtime schema")
+  func attributeTransientTraitFeedsRuntimeSchema() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        @objc(Item)
+        @PersistentModel
+        final class Item: NSManagedObject {
+          @Attribute(.transient)
+          var cachedSummary: String = ""
+        }
+        """
+    )
+    #expect(result.diagnostics.isEmpty)
+    #expect(result.expandedSource.contains("isTransient: true"))
+  }
+
+  @Test("Attribute transient trait rejects custom storage")
+  func attributeTransientTraitRejectsCustomStorage() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreDataEvolution
+        struct Item {
+          @Attribute(.transient, storageMethod: .raw)
+          var cachedSummary: String = ""
+        }
+        """
+    )
+    #expect(
+      result.diagnostics.contains {
+        $0.contains("trait `.transient` only supports `.default` storage")
+      })
+  }
+
   @Test("Attribute rejects unsupported unlabeled traits")
   func attributeRejectsUnsupportedUnlabeledTraits() throws {
     let result = try MacroTestSupport.expand(
@@ -262,7 +297,7 @@ struct MacroDiagnosticTests {
     )
     #expect(
       result.diagnostics.contains {
-        $0.contains("only supports the `.unique` trait")
+        $0.contains("only supports the `.unique` and `.transient` traits")
       })
   }
 

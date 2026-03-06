@@ -59,6 +59,16 @@ struct RuntimeSchemaTests {
     #expect(fileURL.defaultValue as? URL == URL(fileURLWithPath: "/tmp/runtime-schema"))
   }
 
+  @Test("runtime model builder marks transient attributes")
+  func runtimeModelBuilderMarksTransientAttributes() throws {
+    let model = try NSManagedObjectModel.makeRuntimeModel([ManualRuntimeSchemaTransient.self])
+    let entity = try #require(model.entitiesByName["RuntimeTransient"])
+    let cachedSummary = try #require(entity.attributesByName["cachedSummary"])
+
+    #expect(cachedSummary.isTransient)
+    #expect(cachedSummary.attributeType == .stringAttributeType)
+  }
+
   @Test("runtime model builder rejects unsupported primitive default expressions")
   func runtimeModelBuilderRejectsUnsupportedDefaultExpressions() throws {
     #expect(
@@ -185,6 +195,25 @@ private final class ManualRuntimeSchemaInvalidDefaults: NSManagedObject, CDRunti
         isOptional: false,
         defaultValueExpression: "Date()",
         storage: .primitive(.date)
+      )
+    ],
+    relationships: []
+  )
+}
+
+private final class ManualRuntimeSchemaTransient: NSManagedObject, CDRuntimeSchemaProviding {
+  static let __cdRuntimeEntitySchema = CDRuntimeEntitySchema(
+    entityName: "RuntimeTransient",
+    managedObjectClassName: NSStringFromClass(ManualRuntimeSchemaTransient.self),
+    attributes: [
+      CDRuntimeAttributeSchema(
+        swiftName: "cachedSummary",
+        persistentName: "cachedSummary",
+        swiftTypeName: "String",
+        isOptional: false,
+        defaultValueExpression: "\"\"",
+        storage: .primitive(.string),
+        isTransient: true
       )
     ],
     relationships: []

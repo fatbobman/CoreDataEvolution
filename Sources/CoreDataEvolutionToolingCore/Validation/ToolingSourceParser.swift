@@ -245,6 +245,7 @@ private func parseAttributeAnnotation(
   guard let list = attribute.arguments?.as(LabeledExprListSyntax.self) else {
     return .init(
       isUnique: false,
+      isTransient: false,
       originalName: nil,
       storageMethod: nil,
       transformerType: nil,
@@ -253,6 +254,7 @@ private func parseAttributeAnnotation(
   }
 
   var isUnique = false
+  var isTransient = false
   var originalName: String?
   var storageMethod: ToolingAttributeStorageRule?
   var transformerType: String?
@@ -266,6 +268,11 @@ private func parseAttributeAnnotation(
         || raw == "CoreDataEvolution.AttributeTrait.unique"
       {
         isUnique = true
+      } else if raw == ".transient"
+        || raw == "AttributeTrait.transient"
+        || raw == "CoreDataEvolution.AttributeTrait.transient"
+      {
+        isTransient = true
       }
       continue
     }
@@ -287,6 +294,7 @@ private func parseAttributeAnnotation(
 
   return .init(
     isUnique: isUnique,
+    isTransient: isTransient,
     originalName: originalName,
     storageMethod: storageMethod,
     transformerType: transformerType,

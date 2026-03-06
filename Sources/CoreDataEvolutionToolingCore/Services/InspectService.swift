@@ -28,6 +28,8 @@ public enum InspectService {
       momcBin: request.momcBin
     )
 
+    try validateSupportedToolingModelSurface(loadedModel.model)
+
     let buildResult = ToolingIRBuilder.build(
       from: loadedModel,
       request: request

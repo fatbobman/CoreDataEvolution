@@ -55,6 +55,7 @@ struct PersistentAttributeProperty {
   let storageMethod: ParsedAttributeStorageMethod
   let defaultValueExpression: String?
   let isUnique: Bool
+  let isTransient: Bool
 }
 
 struct PersistentRelationshipProperty {

@@ -24,6 +24,7 @@ public enum AttributeDecodeFailurePolicy {
 
 public enum AttributeTrait {
   case unique
+  case transient
 }
 
 public enum RelationshipGenerationPolicy {

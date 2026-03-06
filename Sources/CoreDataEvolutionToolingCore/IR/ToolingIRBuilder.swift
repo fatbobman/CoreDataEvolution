@@ -151,6 +151,7 @@ public enum ToolingIRBuilder {
       coreDataAttributeType: toolingCoreDataAttributeTypeName(for: attribute.attributeType),
       coreDataPrimitiveType: toolingTypeMappingKey(for: attribute.attributeType),
       isUnique: isUnique,
+      isTransient: attribute.isTransient,
       isOptional: attribute.isOptional,
       hasModelDefaultValue: attribute.defaultValue != nil,
       modelDefaultValueLiteral: modelDefaultValueLiteral,

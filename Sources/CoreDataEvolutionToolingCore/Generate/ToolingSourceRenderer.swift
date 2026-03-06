@@ -263,6 +263,7 @@ public enum ToolingSourceRenderer {
       ? nil : backingAttribute.persistentName
     let macro = renderAttributeMacro(
       isUnique: backingAttribute.isUnique,
+      isTransient: backingAttribute.isTransient,
       originalName: originalName,
       storageMethod: .composition,
       transformerType: nil,
@@ -372,6 +373,7 @@ public enum ToolingSourceRenderer {
       attribute.persistentName == attribute.swiftName ? nil : attribute.persistentName
     return renderAttributeMacro(
       isUnique: attribute.isUnique,
+      isTransient: attribute.isTransient,
       originalName: originalName,
       storageMethod: attribute.storage.method,
       transformerType: attribute.storage.transformerType,
@@ -381,6 +383,7 @@ public enum ToolingSourceRenderer {
 
   private static func renderAttributeMacro(
     isUnique: Bool,
+    isTransient: Bool,
     originalName: String?,
     storageMethod: ToolingAttributeStorageRule,
     transformerType: String?,
@@ -390,6 +393,10 @@ public enum ToolingSourceRenderer {
 
     if isUnique {
       arguments.append(".unique")
+    }
+
+    if isTransient {
+      arguments.append(".transient")
     }
 
     if let originalName {

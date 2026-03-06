@@ -136,6 +136,7 @@ func buildAttributeInfo(
   let storageMethod = arguments.storageMethod ?? .default
   let decodeFailurePolicy = arguments.decodeFailurePolicy
   let isUnique = arguments.traits.contains(.unique)
+  let isTransient = arguments.traits.contains(.transient)
 
   if defaultValueExpression == nil {
     if emitDiagnostics {
@@ -145,6 +146,32 @@ func buildAttributeInfo(
         id: "missing-default-value",
         in: context,
         node: binding.pattern
+      )
+    }
+    return nil
+  }
+
+  if isTransient && storageMethod != .default {
+    if emitDiagnostics {
+      MacroDiagnosticReporter.error(
+        "@Attribute trait `.transient` only supports `.default` storage in v1.",
+        domain: attributeMacroDomain,
+        id: "transient-storage-unsupported",
+        in: context,
+        node: attribute
+      )
+    }
+    return nil
+  }
+
+  if isTransient && isUnique {
+    if emitDiagnostics {
+      MacroDiagnosticReporter.error(
+        "@Attribute trait `.transient` cannot be combined with `.unique`.",
+        domain: attributeMacroDomain,
+        id: "transient-unique-unsupported",
+        in: context,
+        node: attribute
       )
     }
     return nil
@@ -217,7 +244,8 @@ func buildAttributeInfo(
     defaultValueExpression: defaultValueExpression,
     storageMethod: storageMethod,
     decodeFailurePolicy: decodeFailurePolicy,
-    isUnique: isUnique
+    isUnique: isUnique,
+    isTransient: isTransient
   )
 }
 
@@ -346,9 +374,16 @@ private func parseAttributeTrait(
     return .unique
   }
 
+  if raw == ".transient"
+    || raw == "AttributeTrait.transient"
+    || raw == "CoreDataEvolution.AttributeTrait.transient"
+  {
+    return .transient
+  }
+
   if emitDiagnostics {
     MacroDiagnosticReporter.error(
-      "@Attribute only supports the `.unique` trait in unlabeled arguments.",
+      "@Attribute only supports the `.unique` and `.transient` traits in unlabeled arguments.",
       domain: attributeMacroDomain,
       id: "unsupported-trait",
       in: context,

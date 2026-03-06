@@ -31,6 +31,8 @@ public enum BootstrapConfigService {
       momcBin: request.momcBin
     )
 
+    try validateSupportedToolingModelSurface(loadedModel.model)
+
     let typeMappings = makeDefaultToolingTypeMappings()
     let attributeRules = makeAttributeRules(
       from: loadedModel.model

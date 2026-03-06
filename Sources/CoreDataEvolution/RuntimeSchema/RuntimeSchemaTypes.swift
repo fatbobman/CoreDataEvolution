@@ -79,6 +79,7 @@ public struct CDRuntimeAttributeSchema: Sendable, Equatable {
   public let defaultValueExpression: String?
   public let storage: CDRuntimeAttributeStorage
   public let isUnique: Bool
+  public let isTransient: Bool
 
   public init(
     swiftName: String,
@@ -87,7 +88,8 @@ public struct CDRuntimeAttributeSchema: Sendable, Equatable {
     isOptional: Bool,
     defaultValueExpression: String?,
     storage: CDRuntimeAttributeStorage,
-    isUnique: Bool = false
+    isUnique: Bool = false,
+    isTransient: Bool = false
   ) {
     self.swiftName = swiftName
     self.persistentName = persistentName
@@ -96,6 +98,7 @@ public struct CDRuntimeAttributeSchema: Sendable, Equatable {
     self.defaultValueExpression = defaultValueExpression
     self.storage = storage
     self.isUnique = isUnique
+    self.isTransient = isTransient
   }
 }
 

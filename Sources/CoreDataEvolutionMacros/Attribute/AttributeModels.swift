@@ -24,6 +24,7 @@ struct AttributeInfo {
   let storageMethod: ParsedAttributeStorageMethod
   let decodeFailurePolicy: ParsedAttributeDecodeFailurePolicy?
   let isUnique: Bool
+  let isTransient: Bool
 }
 
 enum ParsedAttributeStorageMethod: Equatable {
@@ -48,4 +49,5 @@ enum ParsedAttributeDecodeFailurePolicy: Equatable {
 
 enum ParsedAttributeTrait: Equatable {
   case unique
+  case transient
 }

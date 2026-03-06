@@ -320,9 +320,40 @@ struct ConfigValidationTests {
     }
   }
 
+  @Test("generate rejects transient attribute with custom storage")
+  func generateRejectsTransientAttributeWithCustomStorage() throws {
+    let model = makeModelWithTransientAttribute()
+    let template = makeGenerateValidationTemplate(
+      attributeRules: .init(
+        entities: [
+          "Item": [
+            "scratch": .init(
+              swiftType: "ItemScratch",
+              storageMethod: .codable
+            )
+          ]
+        ]
+      )
+    )
+
+    try expectConfigFailure(template, code: .configInvalid) {
+      try validateToolingConfigTemplate(template, against: model)
+    }
+  }
+
   @Test("generate rejects non-optional relationship")
   func generateRejectsNonOptionalRelationship() throws {
     let model = makeModelWithNonOptionalRelationship()
+    let template = makeGenerateValidationTemplate()
+
+    try expectConfigFailure(template, code: .configInvalid) {
+      try validateToolingConfigTemplate(template, against: model)
+    }
+  }
+
+  @Test("tooling rejects derived attributes in the model surface")
+  func toolingRejectsDerivedAttributes() throws {
+    let model = makeModelWithDerivedAttribute()
     let template = makeGenerateValidationTemplate()
 
     try expectConfigFailure(template, code: .configInvalid) {
@@ -487,6 +518,39 @@ struct ConfigValidationTests {
 
     let model = NSManagedObjectModel()
     model.entities = [item, owner]
+    return model
+  }
+
+  private func makeModelWithTransientAttribute() -> NSManagedObjectModel {
+    let attribute = NSAttributeDescription()
+    attribute.name = "scratch"
+    attribute.attributeType = .stringAttributeType
+    attribute.isOptional = true
+    attribute.isTransient = true
+
+    let entity = NSEntityDescription()
+    entity.name = "Item"
+    entity.managedObjectClassName = "NSManagedObject"
+    entity.properties = [attribute]
+
+    let model = NSManagedObjectModel()
+    model.entities = [entity]
+    return model
+  }
+
+  private func makeModelWithDerivedAttribute() -> NSManagedObjectModel {
+    let attribute = NSDerivedAttributeDescription()
+    attribute.name = "derivedName"
+    attribute.attributeType = .stringAttributeType
+    attribute.derivationExpression = NSExpression(forConstantValue: "derived")
+
+    let entity = NSEntityDescription()
+    entity.name = "Item"
+    entity.managedObjectClassName = "NSManagedObject"
+    entity.properties = [attribute]
+
+    let model = NSManagedObjectModel()
+    model.entities = [entity]
     return model
   }
 
