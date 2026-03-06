@@ -434,10 +434,10 @@ struct MacroDiagnosticTests {
         @objc(Document)
         @PersistentModel
         final class Document: NSManagedObject {
-          @Inverse(User.self, "authoredDocuments")
+          @Inverse("authoredDocuments")
           var author: User?
 
-          @Inverse(User.self, "editedDocuments")
+          @Inverse("editedDocuments")
           var editor: User?
         }
         """
@@ -445,6 +445,24 @@ struct MacroDiagnosticTests {
     #expect(result.diagnostics.isEmpty)
     #expect(result.expandedSource.contains(#"inverseName: "authoredDocuments""#))
     #expect(result.expandedSource.contains(#"inverseName: "editedDocuments""#))
+  }
+
+  @Test("Inverse rejects non-string arguments")
+  func inverseRejectsNonStringArguments() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        final class Document: NSManagedObject {
+          @Inverse(User.self)
+          var author: User?
+        }
+        """
+    )
+    #expect(
+      result.diagnostics.contains {
+        $0.contains("@Inverse requires a string property name")
+      })
   }
 
   @Test("_CDRelationship rejects manual use outside PersistentModel")

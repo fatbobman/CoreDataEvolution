@@ -42,10 +42,10 @@ final class RuntimeSchemaTag: NSManagedObject {
 @objc(RuntimeDocument)
 @PersistentModel
 final class RuntimeDocument: NSManagedObject {
-  @Inverse(RuntimeUser.self, "authoredDocuments")
+  @Inverse("authoredDocuments")
   var author: RuntimeUser?
 
-  @Inverse(RuntimeUser.self, "editedDocuments")
+  @Inverse("editedDocuments")
   var editor: RuntimeUser?
 
   var title: String = ""
@@ -54,10 +54,10 @@ final class RuntimeDocument: NSManagedObject {
 @objc(RuntimeUser)
 @PersistentModel
 final class RuntimeUser: NSManagedObject {
-  @Inverse(RuntimeDocument.self, "author")
+  @Inverse("author")
   var authoredDocuments: Set<RuntimeDocument>
 
-  @Inverse(RuntimeDocument.self, "editor")
+  @Inverse("editor")
   var editedDocuments: Set<RuntimeDocument>
 
   var name: String = ""

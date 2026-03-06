@@ -61,7 +61,7 @@ public macro Ignore() =
   #externalMacro(module: "CoreDataEvolutionMacros", type: "IgnoreMacro")
 
 @attached(peer)
-public macro Inverse(_ targetType: Any.Type, _ propertyName: String) =
+public macro Inverse(_ propertyName: String) =
   #externalMacro(module: "CoreDataEvolutionMacros", type: "InverseMacro")
 
 @attached(accessor)

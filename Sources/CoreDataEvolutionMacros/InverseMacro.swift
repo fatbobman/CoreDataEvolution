@@ -71,9 +71,12 @@ public enum InverseMacro: PeerMacro {
       }
     }
 
-    guard parseInverseDeclArguments(node) != nil else {
+    switch parseInverseDeclArguments(node) {
+    case .success:
+      break
+    case .failure(.invalidShape):
       MacroDiagnosticReporter.error(
-        "@Inverse requires arguments in the form @Inverse(TargetEntity.self, \"property\").",
+        "@Inverse requires a string property name in the form @Inverse(\"property\").",
         domain: "CoreDataEvolution.InverseMacro",
         in: context,
         node: node

@@ -301,20 +301,20 @@ Example:
 @objc(Document)
 @PersistentModel
 final class Document: NSManagedObject {
-  @Inverse(User.self, "authoredDocuments")
+  @Inverse("authoredDocuments")
   var author: User?
 
-  @Inverse(User.self, "editedDocuments")
+  @Inverse("editedDocuments")
   var editor: User?
 }
 
 @objc(User)
 @PersistentModel
 final class User: NSManagedObject {
-  @Inverse(Document.self, "author")
+  @Inverse("author")
   var authoredDocuments: Set<Document>
 
-  @Inverse(Document.self, "editor")
+  @Inverse("editor")
   var editedDocuments: Set<Document>
 }
 ```
@@ -333,10 +333,10 @@ This rule also applies to self-referencing models.
 @objc(Category)
 @PersistentModel
 final class Category: NSManagedObject {
-  @Inverse(Category.self, "children")
+  @Inverse("children")
   var parent: Category?
 
-  @Inverse(Category.self, "parent")
+  @Inverse("parent")
   var children: Set<Category>
 }
 ```
@@ -638,10 +638,10 @@ var editor: User?
 Correct:
 
 ```swift
-@Inverse(User.self, "authoredDocuments")
+@Inverse("authoredDocuments")
 var author: User?
 
-@Inverse(User.self, "editedDocuments")
+@Inverse("editedDocuments")
 var editor: User?
 ```
 

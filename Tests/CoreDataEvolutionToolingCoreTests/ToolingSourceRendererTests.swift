@@ -198,8 +198,8 @@ struct ToolingSourceRendererTests {
     let source = try ToolingSourceRenderer.renderSources(from: modelIR).first?.contents
     let rendered = try #require(source)
 
-    #expect(rendered.contains(#"@Inverse(User.self, "authoredDocuments")"#))
-    #expect(rendered.contains(#"@Inverse(User.self, "editedDocuments")"#))
+    #expect(rendered.contains(#"@Inverse("authoredDocuments")"#))
+    #expect(rendered.contains(#"@Inverse("editedDocuments")"#))
   }
 
   @Test("renderer rejects non-optional custom storage without a synthesizeable default")

@@ -345,32 +345,20 @@ private func parseInverseAnnotation(
   from attribute: AttributeSyntax
 ) -> ToolingSourceInverseAnnotationIR? {
   guard let list = attribute.arguments?.as(LabeledExprListSyntax.self),
-    list.count == 2,
-    let targetArgument = list.first,
-    let propertyArgument = list.dropFirst().first
-  else {
-    return nil
-  }
-
-  let targetTypeRaw = normalizedExpression(targetArgument.expression)
-  guard targetTypeRaw.hasSuffix(".self") else {
-    return nil
-  }
-
-  guard let propertyLiteral = propertyArgument.expression.as(StringLiteralExprSyntax.self),
+    list.count == 1,
+    let argument = list.first,
+    let propertyLiteral = argument.expression.as(StringLiteralExprSyntax.self),
     propertyLiteral.segments.count == 1,
     let segment = propertyLiteral.segments.first?.as(StringSegmentSyntax.self)
   else {
     return nil
   }
 
-  let targetTypeName = String(targetTypeRaw.dropLast(".self".count))
   let inversePropertyName = segment.content.text
-  guard targetTypeName.isEmpty == false, inversePropertyName.isEmpty == false else {
+  guard inversePropertyName.isEmpty == false else {
     return nil
   }
   return .init(
-    targetTypeName: targetTypeName,
     inversePropertyName: inversePropertyName
   )
 }

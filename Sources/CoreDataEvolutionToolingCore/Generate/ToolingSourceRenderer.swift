@@ -325,8 +325,7 @@ public enum ToolingSourceRenderer {
 
     var lines: [String] = []
     if requiresExplicitInverse {
-      guard let destinationEntityName = relationship.destinationEntityName,
-        let inverseRelationshipName = relationship.inverseRelationshipName
+      guard let inverseRelationshipName = relationship.inverseRelationshipName
       else {
         throw ToolingFailure.user(
           .configInvalid,
@@ -336,8 +335,7 @@ public enum ToolingSourceRenderer {
           """
         )
       }
-      lines.append(
-        #"  @Inverse(\#(destinationEntityName).self, "\#(inverseRelationshipName)")"#)
+      lines.append(#"  @Inverse("\#(inverseRelationshipName)")"#)
     }
     lines.append(
       "  \(memberAccessModifierPrefix(for: accessLevel))var \(relationship.swiftName): \(typeName)")

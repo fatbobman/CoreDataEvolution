@@ -57,8 +57,14 @@ func analyzePersistentModelProperties(in classDecl: ClassDeclSyntax)
     let nonOptionalTypeName = attributeOptionalWrappedTypeName(typeAnnotation.type) ?? typeName
     let isOptional = attributeOptionalWrappedTypeName(typeAnnotation.type) != nil
     let defaultValueExpression = binding.initializer?.value.trimmedDescription
-    let inverseArguments = firstAttribute(named: "Inverse", in: variable).flatMap(
-      parseInverseDeclArguments)
+    let inverseArguments: ParsedInverseDeclArguments?
+    if let inverseAttribute = firstAttribute(named: "Inverse", in: variable),
+      case .success(let parsedInverseArguments) = parseInverseDeclArguments(inverseAttribute)
+    {
+      inverseArguments = parsedInverseArguments
+    } else {
+      inverseArguments = nil
+    }
 
     if isOptionalToManyRelationshipType(typeAnnotation.type) {
       continue
@@ -187,7 +193,7 @@ func validateInverseHints(
       continue
     }
 
-    guard let relationship = relationshipsByName[propertyName] else {
+    guard relationshipsByName[propertyName] != nil else {
       MacroDiagnosticReporter.error(
         "@Inverse can only be attached to relationship properties.",
         domain: persistentModelMacroDomain,
@@ -197,21 +203,7 @@ func validateInverseHints(
       isValid = false
       continue
     }
-    guard let inverseArguments = parseInverseDeclArguments(inverseAttribute) else {
-      continue
-    }
-    guard typeNamesReferToSameEntity(inverseArguments.targetTypeName, relationship.targetTypeName)
-    else {
-      MacroDiagnosticReporter.error(
-        """
-        @Inverse for '\(propertyName)' must target '\(relationship.targetTypeName)'. \
-        Found '\(inverseArguments.targetTypeName)'.
-        """,
-        domain: persistentModelMacroDomain,
-        in: context,
-        node: inverseAttribute
-      )
-      isValid = false
+    guard case .success = parseInverseDeclArguments(inverseAttribute) else {
       continue
     }
   }
@@ -228,7 +220,7 @@ func validateInverseHints(
       let message =
         """
         Relationships from '\(classDecl.name.text)' to '\(relationship.targetTypeName)' are \
-        ambiguous. Add @Inverse(\(relationship.targetTypeName).self, "property") to '\(relationship.propertyName)' and the matching inverse relationship.
+        ambiguous. Add @Inverse("property") to '\(relationship.propertyName)' and the matching inverse relationship.
         """
       if let propertyNode = propertyNodes[relationship.propertyName] {
         MacroDiagnosticReporter.error(

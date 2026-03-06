@@ -171,14 +171,11 @@ public struct ToolingSourceAttributeAnnotationIR: Codable, Sendable, Equatable {
 
 /// Parsed `@Inverse(...)` hint from source.
 public struct ToolingSourceInverseAnnotationIR: Codable, Sendable, Equatable {
-  public let targetTypeName: String
   public let inversePropertyName: String
 
   public init(
-    targetTypeName: String,
     inversePropertyName: String
   ) {
-    self.targetTypeName = targetTypeName
     self.inversePropertyName = inversePropertyName
   }
 }

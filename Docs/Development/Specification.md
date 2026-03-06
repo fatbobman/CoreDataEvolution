@@ -27,7 +27,7 @@ Runtime schema / runtime model builder 的 v1 边界：
 - 假定宏生成的静态 metadata 为唯一输入，不做运行时反射
 - 同一组模型类型应复用缓存后的 `NSManagedObjectModel`
 - 当同一实体中存在多个 relationship 指向同一目标实体时，源码必须显式提供 inverse hint
-- inverse hint 采用 `@Inverse(TargetEntity.self, "property")` 语法
+- inverse hint 采用 `@Inverse("property")` 语法
 - 无法唯一推断 inverse 的 relationship，当前实体侧这些 relationship 必须全部显式标注 `@Inverse(...)`，对端对应的 inverse relationship 也必须显式标注
 - 自连接（self relationship）遵循同一规则
 - primitive 默认值仅支持可稳定翻译到 Core Data 默认值的表达式子集；不支持时直接报错
@@ -146,11 +146,11 @@ enum RelationshipGenerationPolicy { case none, warning, plain }
 ### `@Inverse`
 
 - 仅用于 relationship 属性。
-- 语法：`@Inverse(TargetEntity.self, "property")`
+- 语法：`@Inverse("property")`
 - 语义：显式声明对端 inverse relationship 的属性名。
 - 若 relationship 可唯一推断 inverse，则无需标注。
 - 当同一实体中存在多个 relationship 指向同一目标实体时，当前实体侧这些 relationship 必须全部显式标注 `@Inverse(...)`，对端对应的 inverse relationship 也必须显式标注。
-- 仅有 `Entity.self` 不能表达对端具体属性，因此 v1 采用 `TargetEntity.self + "property"` 的组合语法。
+- relationship 属性本身已经提供目标实体类型，因此 `@Inverse` 仅需声明对端属性名字符串。
 
 ### RelationshipInfo 注释
 

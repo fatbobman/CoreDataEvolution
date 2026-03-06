@@ -43,7 +43,7 @@ SwiftData 采用纯代码声明模型，看似更符合 Swift 习惯，但在模
 
 当前 runtime schema v1 还包含三条明确边界：
 
-- relationship metadata 默认允许唯一推断 inverse；当同一实体中存在多个 relationship 指向同一目标实体时，源码必须通过 `@Inverse(TargetEntity.self, "property")` 显式提供 inverse hint。
+- relationship metadata 默认允许唯一推断 inverse；当同一实体中存在多个 relationship 指向同一目标实体时，源码必须通过 `@Inverse("property")` 显式提供 inverse hint。
 - 无法唯一推断 inverse 的 relationship，当前实体侧这些 relationship 必须全部显式标注 `@Inverse(...)`，对端对应的 inverse relationship 也必须显式标注。这是一条 runtime/test-debug 路径与 tooling validate 共用的源码规则，不影响基于 `xcdatamodeld` 的正式模型工作流。
 - primitive 默认值只支持一组可稳定翻译到 `NSAttributeDescription.defaultValue` 的表达式子集；无法稳定翻译时直接报错，不做静默降级。
 - composition 在 runtime schema / runtime builder 中按单个 transformable dictionary payload 建模，遵循宏生成的 composition accessor 契约，不等价于 xcdatamodeld 的展平字段布局。
@@ -930,7 +930,7 @@ relationship inverse 规则补充：
 - 若当前实体内某个目标实体类型只出现一条 relationship，则可省略 `@Inverse(...)`
 - 若当前实体内有多条 relationship 指向同一目标实体，则这些 relationship 必须全部显式标注 `@Inverse(...)`，且对端对应的 inverse relationship 也必须显式标注
 - 自连接（self relationship）按同一规则处理
-- 仅有 `Entity.self` 无法表达对端具体属性，因此 v1 采用 `TargetEntity.self + "property"` 的组合语法
+- relationship 属性本身已经提供目标实体类型，因此 `@Inverse` 只需要声明对端属性名字符串
 
 边界需要保持非常清楚：
 

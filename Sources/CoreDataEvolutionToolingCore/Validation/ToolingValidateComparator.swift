@@ -455,17 +455,6 @@ public enum ToolingValidateComparator {
     inverse: ToolingSourceInverseAnnotationIR,
     diagnostics: inout [ToolingDiagnostic]
   ) {
-    if toolingTypeNamesReferToSameEntity(
-      inverse.targetTypeName,
-      relationship.destinationEntityName ?? ""
-    ) == false {
-      diagnostics.append(
-        error(
-          "validate found inverse target mismatch for '\(entityName).\(relationship.swiftName)'. Expected '\(relationship.destinationEntityName ?? "<missing>")', found '\(inverse.targetTypeName)'."
-        )
-      )
-    }
-
     guard let expectedInverseName = relationship.inverseRelationshipName else {
       assertionFailure(
         "Validation should not compare inverse hints for relationships without inverse metadata.")

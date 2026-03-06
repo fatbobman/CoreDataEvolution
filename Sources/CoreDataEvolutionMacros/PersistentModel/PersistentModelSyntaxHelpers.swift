@@ -31,8 +31,11 @@ func preferredAttributeForParsing(named name: String, in variable: VariableDeclS
 }
 
 struct ParsedInverseDeclArguments: Equatable {
-  let targetTypeName: String
   let inversePropertyName: String
+}
+
+enum InverseDeclArgumentsParseError: Error, Equatable {
+  case invalidShape
 }
 
 func attributeName(of attribute: AttributeSyntax) -> String {
@@ -42,35 +45,27 @@ func attributeName(of attribute: AttributeSyntax) -> String {
     .map(String.init) ?? attribute.attributeName.trimmedDescription
 }
 
-func parseInverseDeclArguments(_ attribute: AttributeSyntax) -> ParsedInverseDeclArguments? {
+func parseInverseDeclArguments(
+  _ attribute: AttributeSyntax
+) -> Result<ParsedInverseDeclArguments, InverseDeclArgumentsParseError> {
   guard let list = attribute.arguments?.as(LabeledExprListSyntax.self),
-    list.count == 2,
-    let targetArgument = list.first,
-    let propertyArgument = list.dropFirst().first
-  else {
-    return nil
-  }
-
-  let targetTypeText = targetArgument.expression.trimmedDescription
-  guard targetTypeText.hasSuffix(".self") else {
-    return nil
-  }
-
-  guard let propertyLiteral = propertyArgument.expression.as(StringLiteralExprSyntax.self),
+    list.count == 1,
+    let argument = list.first,
+    let propertyLiteral = argument.expression.as(StringLiteralExprSyntax.self),
     propertyLiteral.segments.count == 1,
     let segment = propertyLiteral.segments.first?.as(StringSegmentSyntax.self)
   else {
-    return nil
+    return .failure(.invalidShape)
   }
 
-  let targetTypeName = String(targetTypeText.dropLast(".self".count))
   let inversePropertyName = segment.content.text
-  guard targetTypeName.isEmpty == false, inversePropertyName.isEmpty == false else {
-    return nil
+  guard inversePropertyName.isEmpty == false else {
+    return .failure(.invalidShape)
   }
-  return .init(
-    targetTypeName: targetTypeName,
-    inversePropertyName: inversePropertyName
+  return .success(
+    .init(
+      inversePropertyName: inversePropertyName
+    )
   )
 }
 

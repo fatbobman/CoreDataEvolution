@@ -107,7 +107,6 @@ struct ToolingValidateComparatorTests {
                 hasIgnore: false,
                 attribute: nil,
                 inverse: .init(
-                  targetTypeName: "User",
                   inversePropertyName: "authoredDocuments"
                 ),
                 relationshipShape: .toOne
@@ -124,7 +123,6 @@ struct ToolingValidateComparatorTests {
                 hasIgnore: false,
                 attribute: nil,
                 inverse: .init(
-                  targetTypeName: "User",
                   inversePropertyName: "editedDocuments"
                 ),
                 relationshipShape: .toOne
