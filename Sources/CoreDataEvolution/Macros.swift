@@ -60,6 +60,10 @@ public macro Composition() =
 public macro Ignore() =
   #externalMacro(module: "CoreDataEvolutionMacros", type: "IgnoreMacro")
 
+@attached(peer)
+public macro Inverse(_ targetType: Any.Type, _ propertyName: String) =
+  #externalMacro(module: "CoreDataEvolutionMacros", type: "InverseMacro")
+
 @attached(accessor)
 @attached(peer, names: arbitrary)
 public macro _CDRelationship(

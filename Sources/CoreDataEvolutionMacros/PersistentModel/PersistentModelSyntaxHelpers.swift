@@ -22,11 +22,55 @@ func hasMarkerAttribute(_ name: String, in variable: VariableDeclSyntax) -> Bool
   firstAttribute(named: name, in: variable) != nil
 }
 
+struct ParsedInverseDeclArguments: Equatable {
+  let targetTypeName: String
+  let inversePropertyName: String
+}
+
 func attributeName(of attribute: AttributeSyntax) -> String {
   attribute.attributeName.trimmedDescription
     .split(separator: ".")
     .last
     .map(String.init) ?? attribute.attributeName.trimmedDescription
+}
+
+func parseInverseDeclArguments(_ attribute: AttributeSyntax) -> ParsedInverseDeclArguments? {
+  guard let list = attribute.arguments?.as(LabeledExprListSyntax.self),
+    list.count == 2,
+    let targetArgument = list.first,
+    let propertyArgument = list.dropFirst().first
+  else {
+    return nil
+  }
+
+  let targetTypeText = targetArgument.expression.trimmedDescription
+  guard targetTypeText.hasSuffix(".self") else {
+    return nil
+  }
+
+  guard let propertyLiteral = propertyArgument.expression.as(StringLiteralExprSyntax.self),
+    propertyLiteral.segments.count == 1,
+    let segment = propertyLiteral.segments.first?.as(StringSegmentSyntax.self)
+  else {
+    return nil
+  }
+
+  let targetTypeName = String(targetTypeText.dropLast(".self".count))
+  let inversePropertyName = segment.content.text
+  guard targetTypeName.isEmpty == false, inversePropertyName.isEmpty == false else {
+    return nil
+  }
+  return .init(
+    targetTypeName: targetTypeName,
+    inversePropertyName: inversePropertyName
+  )
+}
+
+func typeNamesReferToSameEntity(_ lhs: String, _ rhs: String) -> Bool {
+  if lhs == rhs {
+    return true
+  }
+  return lhs.split(separator: ".").last == rhs.split(separator: ".").last
 }
 
 func hasExplicitObjCClassName(on classDecl: ClassDeclSyntax) -> Bool {

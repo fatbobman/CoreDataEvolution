@@ -31,7 +31,6 @@ final class Item: NSManagedObject {
   private static let __cd_attribute_validate_title_nonrelationship: Void = CoreDataEvolution
     ._CDAttributeMacroValidation.requireNonRelationship(String.self)
   var transientCache: [String: Int] = [:]
-
   var tags: Set<Tag> {
     get {
       (value(forKey: "tags") as? NSSet)?
@@ -240,6 +239,7 @@ final class Item: NSManagedObject {
           swiftName: "tags",
           persistentName: "tags",
           targetTypeName: "Tag",
+          inverseName: "items",
           kind: .toManySet,
           isOptional: true
         ),
@@ -247,6 +247,7 @@ final class Item: NSManagedObject {
           swiftName: "orderedTags",
           persistentName: "orderedTags",
           targetTypeName: "Tag",
+          inverseName: "orderedItems",
           kind: .toManyArray,
           isOptional: true
         ),

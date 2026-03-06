@@ -111,6 +111,7 @@ public struct ToolingSourcePropertyIR: Codable, Sendable, Equatable {
   public let isStatic: Bool
   public let hasIgnore: Bool
   public let attribute: ToolingSourceAttributeAnnotationIR?
+  public let inverse: ToolingSourceInverseAnnotationIR?
   public let relationshipShape: ToolingSourceRelationshipShapeIR?
 
   public init(
@@ -124,6 +125,7 @@ public struct ToolingSourcePropertyIR: Codable, Sendable, Equatable {
     isStatic: Bool,
     hasIgnore: Bool,
     attribute: ToolingSourceAttributeAnnotationIR?,
+    inverse: ToolingSourceInverseAnnotationIR? = nil,
     relationshipShape: ToolingSourceRelationshipShapeIR?
   ) {
     self.filePath = filePath
@@ -136,6 +138,7 @@ public struct ToolingSourcePropertyIR: Codable, Sendable, Equatable {
     self.isStatic = isStatic
     self.hasIgnore = hasIgnore
     self.attribute = attribute
+    self.inverse = inverse
     self.relationshipShape = relationshipShape
   }
 }
@@ -163,6 +166,20 @@ public struct ToolingSourceAttributeAnnotationIR: Codable, Sendable, Equatable {
     self.storageMethod = storageMethod
     self.transformerType = transformerType
     self.decodeFailurePolicy = decodeFailurePolicy
+  }
+}
+
+/// Parsed `@Inverse(...)` hint from source.
+public struct ToolingSourceInverseAnnotationIR: Codable, Sendable, Equatable {
+  public let targetTypeName: String
+  public let inversePropertyName: String
+
+  public init(
+    targetTypeName: String,
+    inversePropertyName: String
+  ) {
+    self.targetTypeName = targetTypeName
+    self.inversePropertyName = inversePropertyName
   }
 }
 

@@ -10,6 +10,7 @@
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
 import SwiftSyntax
+import SwiftSyntaxMacros
 
 func analyzePersistentModelProperties(in classDecl: ClassDeclSyntax)
   -> PersistentModelAnalysis
@@ -48,6 +49,8 @@ func analyzePersistentModelProperties(in classDecl: ClassDeclSyntax)
       let nonOptionalTypeName = attributeOptionalWrappedTypeName(typeAnnotation.type) ?? typeName
       let isOptional = attributeOptionalWrappedTypeName(typeAnnotation.type) != nil
       let defaultValueExpression = binding.initializer?.value.trimmedDescription
+      let inverseArguments = firstAttribute(named: "Inverse", in: variable).flatMap(
+        parseInverseDeclArguments)
 
       if isOptionalToManyRelationshipType(typeAnnotation.type) {
         continue
@@ -78,7 +81,8 @@ func analyzePersistentModelProperties(in classDecl: ClassDeclSyntax)
 
       if let relationship = parseRelationshipProperty(
         propertyName: propertyName,
-        type: typeAnnotation.type
+        type: typeAnnotation.type,
+        inverseArguments: inverseArguments
       ) {
         properties.append(.relationship(relationship))
         continue
@@ -151,7 +155,11 @@ func analyzePersistentModelInitProperties(in classDecl: ClassDeclSyntax)
       if isOptionalToManyRelationshipType(typeAnnotation.type) {
         continue
       }
-      if parseRelationshipProperty(propertyName: propertyName, type: typeAnnotation.type) != nil {
+      if parseRelationshipProperty(
+        propertyName: propertyName,
+        type: typeAnnotation.type,
+        inverseArguments: nil
+      ) != nil {
         continue
       }
       if isLikelyMissingOptionalToOneRelationship(typeAnnotation.type) {
@@ -167,6 +175,94 @@ func analyzePersistentModelInitProperties(in classDecl: ClassDeclSyntax)
     }
   }
   return properties
+}
+
+func validateInverseHints(
+  in classDecl: ClassDeclSyntax,
+  model: PersistentModelAnalysis,
+  context: some MacroExpansionContext
+) -> Bool {
+  let relationshipsByName = Dictionary(
+    uniqueKeysWithValues: model.relationships.map { ($0.propertyName, $0) })
+  var propertyNodes: [String: VariableDeclSyntax] = [:]
+
+  for member in classDecl.memberBlock.members {
+    guard let variable = member.decl.as(VariableDeclSyntax.self),
+      variable.bindings.count == 1,
+      let binding = variable.bindings.first,
+      let identifier = binding.pattern.as(IdentifierPatternSyntax.self)
+    else {
+      continue
+    }
+    propertyNodes[identifier.identifier.text] = variable
+  }
+
+  var isValid = true
+
+  for (propertyName, variable) in propertyNodes {
+    guard let inverseAttribute = firstAttribute(named: "Inverse", in: variable) else {
+      continue
+    }
+    guard let relationship = relationshipsByName[propertyName] else {
+      MacroDiagnosticReporter.error(
+        "@Inverse can only be attached to relationship properties.",
+        domain: persistentModelMacroDomain,
+        in: context,
+        node: variable
+      )
+      isValid = false
+      continue
+    }
+    guard let inverseArguments = parseInverseDeclArguments(inverseAttribute) else {
+      continue
+    }
+    guard typeNamesReferToSameEntity(inverseArguments.targetTypeName, relationship.targetTypeName)
+    else {
+      MacroDiagnosticReporter.error(
+        """
+        @Inverse for '\(propertyName)' must target '\(relationship.targetTypeName)'. \
+        Found '\(inverseArguments.targetTypeName)'.
+        """,
+        domain: persistentModelMacroDomain,
+        in: context,
+        node: inverseAttribute
+      )
+      isValid = false
+      continue
+    }
+  }
+
+  let groupedRelationships = Dictionary(grouping: model.relationships) {
+    $0.targetTypeName.split(separator: ".").last.map(String.init) ?? $0.targetTypeName
+  }
+
+  for relationships in groupedRelationships.values where relationships.count > 1 {
+    for relationship in relationships where relationship.inverseName == nil {
+      let message =
+        """
+        Relationships from '\(classDecl.name.text)' to '\(relationship.targetTypeName)' are \
+        ambiguous. Add @Inverse(\(relationship.targetTypeName).self, "property") to '\(relationship.propertyName)' and the matching inverse relationship.
+        """
+      if let propertyNode = propertyNodes[relationship.propertyName] {
+        MacroDiagnosticReporter.error(
+          message,
+          domain: persistentModelMacroDomain,
+          in: context,
+          node: propertyNode
+        )
+      } else {
+        MacroDiagnosticReporter.error(
+          message,
+          domain: persistentModelMacroDomain,
+          in: context,
+          node: classDecl
+        )
+      }
+      isValid = false
+    }
+  }
+
+  return isValid
 }
 
 func autoAttachedAttribute(
@@ -204,7 +300,8 @@ func autoAttachedAttribute(
     }
     if let relationship = parseRelationshipProperty(
       propertyName: pattern.identifier.text,
-      type: typeAnnotation.type
+      type: typeAnnotation.type,
+      inverseArguments: nil
     ) {
       if relationship.kind == .toManySet {
         return
@@ -236,12 +333,14 @@ private func relationshipSetterPolicyExpression(_ policy: ParsedRelationshipGene
 
 private func parseRelationshipProperty(
   propertyName: String,
-  type: TypeSyntax
+  type: TypeSyntax,
+  inverseArguments: ParsedInverseDeclArguments?
 ) -> PersistentRelationshipProperty? {
   if let element = setElementTypeName(type) {
     return PersistentRelationshipProperty(
       propertyName: propertyName,
       targetTypeName: element,
+      inverseName: inverseArguments?.inversePropertyName,
       kind: .toManySet
     )
   }
@@ -249,6 +348,7 @@ private func parseRelationshipProperty(
     return PersistentRelationshipProperty(
       propertyName: propertyName,
       targetTypeName: element,
+      inverseName: inverseArguments?.inversePropertyName,
       kind: .toManyArray
     )
   }
@@ -262,6 +362,7 @@ private func parseRelationshipProperty(
       return PersistentRelationshipProperty(
         propertyName: propertyName,
         targetTypeName: wrapped,
+        inverseName: inverseArguments?.inversePropertyName,
         kind: .toOne
       )
     }

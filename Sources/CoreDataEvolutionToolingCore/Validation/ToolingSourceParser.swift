@@ -180,6 +180,8 @@ private final class ToolingSourceEntityCollector: SyntaxVisitor {
       hasIgnore: firstAttribute(named: "Ignore", in: variable.attributes) != nil,
       attribute: firstAttribute(named: "Attribute", in: variable.attributes).map(
         parseAttributeAnnotation(from:)),
+      inverse: firstAttribute(named: "Inverse", in: variable.attributes).flatMap(
+        parseInverseAnnotation(from:)),
       relationshipShape: typeSyntax.flatMap(parseRelationshipShape(from:))
     )
   }
@@ -299,6 +301,40 @@ private func parseAttributeAnnotation(
     storageMethod: storageMethod,
     transformerType: transformerType,
     decodeFailurePolicy: decodeFailurePolicy
+  )
+}
+
+private func parseInverseAnnotation(
+  from attribute: AttributeSyntax
+) -> ToolingSourceInverseAnnotationIR? {
+  guard let list = attribute.arguments?.as(LabeledExprListSyntax.self),
+    list.count == 2,
+    let targetArgument = list.first,
+    let propertyArgument = list.dropFirst().first
+  else {
+    return nil
+  }
+
+  let targetTypeRaw = normalizedExpression(targetArgument.expression)
+  guard targetTypeRaw.hasSuffix(".self") else {
+    return nil
+  }
+
+  guard let propertyLiteral = propertyArgument.expression.as(StringLiteralExprSyntax.self),
+    propertyLiteral.segments.count == 1,
+    let segment = propertyLiteral.segments.first?.as(StringSegmentSyntax.self)
+  else {
+    return nil
+  }
+
+  let targetTypeName = String(targetTypeRaw.dropLast(".self".count))
+  let inversePropertyName = segment.content.text
+  guard targetTypeName.isEmpty == false, inversePropertyName.isEmpty == false else {
+    return nil
+  }
+  return .init(
+    targetTypeName: targetTypeName,
+    inversePropertyName: inversePropertyName
   )
 }
 

@@ -19,7 +19,7 @@ func makeKeysDecl(
   if attributes.isEmpty {
     return
       """
-      \(raw: accessModifier)enum Keys: String {}
+      \(raw: accessModifier)enum Keys {}
       """
   }
   let rows = attributes.map { attribute in
@@ -162,6 +162,8 @@ func makeFieldTableDecl(
     )
   }
   let attributeLiteralBody = attributeRows.joined(separator: ",\n")
+  let attributeTableLiteral =
+    attributeLiteralBody.isEmpty ? "[:]" : "[\n\(attributeLiteralBody)\n    ]"
 
   var compositionMergeLines: [String] = []
   for attribute in model.attributes where attribute.storageMethod == .composition {
@@ -233,9 +235,7 @@ func makeFieldTableDecl(
   return
     """
     \(raw: accessModifier)static let __cdRelationshipProjectionTable: [String: CoreDataEvolution.CDFieldMeta] = {
-      var table: [String: CoreDataEvolution.CDFieldMeta] = [
-      \(raw: attributeLiteralBody)
-      ]
+      var table: [String: CoreDataEvolution.CDFieldMeta] = \(raw: attributeTableLiteral)
     \(raw: compositionMergeBlock)
       return table
     }()
@@ -260,9 +260,6 @@ func makeRuntimeEntitySchemaDecl(
   objcClassName: String,
   model: PersistentModelAnalysis
 ) -> DeclSyntax {
-  // Runtime schema only sees source declarations. Relationship inverse names are not modeled in
-  // the Swift source today, so runtime builders fall back to inference unless callers provide
-  // hand-written schema metadata instead of the macro-emitted defaults.
   let attributeRows = model.attributes.map { attribute in
     let transientArgument = attribute.isTransient ? ",\n      isTransient: true" : ""
     return """
@@ -279,15 +276,27 @@ func makeRuntimeEntitySchemaDecl(
   }.joined(separator: ",\n")
 
   let relationshipRows = model.relationships.map { relationship in
-    """
-    CoreDataEvolution.CDRuntimeRelationshipSchema(
-      swiftName: "\(relationship.propertyName)",
-      persistentName: "\(relationship.propertyName)",
-      targetTypeName: "\(relationship.targetTypeName)",
-      kind: \(runtimeRelationshipKindExpression(relationship.kind)),
-      isOptional: true
-    )
-    """
+    if let inverseName = relationship.inverseName {
+      return """
+        CoreDataEvolution.CDRuntimeRelationshipSchema(
+          swiftName: "\(relationship.propertyName)",
+          persistentName: "\(relationship.propertyName)",
+          targetTypeName: "\(relationship.targetTypeName)",
+          inverseName: "\(inverseName)",
+          kind: \(runtimeRelationshipKindExpression(relationship.kind)),
+          isOptional: true
+        )
+        """
+    }
+    return """
+      CoreDataEvolution.CDRuntimeRelationshipSchema(
+        swiftName: "\(relationship.propertyName)",
+        persistentName: "\(relationship.propertyName)",
+        targetTypeName: "\(relationship.targetTypeName)",
+        kind: \(runtimeRelationshipKindExpression(relationship.kind)),
+        isOptional: true
+      )
+      """
   }.joined(separator: ",\n")
 
   let uniquenessRows = model.attributes

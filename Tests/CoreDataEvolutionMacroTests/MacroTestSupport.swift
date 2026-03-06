@@ -59,6 +59,9 @@ enum MacroTestSupport {
     "Ignore": MacroSpec(
       type: IgnoreMacro.self
     ),
+    "Inverse": MacroSpec(
+      type: InverseMacro.self
+    ),
     "_CDRelationship": MacroSpec(
       type: RelationshipMacro.self
     ),

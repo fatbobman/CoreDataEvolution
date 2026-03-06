@@ -67,6 +67,7 @@ struct PersistentRelationshipProperty {
 
   let propertyName: String
   let targetTypeName: String
+  let inverseName: String?
   let kind: Kind
 }
 

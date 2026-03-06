@@ -151,6 +151,9 @@ extension PersistentModelMacro: MemberMacro {
     let modelTypeName = classDecl.name.text
     let objcClassName = explicitObjCClassName(on: classDecl) ?? modelTypeName
     let model = analyzePersistentModelProperties(in: classDecl)
+    guard validateInverseHints(in: classDecl, model: model, context: context) else {
+      return []
+    }
     let initProperties = analyzePersistentModelInitProperties(in: classDecl)
 
     var members: [DeclSyntax] = []

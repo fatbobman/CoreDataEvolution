@@ -141,6 +141,67 @@ struct ToolingSourceRendererTests {
     #expect(rendered.contains("extension Item: PersistentEntity {}"))
   }
 
+  @Test("renderer emits inverse hints for ambiguous relationships")
+  func rendererEmitsInverseHintsForAmbiguousRelationships() throws {
+    let modelIR = ToolingModelIR(
+      source: .init(
+        originalPath: "/virtual/AppModel.xcdatamodeld",
+        selectedSourcePath: "/virtual/AppModel.xcdatamodeld/V1.xcdatamodel",
+        compiledModelPath: "/virtual/AppModel.momd",
+        inputKind: .xcdatamodeld,
+        selectedVersionName: "V1.xcdatamodel"
+      ),
+      generationPolicy: .init(
+        accessLevel: .internal,
+        singleFile: false,
+        splitByEntity: true,
+        generateInit: false,
+        relationshipSetterPolicy: .warning,
+        relationshipCountPolicy: .none,
+        defaultDecodeFailurePolicy: .fallbackToDefaultValue
+      ),
+      entities: [
+        .init(
+          name: "Document",
+          managedObjectClassName: "NSManagedObject",
+          representedClassName: "Document",
+          attributes: [],
+          relationships: [
+            .init(
+              persistentName: "author",
+              swiftName: "author",
+              destinationEntityName: "User",
+              inverseRelationshipName: "authoredDocuments",
+              cardinality: .toOne,
+              isOptional: true,
+              minCount: 0,
+              maxCount: 1,
+              deleteRule: "nullify"
+            ),
+            .init(
+              persistentName: "editor",
+              swiftName: "editor",
+              destinationEntityName: "User",
+              inverseRelationshipName: "editedDocuments",
+              cardinality: .toOne,
+              isOptional: true,
+              minCount: 0,
+              maxCount: 1,
+              deleteRule: "nullify"
+            ),
+          ],
+          compositions: []
+        )
+      ]
+    )
+
+    let source = try ToolingSourceRenderer.renderSources(from: modelIR).first?.contents
+    let rendered = try #require(source)
+
+    #expect(rendered.contains(#"@Inverse(User.self, "authoredDocuments")"#))
+    #expect(rendered.contains(#"@Inverse(User.self, "editedDocuments")"#))
+  }
+
   @Test("renderer rejects non-optional custom storage without a synthesizeable default")
   func rendererRejectsUnsupportedNonOptionalDefault() throws {
     let modelIR = ToolingModelIR(

@@ -385,6 +385,48 @@ struct MacroDiagnosticTests {
       })
   }
 
+  @Test("PersistentModel requires inverse hints for ambiguous relationships")
+  func persistentModelRequiresInverseHintsForAmbiguousRelationships() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        @objc(Document)
+        @PersistentModel
+        final class Document: NSManagedObject {
+          var author: User?
+          var editor: User?
+        }
+        """
+    )
+    #expect(
+      result.diagnostics.contains {
+        $0.contains("Relationships from 'Document' to 'User' are ambiguous")
+      })
+  }
+
+  @Test("PersistentModel accepts explicit inverse hints for ambiguous relationships")
+  func persistentModelAcceptsExplicitInverseHintsForAmbiguousRelationships() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        @objc(Document)
+        @PersistentModel
+        final class Document: NSManagedObject {
+          @Inverse(User.self, "authoredDocuments")
+          var author: User?
+
+          @Inverse(User.self, "editedDocuments")
+          var editor: User?
+        }
+        """
+    )
+    #expect(result.diagnostics.isEmpty)
+    #expect(result.expandedSource.contains(#"inverseName: "authoredDocuments""#))
+    #expect(result.expandedSource.contains(#"inverseName: "editedDocuments""#))
+  }
+
   @Test("_CDRelationship rejects manual use outside PersistentModel")
   func relationshipRejectsManualUseOutsidePersistentModel() throws {
     let result = try MacroTestSupport.expand(

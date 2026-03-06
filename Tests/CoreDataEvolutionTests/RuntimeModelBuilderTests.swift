@@ -39,6 +39,30 @@ final class RuntimeSchemaTag: NSManagedObject {
   var items: Set<RuntimeSchemaItem>
 }
 
+@objc(RuntimeDocument)
+@PersistentModel
+final class RuntimeDocument: NSManagedObject {
+  @Inverse(RuntimeUser.self, "authoredDocuments")
+  var author: RuntimeUser?
+
+  @Inverse(RuntimeUser.self, "editedDocuments")
+  var editor: RuntimeUser?
+
+  var title: String = ""
+}
+
+@objc(RuntimeUser)
+@PersistentModel
+final class RuntimeUser: NSManagedObject {
+  @Inverse(RuntimeDocument.self, "author")
+  var authoredDocuments: Set<RuntimeDocument>
+
+  @Inverse(RuntimeDocument.self, "editor")
+  var editedDocuments: Set<RuntimeDocument>
+
+  var name: String = ""
+}
+
 struct RuntimeModelBuilderTests {
   @Test("runtime model builder assembles uniqueness and inferred inverses")
   func buildModelFromMacroGeneratedSchemas() throws {
@@ -62,6 +86,21 @@ struct RuntimeModelBuilderTests {
     #expect(tags.isOrdered == false)
     #expect(tags.destinationEntity?.name == "RuntimeSchemaTag")
     #expect(tags.inverseRelationship?.name == "items")
+  }
+
+  @Test("runtime model builder uses explicit inverse metadata for ambiguous relationships")
+  func buildModelFromExplicitInverseHints() throws {
+    let model = try NSManagedObjectModel.makeRuntimeModel([
+      RuntimeDocument.self,
+      RuntimeUser.self,
+    ])
+
+    let document = try #require(model.entitiesByName["RuntimeDocument"])
+    let author = try #require(document.relationshipsByName["author"])
+    let editor = try #require(document.relationshipsByName["editor"])
+
+    #expect(author.inverseRelationship?.name == "authoredDocuments")
+    #expect(editor.inverseRelationship?.name == "editedDocuments")
   }
 
   @MainActor

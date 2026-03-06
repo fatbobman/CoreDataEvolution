@@ -152,6 +152,7 @@ public enum ToolingSourceRenderer {
         return (persistentField, composition)
       }
     )
+    let ambiguousRelationshipNames = ambiguousRelationshipNames(in: entity)
 
     for attribute in entity.attributes {
       if attribute.storage.method == .composition {
@@ -178,6 +179,7 @@ public enum ToolingSourceRenderer {
       lines.append(
         contentsOf: try renderRelationshipProperty(
           relationship,
+          requiresExplicitInverse: ambiguousRelationshipNames.contains(relationship.swiftName),
           accessLevel: generationPolicy.accessLevel
         )
       )
@@ -286,6 +288,7 @@ public enum ToolingSourceRenderer {
 
   private static func renderRelationshipProperty(
     _ relationship: ToolingRelationshipIR,
+    requiresExplicitInverse: Bool,
     accessLevel: ToolingAccessLevel
   ) throws -> [String] {
     guard relationship.isOptional else {
@@ -320,10 +323,26 @@ public enum ToolingSourceRenderer {
       typeName = "[\(relationship.destinationEntityName ?? "NSManagedObject")]"
     }
 
-    return [
-      "  \(memberAccessModifierPrefix(for: accessLevel))var \(relationship.swiftName): \(typeName)",
-      "",
-    ]
+    var lines: [String] = []
+    if requiresExplicitInverse {
+      guard let destinationEntityName = relationship.destinationEntityName,
+        let inverseRelationshipName = relationship.inverseRelationshipName
+      else {
+        throw ToolingFailure.user(
+          .configInvalid,
+          """
+          generate requires explicit inverse metadata for ambiguous relationship \
+          '\(relationship.persistentName)'.
+          """
+        )
+      }
+      lines.append(
+        #"  @Inverse(\#(destinationEntityName).self, "\#(inverseRelationshipName)")"#)
+    }
+    lines.append(
+      "  \(memberAccessModifierPrefix(for: accessLevel))var \(relationship.swiftName): \(typeName)")
+    lines.append("")
+    return lines
   }
 
   private static func renderGeneratedInitializer(
@@ -514,5 +533,16 @@ public enum ToolingSourceRenderer {
 
   private static func memberAccessModifierPrefix(for accessLevel: ToolingAccessLevel) -> String {
     accessModifierPrefix(accessLevel)
+  }
+
+  private static func ambiguousRelationshipNames(in entity: ToolingEntityIR) -> Set<String> {
+    let grouped = Dictionary(grouping: entity.relationships) {
+      $0.destinationEntityName ?? "<missing>"
+    }
+    return Set(
+      grouped.values
+        .filter { $0.count > 1 }
+        .flatMap { $0.map(\.swiftName) }
+    )
   }
 }

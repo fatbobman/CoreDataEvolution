@@ -17,7 +17,10 @@ final class Item: NSManagedObject {
   @Ignore
   var transientCache: [String: Int] = [:]
 
+  @Inverse(Tag.self, "items")
   var tags: Set<Tag>
+
+  @Inverse(Tag.self, "orderedItems")
   var orderedTags: [Tag]
   var category: Category?
 }
