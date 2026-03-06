@@ -126,7 +126,11 @@ correct Core Data field name internally.
 Example:
 
 ```swift
-let sort = NSSortDescriptor(Item.path.title)
+let sort = try NSSortDescriptor(
+  Item.self,
+  path: Item.path.title,
+  order: .asc
+)
 
 let predicate = NSPredicate(
   format: "%K == %@",
@@ -138,6 +142,9 @@ let predicate = NSPredicate(
 With `@Attribute(persistentName: "name") var title: String = ""`, the generated path still uses
 `title` in Swift code, but maps it to the persistent field `name` when building `%K`-based
 predicates or sort descriptors.
+
+For a dedicated guide to this mapping layer, including the motivation, `NSSortDescriptor`,
+`NSPredicate`, and to-many quantifier examples, see [TypedPathGuide.md](./TypedPathGuide.md).
 
 ### Unique Constraint
 
@@ -215,6 +222,10 @@ Supported policies:
 
 - `.fallbackToDefaultValue`
 - `.debugAssertNil`
+
+For a dedicated guide to storage choices, tradeoffs, and v1 limits of `.default`, `.raw`,
+`.codable`, `.transformed`, and `.composition`, see
+[StorageMethodGuide.md](./StorageMethodGuide.md).
 
 ## Declaring Relationships
 
