@@ -23,21 +23,25 @@ struct ConfigTemplateTests {
     #expect(template.generate?.modelPath == "Models/AppModel.xcdatamodeld")
     #expect(template.generate?.outputDir == "Generated/CoreDataEvolution")
     #expect(template.generate?.moduleName == "AppModels")
-    #expect(template.generate?.attributeMappings == nil)
+    #expect(template.generate?.typeMappings == nil)
+    #expect(template.generate?.attributeRules == nil)
     #expect(template.generate?.relationshipSetterPolicy == nil)
     #expect(template.validate?.modelPath == "Models/AppModel.xcdatamodeld")
     #expect(template.validate?.sourceDir == "Sources/AppModels")
     #expect(template.validate?.moduleName == "AppModels")
-    #expect(template.validate?.attributeMappings == nil)
+    #expect(template.validate?.typeMappings == nil)
+    #expect(template.validate?.attributeRules == nil)
     #expect(template.validate?.level == nil)
   }
 
   @Test("full preset includes documented defaults")
   func fullPresetIncludesDocumentedDefaults() throws {
     let template = makeDefaultConfigTemplate(preset: .full)
+    let defaultTypeMappings = makeDefaultToolingTypeMappings()
 
     #expect(template.schemaVersion == 1)
-    #expect(template.generate?.attributeMappings == .init())
+    #expect(template.generate?.typeMappings == defaultTypeMappings)
+    #expect(template.generate?.attributeRules == .init())
     #expect(template.generate?.accessLevel == .internal)
     #expect(template.generate?.splitByEntity == true)
     #expect(template.generate?.overwrite == ToolingOverwriteMode.none)
@@ -47,7 +51,8 @@ struct ConfigTemplateTests {
       template.generate?.relationshipCountPolicy == ToolingRelationshipGenerationPolicy.none
     )
     #expect(template.generate?.defaultDecodeFailurePolicy == .fallbackToDefaultValue)
-    #expect(template.validate?.attributeMappings == .init())
+    #expect(template.validate?.typeMappings == defaultTypeMappings)
+    #expect(template.validate?.attributeRules == .init())
     #expect(template.validate?.level == .quick)
     #expect(template.validate?.report == .text)
     #expect(template.validate?.maxIssues == 200)

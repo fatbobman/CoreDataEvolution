@@ -23,7 +23,9 @@ struct InitConfigServiceTests {
     #expect(result.template.schemaVersion == toolingSupportedSchemaVersion)
     #expect(result.diagnostics.isEmpty)
     #expect(text.contains("\"$schemaVersion\""))
-    #expect(text.contains("\"attributeMappings\""))
+    #expect(text.contains("\"typeMappings\""))
+    #expect(text.contains("\"attributeRules\""))
+    #expect(text.contains("\"Integer 64\""))
     #expect(text.contains("\"relationshipSetterPolicy\""))
     #expect(text.contains("\"warning\""))
   }

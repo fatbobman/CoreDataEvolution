@@ -47,10 +47,33 @@ CLI v1 先解决两件事：
     "momcBin": null,
     "outputDir": "Generated/CoreDataEvolution",
     "moduleName": "AppModels",
-    "attributeMappings": {
+    "typeMappings": {
+      "String": { "swiftType": "String" },
+      "Boolean": { "swiftType": "Bool" },
+      "Integer 16": { "swiftType": "Int16" },
+      "Integer 32": { "swiftType": "Int32" },
+      "Integer 64": { "swiftType": "Int64" },
+      "Float": { "swiftType": "Float" },
+      "Double": { "swiftType": "Double" },
+      "Decimal": { "swiftType": "Decimal" },
+      "Date": { "swiftType": "Date" },
+      "Binary": { "swiftType": "Data" },
+      "UUID": { "swiftType": "UUID" },
+      "URI": { "swiftType": "URL" }
+    },
+    "attributeRules": {
       "Item": {
-        "name": "title",
-        "created_at": "createdAt"
+        "name": {
+          "swiftName": "title"
+        },
+        "status_raw": {
+          "swiftType": "ItemStatus",
+          "storageMethod": "raw"
+        },
+        "config_blob": {
+          "swiftType": "ItemConfig",
+          "storageMethod": "codable"
+        }
       }
     },
     "accessLevel": "internal",
@@ -71,10 +94,33 @@ CLI v1 先解决两件事：
     "modelVersion": null,
     "sourceDir": "Sources/AppModels",
     "moduleName": "AppModels",
-    "attributeMappings": {
+    "typeMappings": {
+      "String": { "swiftType": "String" },
+      "Boolean": { "swiftType": "Bool" },
+      "Integer 16": { "swiftType": "Int16" },
+      "Integer 32": { "swiftType": "Int32" },
+      "Integer 64": { "swiftType": "Int64" },
+      "Float": { "swiftType": "Float" },
+      "Double": { "swiftType": "Double" },
+      "Decimal": { "swiftType": "Decimal" },
+      "Date": { "swiftType": "Date" },
+      "Binary": { "swiftType": "Data" },
+      "UUID": { "swiftType": "UUID" },
+      "URI": { "swiftType": "URL" }
+    },
+    "attributeRules": {
       "Item": {
-        "name": "title",
-        "created_at": "createdAt"
+        "name": {
+          "swiftName": "title"
+        },
+        "status_raw": {
+          "swiftType": "ItemStatus",
+          "storageMethod": "raw"
+        },
+        "config_blob": {
+          "swiftType": "ItemConfig",
+          "storageMethod": "codable"
+        }
       }
     },
     "include": [],
@@ -93,14 +139,41 @@ CLI v1 先解决两件事：
 - 运行 `cde-tool validate` 时读取 `validate` 节点。
 - 命令行显式传入参数优先覆盖配置文件同名字段。
 
-`attributeMappings` 约定：
+`typeMappings` 约定：
 
-- 结构：`EntityName.persistentField -> swiftProperty`
-- 示例：`"Item": { "name": "title" }`
+- 结构：`CoreDataPrimitiveType -> { swiftType }`
+- 作用：定义默认的 Swift 类型映射规则。
+- 默认原则：精确类型映射，不做隐式数值转换。
+- 例如：
+  - `Float -> Float`
+  - `Double -> Double`
+  - `Integer 64 -> Int64`
+  - `Binary -> Data`
+- 不建议默认：
+  - `Float -> Double`
+  - `Integer 64 -> Int`
+
+`attributeRules` 约定：
+
+- 结构：`EntityName.persistentField -> rule object`
+- 每个属性规则可包含：
+  - `swiftName`
+  - `swiftType`
+  - `storageMethod`
+  - `transformerType`
+  - `decodeFailurePolicy`
 - 作用：
-  - `generate` 用于生成 `@Attribute(originalName: "name") var title ...`
+  - `generate` 用于生成重命名属性与 `@Attribute(...)` 覆盖
   - `validate` 用于按同一规则校验代码与模型是否一致
 - v1 仅用于 attribute，不用于 relationship
+
+`Binary` / `codable` 约定：
+
+- 默认映射里，`Binary -> Data`
+- 如果某个 `Binary` 字段要映射成业务类型，应使用属性级规则显式声明：
+  - `swiftType: "ItemConfig"`
+  - `storageMethod: "codable"`
+- 也就是说，`Binary -> CodableType` 不是默认规则，而是字段级覆盖规则。
 
 ### 3.1 默认配置模板导出
 
@@ -184,7 +257,9 @@ CLI v1 先解决两件事：
   - 生成文件目标目录。
 - `--module-name <name>`
   - 代码中 `import` 与类型引用需要的模块名。
-- `--attribute-mappings`
+- `--type-mappings`
+  - v1 不单独提供 CLI 参数，推荐在 JSON 配置中声明。
+- `--attribute-rules`
   - v1 不单独提供 CLI 参数，推荐在 JSON 配置中声明。
 - `--access-level <internal|public>`
   - 生成代码默认可见性。
@@ -233,7 +308,8 @@ CLI v1 先解决两件事：
 - `momcBin`: optional, string/null，默认 `null`（自动发现）。
 - `outputDir`: required, string，无默认值。
 - `moduleName`: required, string，无默认值。
-- `attributeMappings`: optional, object，默认 `{}`。
+- `typeMappings`: optional, object，默认内建精确类型映射表。
+- `attributeRules`: optional, object，默认 `{}`。
 - `accessLevel`: optional, enum(`internal`,`public`)，默认 `internal`。
 - `singleFile`: optional, bool，默认 `false`。
 - `splitByEntity`: optional, bool，默认 `true`。
@@ -254,7 +330,9 @@ CLI v1 先解决两件事：
 - `--model-path <path>`
 - `--source-dir <path>`
 - `--module-name <name>`
-- `--attribute-mappings`
+- `--type-mappings`
+  - v1 不单独提供 CLI 参数，推荐在 JSON 配置中声明。
+- `--attribute-rules`
   - v1 不单独提供 CLI 参数，推荐在 JSON 配置中声明。
 - `--include <glob>`
 - `--exclude <glob>`
@@ -283,7 +361,8 @@ CLI v1 先解决两件事：
 - `modelVersion`: optional, string/null，默认 `null`（自动选择当前版本，缺失则最新）。
 - `sourceDir`: required, string，无默认值。
 - `moduleName`: required, string，无默认值。
-- `attributeMappings`: optional, object，默认 `{}`。
+- `typeMappings`: optional, object，默认内建精确类型映射表。
+- `attributeRules`: optional, object，默认 `{}`。
 - `include`: optional, array<string>，默认 `[]`。
 - `exclude`: optional, array<string>，默认 `[]`。
 - `level`: optional, enum(`quick`,`strict`)，默认 `quick`。
@@ -314,6 +393,8 @@ CLI v1 先解决两件事：
 
 - 实体是否一一对应。
 - 属性名与 `originalName` 映射是否一致。
+- 默认类型映射是否符合 `typeMappings`。
+- 属性级覆盖是否符合 `attributeRules`。
 - 存储策略是否匹配（`default/raw/codable/composition/transformed`）。
 - 关系方向、to-one/to-many、是否有序是否一致。
 - composition 子路径映射（如 `location.x`）是否存在。

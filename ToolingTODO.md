@@ -23,7 +23,7 @@
 - `[x]` 创建 diagnostics / issue 数据结构
 - `[x]` 创建 schema version 校验与升级提示逻辑
 - `[x]` 创建配置文件读取与命令行覆盖合并逻辑
-- `[x]` 创建共享 `attributeMappings` 配置模型
+- `[x]` 创建共享 `typeMappings` 与 `attributeRules` 配置模型
 
 ## 2. Model Loading
 
@@ -55,7 +55,9 @@
 - `[ ]` 生成关系声明
 - `[ ]` 生成 composition 对应代码
 - `[ ]` 生成 `@Attribute(...)` 参数
-- `[ ]` 根据 `attributeMappings` 生成重命名属性
+- `[ ]` 根据 `typeMappings` 解析默认 Swift 类型
+- `[ ]` 根据 `attributeRules` 生成重命名属性
+- `[ ]` 根据 `attributeRules` 生成类型与 storage method 覆盖
 - `[ ]` 生成 `@Ignore` 对应保留逻辑
 - `[ ]` 支持 `generateInit`
 - `[ ]` 支持 `relationshipSetterPolicy`
@@ -82,7 +84,9 @@
 
 - `[ ]` 校验实体是否一一对应
 - `[ ]` 校验属性名与 `originalName`
-- `[ ]` 根据 `attributeMappings` 校验属性重命名
+- `[ ]` 根据 `attributeRules` 校验属性重命名
+- `[ ]` 根据 `typeMappings` 校验默认类型映射
+- `[ ]` 根据 `attributeRules` 校验属性级类型与 storage method 覆盖
 - `[ ]` 校验 storage method
 - `[ ]` 校验关系方向与基数
 - `[ ]` 校验 ordered / unordered to-many
@@ -131,7 +135,6 @@
 - `[x]` schema version 测试
 - `[x]` config 合并测试
 - `[x]` `init-config` service 测试
-- `[ ]` 模型版本选择测试
 - `[x]` 模型版本选择测试
 - `[ ]` IR 构建测试
 - `[ ]` generate file plan 测试

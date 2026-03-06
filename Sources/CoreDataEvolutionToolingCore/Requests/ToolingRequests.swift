@@ -25,7 +25,8 @@ public struct GenerateRequest: Sendable, Equatable {
   public let momcBin: String?
   public let outputDir: String
   public let moduleName: String
-  public let attributeMappings: ToolingAttributeMappings
+  public let typeMappings: ToolingTypeMappings
+  public let attributeRules: ToolingAttributeRules
   public let accessLevel: ToolingAccessLevel
   public let singleFile: Bool
   public let splitByEntity: Bool
@@ -45,7 +46,8 @@ public struct GenerateRequest: Sendable, Equatable {
     momcBin: String?,
     outputDir: String,
     moduleName: String,
-    attributeMappings: ToolingAttributeMappings,
+    typeMappings: ToolingTypeMappings,
+    attributeRules: ToolingAttributeRules,
     accessLevel: ToolingAccessLevel,
     singleFile: Bool,
     splitByEntity: Bool,
@@ -64,7 +66,8 @@ public struct GenerateRequest: Sendable, Equatable {
     self.momcBin = momcBin
     self.outputDir = outputDir
     self.moduleName = moduleName
-    self.attributeMappings = attributeMappings
+    self.typeMappings = typeMappings
+    self.attributeRules = attributeRules
     self.accessLevel = accessLevel
     self.singleFile = singleFile
     self.splitByEntity = splitByEntity
@@ -85,7 +88,8 @@ public struct ValidateRequest: Sendable, Equatable {
   public let modelVersion: String?
   public let sourceDir: String
   public let moduleName: String
-  public let attributeMappings: ToolingAttributeMappings
+  public let typeMappings: ToolingTypeMappings
+  public let attributeRules: ToolingAttributeRules
   public let include: [String]
   public let exclude: [String]
   public let level: ToolingValidationLevel
@@ -98,7 +102,8 @@ public struct ValidateRequest: Sendable, Equatable {
     modelVersion: String?,
     sourceDir: String,
     moduleName: String,
-    attributeMappings: ToolingAttributeMappings,
+    typeMappings: ToolingTypeMappings,
+    attributeRules: ToolingAttributeRules,
     include: [String],
     exclude: [String],
     level: ToolingValidationLevel,
@@ -110,7 +115,8 @@ public struct ValidateRequest: Sendable, Equatable {
     self.modelVersion = modelVersion
     self.sourceDir = sourceDir
     self.moduleName = moduleName
-    self.attributeMappings = attributeMappings
+    self.typeMappings = typeMappings
+    self.attributeRules = attributeRules
     self.include = include
     self.exclude = exclude
     self.level = level

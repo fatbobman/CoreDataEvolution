@@ -46,7 +46,8 @@ public struct GenerateTemplate: Codable, Sendable, Equatable {
   public let momcBin: String?
   public let outputDir: String
   public let moduleName: String
-  public let attributeMappings: ToolingAttributeMappings?
+  public let typeMappings: ToolingTypeMappings?
+  public let attributeRules: ToolingAttributeRules?
   public let accessLevel: ToolingAccessLevel?
   public let singleFile: Bool?
   public let splitByEntity: Bool?
@@ -66,7 +67,8 @@ public struct GenerateTemplate: Codable, Sendable, Equatable {
     momcBin: String?,
     outputDir: String,
     moduleName: String,
-    attributeMappings: ToolingAttributeMappings?,
+    typeMappings: ToolingTypeMappings?,
+    attributeRules: ToolingAttributeRules?,
     accessLevel: ToolingAccessLevel?,
     singleFile: Bool?,
     splitByEntity: Bool?,
@@ -85,7 +87,8 @@ public struct GenerateTemplate: Codable, Sendable, Equatable {
     self.momcBin = momcBin
     self.outputDir = outputDir
     self.moduleName = moduleName
-    self.attributeMappings = attributeMappings
+    self.typeMappings = typeMappings
+    self.attributeRules = attributeRules
     self.accessLevel = accessLevel
     self.singleFile = singleFile
     self.splitByEntity = splitByEntity
@@ -106,7 +109,8 @@ public struct ValidateTemplate: Codable, Sendable, Equatable {
   public let modelVersion: String?
   public let sourceDir: String
   public let moduleName: String
-  public let attributeMappings: ToolingAttributeMappings?
+  public let typeMappings: ToolingTypeMappings?
+  public let attributeRules: ToolingAttributeRules?
   public let include: [String]?
   public let exclude: [String]?
   public let level: ToolingValidationLevel?
@@ -119,7 +123,8 @@ public struct ValidateTemplate: Codable, Sendable, Equatable {
     modelVersion: String?,
     sourceDir: String,
     moduleName: String,
-    attributeMappings: ToolingAttributeMappings?,
+    typeMappings: ToolingTypeMappings?,
+    attributeRules: ToolingAttributeRules?,
     include: [String]?,
     exclude: [String]?,
     level: ToolingValidationLevel?,
@@ -131,7 +136,8 @@ public struct ValidateTemplate: Codable, Sendable, Equatable {
     self.modelVersion = modelVersion
     self.sourceDir = sourceDir
     self.moduleName = moduleName
-    self.attributeMappings = attributeMappings
+    self.typeMappings = typeMappings
+    self.attributeRules = attributeRules
     self.include = include
     self.exclude = exclude
     self.level = level
@@ -153,7 +159,8 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         momcBin: nil,
         outputDir: "Generated/CoreDataEvolution",
         moduleName: "AppModels",
-        attributeMappings: nil,
+        typeMappings: nil,
+        attributeRules: nil,
         accessLevel: nil,
         singleFile: nil,
         splitByEntity: nil,
@@ -172,7 +179,8 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         modelVersion: nil,
         sourceDir: "Sources/AppModels",
         moduleName: "AppModels",
-        attributeMappings: nil,
+        typeMappings: nil,
+        attributeRules: nil,
         include: nil,
         exclude: nil,
         level: nil,
@@ -190,7 +198,8 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         momcBin: nil,
         outputDir: "Generated/CoreDataEvolution",
         moduleName: "AppModels",
-        attributeMappings: .init(),
+        typeMappings: makeDefaultToolingTypeMappings(),
+        attributeRules: .init(),
         accessLevel: .internal,
         singleFile: false,
         splitByEntity: true,
@@ -209,7 +218,8 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         modelVersion: nil,
         sourceDir: "Sources/AppModels",
         moduleName: "AppModels",
-        attributeMappings: .init(),
+        typeMappings: makeDefaultToolingTypeMappings(),
+        attributeRules: .init(),
         include: [],
         exclude: [],
         level: .quick,
@@ -280,7 +290,8 @@ extension GenerateRequest {
       momcBin: overrides.momcBin ?? config.momcBin,
       outputDir: overrides.outputDir ?? config.outputDir,
       moduleName: overrides.moduleName ?? config.moduleName,
-      attributeMappings: config.attributeMappings ?? .init(),
+      typeMappings: config.typeMappings ?? makeDefaultToolingTypeMappings(),
+      attributeRules: config.attributeRules ?? .init(),
       accessLevel: overrides.accessLevel ?? config.accessLevel ?? .internal,
       singleFile: overrides.singleFile ?? config.singleFile ?? false,
       splitByEntity: overrides.splitByEntity ?? config.splitByEntity ?? true,
@@ -307,7 +318,8 @@ extension ValidateRequest {
       modelVersion: overrides.modelVersion ?? config.modelVersion,
       sourceDir: overrides.sourceDir ?? config.sourceDir,
       moduleName: overrides.moduleName ?? config.moduleName,
-      attributeMappings: config.attributeMappings ?? .init(),
+      typeMappings: config.typeMappings ?? makeDefaultToolingTypeMappings(),
+      attributeRules: config.attributeRules ?? .init(),
       include: overrides.include ?? config.include ?? [],
       exclude: overrides.exclude ?? config.exclude ?? [],
       level: overrides.level ?? config.level ?? .quick,

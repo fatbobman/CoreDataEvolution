@@ -40,8 +40,20 @@ struct ConfigLoadingAndMergingTests {
   @Test("generate request merges config and cli overrides")
   func generateRequestMergesConfigAndCLIOverrides() throws {
     let config = makeDefaultConfigTemplate(preset: .full)
-    let mappings = ToolingAttributeMappings(
-      entities: ["Item": ["name": "title"]]
+    let typeMappings = ToolingTypeMappings(
+      coreDataTypes: [
+        "Integer 64": .init(swiftType: "Int"),
+        "Float": .init(swiftType: "Double"),
+      ]
+    )
+    let attributeRules = ToolingAttributeRules(
+      entities: [
+        "Item": [
+          "name": .init(swiftName: "title"),
+          "status_raw": .init(swiftType: "ItemStatus", storageMethod: .raw),
+          "config_blob": .init(swiftType: "ItemConfig", storageMethod: .codable),
+        ]
+      ]
     )
     let configured = GenerateTemplate(
       modelPath: "Models/AppModel.xcdatamodeld",
@@ -49,7 +61,8 @@ struct ConfigLoadingAndMergingTests {
       momcBin: config.generate?.momcBin,
       outputDir: "Generated/CoreDataEvolution",
       moduleName: "AppModels",
-      attributeMappings: mappings,
+      typeMappings: typeMappings,
+      attributeRules: attributeRules,
       accessLevel: .internal,
       singleFile: false,
       splitByEntity: true,
@@ -76,7 +89,8 @@ struct ConfigLoadingAndMergingTests {
 
     #expect(request.modelPath == "Models/AppModel.xcdatamodeld")
     #expect(request.modelVersion == "V2")
-    #expect(request.attributeMappings == mappings)
+    #expect(request.typeMappings == typeMappings)
+    #expect(request.attributeRules == attributeRules)
     #expect(request.accessLevel == .public)
     #expect(request.overwrite == .all)
     #expect(request.generateInit)
@@ -85,15 +99,27 @@ struct ConfigLoadingAndMergingTests {
 
   @Test("validate request merges config defaults when overrides are empty")
   func validateRequestUsesConfigDefaults() throws {
-    let mappings = ToolingAttributeMappings(
-      entities: ["Item": ["name": "title"]]
+    let typeMappings = ToolingTypeMappings(
+      coreDataTypes: [
+        "Integer 64": .init(swiftType: "Int"),
+        "Float": .init(swiftType: "Double"),
+      ]
+    )
+    let attributeRules = ToolingAttributeRules(
+      entities: [
+        "Item": [
+          "name": .init(swiftName: "title"),
+          "config_blob": .init(swiftType: "ItemConfig", storageMethod: .codable),
+        ]
+      ]
     )
     let config = ValidateTemplate(
       modelPath: "Models/AppModel.xcdatamodeld",
       modelVersion: nil,
       sourceDir: "Sources/AppModels",
       moduleName: "AppModels",
-      attributeMappings: mappings,
+      typeMappings: typeMappings,
+      attributeRules: attributeRules,
       include: [],
       exclude: [],
       level: .quick,
@@ -107,7 +133,8 @@ struct ConfigLoadingAndMergingTests {
 
     #expect(request.modelPath == "Models/AppModel.xcdatamodeld")
     #expect(request.sourceDir == "Sources/AppModels")
-    #expect(request.attributeMappings == mappings)
+    #expect(request.typeMappings == typeMappings)
+    #expect(request.attributeRules == attributeRules)
     #expect(request.level == .quick)
     #expect(request.report == .text)
     #expect(request.maxIssues == 200)
