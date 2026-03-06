@@ -22,6 +22,16 @@ The package uses Swift 6 and ships a macro implementation backed by `swift-synta
 
 ## Repository Layout
 
+Public root-level user docs:
+
+- `README.md`: primary user-facing overview.
+- `AGENTS.md`: repository workflow and contributor guidance.
+
+User-facing supplemental docs live under `Docs/`.
+
+Internal development docs live under `Docs/Development/`.
+
+
 - `Package.swift`: package definition, product graph, platform constraints, Swift settings.
 - `Sources/CoreDataEvolution`: public library code.
 - `Sources/CoreDataEvolutionMacros`: macro expansion code.
@@ -206,7 +216,7 @@ When editing this area:
 
 - Keep mapping key space anchored to Swift paths in `__cdFieldTable`.
 - Keep `%K` as the only key interpolation path for predicate format strings.
-- Update both docs (`Specification.md`, `ImplementationPlan.md`, `DesignNotes.md`) and tests together.
+- Update both docs (`Docs/Development/Specification.md`, `Docs/Development/ImplementationPlan.md`, `Docs/Development/DesignNotes.md`) and tests together.
 
 ## Macro Test Skeleton (Recommended)
 
