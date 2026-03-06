@@ -39,6 +39,7 @@ enum GenerateCommandSupport {
       overrides.cleanStale = command.cleanStale
       overrides.dryRun = command.dryRun
       overrides.format = command.format
+      overrides.emitExtensionStubs = command.emitExtensionStubs
       overrides.generateInit = command.generateInit
       overrides.relationshipSetterPolicy = command.relationshipSetterPolicy
       overrides.relationshipCountPolicy = command.relationshipCountPolicy
@@ -83,6 +84,7 @@ enum GenerateCommandSupport {
       dryRun: command.dryRun,
       format: command.format,
       headerTemplate: command.headerTemplate.map { makeAbsoluteURL(fromCLIPath: $0).path },
+      emitExtensionStubs: command.emitExtensionStubs,
       generateInit: command.generateInit,
       relationshipSetterPolicy: command.relationshipSetterPolicy,
       relationshipCountPolicy: command.relationshipCountPolicy,

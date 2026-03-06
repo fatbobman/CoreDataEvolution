@@ -11,21 +11,30 @@
 
 import Foundation
 
+/// Distinguishes files continuously owned by the generator from one-time companion stubs.
+public enum ToolingGeneratedFileManagement: String, Codable, Sendable, Equatable {
+  case managed
+  case companionStub
+}
+
 /// One rendered Swift source unit produced before file planning.
 ///
 /// Session 5 converts these units into concrete file plans and on-disk write operations.
 public struct ToolingGeneratedSource: Codable, Sendable, Equatable {
   public let entityName: String
   public let suggestedFileName: String
+  public let management: ToolingGeneratedFileManagement
   public let contents: String
 
   public init(
     entityName: String,
     suggestedFileName: String,
+    management: ToolingGeneratedFileManagement = .managed,
     contents: String
   ) {
     self.entityName = entityName
     self.suggestedFileName = suggestedFileName
+    self.management = management
     self.contents = contents
   }
 }

@@ -15,8 +15,8 @@ import Testing
 
 @Suite("Tooling Core Validate Service Tests")
 struct ValidateServiceTests {
-  @Test("validate quick accepts generated sources")
-  func validateQuickAcceptsGeneratedSources() throws {
+  @Test("validate conformance accepts generated sources")
+  func validateConformanceAcceptsGeneratedSources() throws {
     let sourceDirectory = try makeGeneratedSourceDirectory()
     defer { try? FileManager.default.removeItem(at: sourceDirectory) }
 
@@ -119,23 +119,58 @@ struct ValidateServiceTests {
     )
   }
 
-  @Test("validate strict accepts generated managed files")
-  func validateStrictAcceptsGeneratedManagedFiles() throws {
+  @Test("validate emits note for custom members inside persistent model class")
+  func validateEmitsNoteForCustomMembersInsideClass() throws {
+    let sourceDirectory = try makeGeneratedSourceDirectory()
+    defer { try? FileManager.default.removeItem(at: sourceDirectory) }
+
+    try rewriteEntityFile(
+      named: "CDEItem+CoreDataEvolution.swift",
+      in: sourceDirectory
+    ) { contents in
+      contents.replacingOccurrences(
+        of: "\n}\n\nextension CDEItem: PersistentEntity {}",
+        with: """
+
+            var displayTitle: String { title }
+
+            func configureForUI() {}
+          }
+
+          extension CDEItem: PersistentEntity {}
+          """
+      )
+    }
+
+    let result = try ValidateService.run(
+      makeValidateRequest(sourceDirectory: sourceDirectory.path)
+    )
+
+    #expect(result.errorCount == 0)
+    #expect(
+      result.diagnostics.contains {
+        $0.severity == .note && $0.message.contains("custom members inside 'CDEItem'")
+      }
+    )
+  }
+
+  @Test("validate exact accepts generated managed files")
+  func validateExactAcceptsGeneratedManagedFiles() throws {
     let sourceDirectory = try makeGeneratedSourceDirectory()
     defer { try? FileManager.default.removeItem(at: sourceDirectory) }
 
     let result = try ValidateService.run(
       makeValidateRequest(
         sourceDirectory: sourceDirectory.path,
-        level: .strict
+        level: .exact
       )
     )
 
     #expect(result.errorCount == 0)
   }
 
-  @Test("validate strict rejects managed file drift")
-  func validateStrictRejectsManagedFileDrift() throws {
+  @Test("validate exact rejects managed file drift")
+  func validateExactRejectsManagedFileDrift() throws {
     let sourceDirectory = try makeGeneratedSourceDirectory()
     defer { try? FileManager.default.removeItem(at: sourceDirectory) }
 
@@ -150,7 +185,7 @@ struct ValidateServiceTests {
     let result = try ValidateService.run(
       makeValidateRequest(
         sourceDirectory: sourceDirectory.path,
-        level: .strict
+        level: .exact
       )
     )
 
@@ -234,7 +269,7 @@ struct ValidateServiceTests {
 
   private func makeValidateRequest(
     sourceDirectory: String,
-    level: ToolingValidationLevel = .quick
+    level: ToolingValidationLevel = .conformance
   ) throws -> ValidateRequest {
     let modelPath = try integrationModelPath()
     return .init(

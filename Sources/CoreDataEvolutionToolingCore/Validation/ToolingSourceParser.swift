@@ -129,6 +129,19 @@ private final class ToolingSourceEntityCollector: SyntaxVisitor {
       guard let variable = member.decl.as(VariableDeclSyntax.self) else { return nil }
       return makeProperty(from: variable)
     }
+    let customMembers = node.memberBlock.members.compactMap {
+      member -> ToolingSourceCustomMemberIR? in
+      if let function = member.decl.as(FunctionDeclSyntax.self) {
+        return .init(
+          filePath: filePath,
+          name: function.name.text,
+          kind: .function
+        )
+      }
+
+      guard let variable = member.decl.as(VariableDeclSyntax.self) else { return nil }
+      return makeCustomMember(from: variable)
+    }
 
     entities.append(
       .init(
@@ -136,7 +149,8 @@ private final class ToolingSourceEntityCollector: SyntaxVisitor {
         className: node.name.text,
         objcEntityName: parseObjCName(from: node.attributes),
         persistentModelArguments: parsePersistentModelArguments(from: persistentModelAttribute),
-        properties: properties
+        properties: properties,
+        customMembers: customMembers
       )
     )
     return .skipChildren
@@ -167,6 +181,22 @@ private final class ToolingSourceEntityCollector: SyntaxVisitor {
       attribute: firstAttribute(named: "Attribute", in: variable.attributes).map(
         parseAttributeAnnotation(from:)),
       relationshipShape: typeSyntax.flatMap(parseRelationshipShape(from:))
+    )
+  }
+
+  private func makeCustomMember(from variable: VariableDeclSyntax) -> ToolingSourceCustomMemberIR? {
+    guard variable.bindings.count == 1, let binding = variable.bindings.first,
+      let identifier = binding.pattern.as(IdentifierPatternSyntax.self)
+    else {
+      return nil
+    }
+
+    guard binding.accessorBlock != nil else { return nil }
+
+    return .init(
+      filePath: filePath,
+      name: identifier.identifier.text,
+      kind: .computedProperty
     )
   }
 }

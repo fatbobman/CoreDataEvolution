@@ -163,6 +163,66 @@ struct GenerateServiceTests {
     #expect(result.generatedSources[0].contents.contains("@objc(CDETag)"))
   }
 
+  @Test("generate service emits companion extension stubs when enabled")
+  func generateServiceEmitsCompanionExtensionStubs() throws {
+    let repositoryRoot = try findRepositoryRoot()
+    let outputDirectory = repositoryRoot.appendingPathComponent(
+      ".build/ToolingStubTests", isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: outputDirectory) }
+
+    let modelPath =
+      repositoryRoot
+      .appendingPathComponent("Models")
+      .appendingPathComponent("Integration")
+      .appendingPathComponent("CoreDataEvolutionIntegrationModel.xcdatamodeld")
+
+    let result = try GenerateService.run(
+      .init(
+        modelPath: modelPath.path,
+        modelVersion: nil,
+        momcBin: nil,
+        outputDir: outputDirectory.path,
+        moduleName: "AppModels",
+        typeMappings: makeDefaultToolingTypeMappings(),
+        attributeRules: .init(
+          entities: [
+            "CDEItem": [
+              "location": .init(swiftType: "CDEItemLocation", storageMethod: .composition)
+            ]
+          ]
+        ),
+        accessLevel: .internal,
+        singleFile: false,
+        splitByEntity: true,
+        overwrite: .changed,
+        cleanStale: false,
+        dryRun: true,
+        format: .none,
+        headerTemplate: nil,
+        emitExtensionStubs: true,
+        generateInit: false,
+        relationshipSetterPolicy: .warning,
+        relationshipCountPolicy: .none,
+        defaultDecodeFailurePolicy: .fallbackToDefaultValue
+      )
+    )
+
+    #expect(result.generatedSources.count == 4)
+    #expect(result.filePlan.count == 4)
+
+    let stubSource = try #require(
+      result.generatedSources.first(where: { $0.suggestedFileName == "CDEItem+Extensions.swift" })
+    )
+    #expect(stubSource.management == .companionStub)
+    #expect(stubSource.contents.contains("Add methods and computed properties"))
+
+    let stubPlan = try #require(
+      result.filePlan.first(where: { $0.relativePath == "CDEItem+Extensions.swift" })
+    )
+    #expect(stubPlan.management == .companionStub)
+    #expect(stubPlan.contents.contains(toolingManagedFileMarker) == false)
+  }
+
   private func findRepositoryRoot(filePath: String = #filePath) throws -> URL {
     var currentURL = URL(fileURLWithPath: filePath).deletingLastPathComponent()
     while currentURL.path != "/" {

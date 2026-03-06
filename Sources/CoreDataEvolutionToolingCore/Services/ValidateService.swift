@@ -14,9 +14,9 @@ import Foundation
 
 /// Validates developer-authored source against the model and resolved tooling rules.
 ///
-/// `quick` parses source into a dedicated IR and checks it against the same model/config inputs
-/// used by generate. `strict` builds on top of `quick` and additionally performs exact drift
-/// checks against tool-managed files on disk.
+/// `conformance` parses source into a dedicated IR and checks it against the same model/config
+/// inputs used by generate. `exact` builds on top of `conformance` and additionally performs exact
+/// drift checks against tool-managed files on disk.
 public enum ValidateService {
   public static func run(_ request: ValidateRequest) throws -> ValidateResult {
     let loadedModel = try ToolingModelLoader.loadModel(
@@ -44,10 +44,11 @@ public enum ValidateService {
       buildResult.diagnostics
       + ToolingValidateComparator.compareQuick(
         expected: buildResult.modelIR,
-        actual: sourceIR
+        actual: sourceIR,
+        level: request.level
       )
 
-    if request.level == .strict {
+    if request.level == .exact {
       let expectedFilePlan = try makeStrictExpectedFilePlan(
         modelIR: buildResult.modelIR,
         request: request

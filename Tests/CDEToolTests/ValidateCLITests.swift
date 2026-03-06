@@ -15,14 +15,14 @@ import Testing
 
 @Suite("CDETool Validate CLI Tests")
 struct ValidateCLITests {
-  @Test("validate CLI emits JSON report for clean quick validation")
+  @Test("validate CLI emits JSON report for clean conformance validation")
   func validateCLIEmitsJSONReport() throws {
     let sourceDirectory = try makeGeneratedSourceDirectory()
     defer { try? FileManager.default.removeItem(at: sourceDirectory) }
 
     let configURL = try writeValidateConfig(
       sourceDirectory: sourceDirectory.path,
-      level: .quick
+      level: .conformance
     )
     defer { try? FileManager.default.removeItem(at: configURL) }
 
@@ -40,8 +40,8 @@ struct ValidateCLITests {
     #expect(json["warningCount"] as? Int == 0)
   }
 
-  @Test("validate CLI emits SARIF and non-zero exit code for strict drift")
-  func validateCLIEmitsSARIFForStrictDrift() throws {
+  @Test("validate CLI emits SARIF and non-zero exit code for exact drift")
+  func validateCLIEmitsSARIFForExactDrift() throws {
     let sourceDirectory = try makeGeneratedSourceDirectory()
     defer { try? FileManager.default.removeItem(at: sourceDirectory) }
 
@@ -55,7 +55,7 @@ struct ValidateCLITests {
 
     let configURL = try writeValidateConfig(
       sourceDirectory: sourceDirectory.path,
-      level: .strict
+      level: .exact
     )
     defer { try? FileManager.default.removeItem(at: configURL) }
 

@@ -62,6 +62,7 @@ public struct GenerateTemplate: Codable, Sendable, Equatable {
   public let dryRun: Bool?
   public let format: ToolingFormatMode?
   public let headerTemplate: String?
+  public let emitExtensionStubs: Bool?
   public let generateInit: Bool?
   public let relationshipSetterPolicy: ToolingRelationshipSetterPolicy?
   public let relationshipCountPolicy: ToolingRelationshipCountPolicy?
@@ -83,6 +84,7 @@ public struct GenerateTemplate: Codable, Sendable, Equatable {
     dryRun: Bool?,
     format: ToolingFormatMode?,
     headerTemplate: String?,
+    emitExtensionStubs: Bool? = nil,
     generateInit: Bool?,
     relationshipSetterPolicy: ToolingRelationshipSetterPolicy?,
     relationshipCountPolicy: ToolingRelationshipCountPolicy?,
@@ -103,6 +105,7 @@ public struct GenerateTemplate: Codable, Sendable, Equatable {
     self.dryRun = dryRun
     self.format = format
     self.headerTemplate = headerTemplate
+    self.emitExtensionStubs = emitExtensionStubs
     self.generateInit = generateInit
     self.relationshipSetterPolicy = relationshipSetterPolicy
     self.relationshipCountPolicy = relationshipCountPolicy
@@ -207,6 +210,7 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         dryRun: nil,
         format: nil,
         headerTemplate: nil,
+        emitExtensionStubs: nil,
         generateInit: nil,
         relationshipSetterPolicy: nil,
         relationshipCountPolicy: nil,
@@ -255,6 +259,7 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         dryRun: false,
         format: ToolingFormatMode.none,
         headerTemplate: nil,
+        emitExtensionStubs: false,
         generateInit: false,
         relationshipSetterPolicy: .warning,
         relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
@@ -278,7 +283,7 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         defaultDecodeFailurePolicy: .fallbackToDefaultValue,
         include: [],
         exclude: [],
-        level: .quick,
+        level: .conformance,
         report: .text,
         failOnWarning: false,
         maxIssues: 200

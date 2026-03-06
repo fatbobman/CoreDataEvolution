@@ -35,20 +35,48 @@ public struct ToolingSourceEntityIR: Codable, Sendable, Equatable {
   public let objcEntityName: String?
   public let persistentModelArguments: ToolingSourcePersistentModelArgumentsIR
   public let properties: [ToolingSourcePropertyIR]
+  public let customMembers: [ToolingSourceCustomMemberIR]
 
   public init(
     filePath: String,
     className: String,
     objcEntityName: String?,
     persistentModelArguments: ToolingSourcePersistentModelArgumentsIR,
-    properties: [ToolingSourcePropertyIR]
+    properties: [ToolingSourcePropertyIR],
+    customMembers: [ToolingSourceCustomMemberIR]
   ) {
     self.filePath = filePath
     self.className = className
     self.objcEntityName = objcEntityName
     self.persistentModelArguments = persistentModelArguments
     self.properties = properties
+    self.customMembers = customMembers
   }
+}
+
+/// Non-stored members declared inside the `@PersistentModel` class body.
+///
+/// Validate uses this to remind developers that exact mode expects custom behavior to live in
+/// hand-written extension files rather than generated files.
+public struct ToolingSourceCustomMemberIR: Codable, Sendable, Equatable {
+  public let filePath: String
+  public let name: String
+  public let kind: ToolingSourceCustomMemberKind
+
+  public init(
+    filePath: String,
+    name: String,
+    kind: ToolingSourceCustomMemberKind
+  ) {
+    self.filePath = filePath
+    self.name = name
+    self.kind = kind
+  }
+}
+
+public enum ToolingSourceCustomMemberKind: String, Codable, Sendable, Equatable {
+  case function
+  case computedProperty
 }
 
 /// Parsed `@PersistentModel(...)` arguments that affect generated source shape.

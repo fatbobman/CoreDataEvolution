@@ -49,6 +49,7 @@ public enum BootstrapConfigService {
         dryRun: false,
         format: ToolingFormatMode.none,
         headerTemplate: nil,
+        emitExtensionStubs: false,
         generateInit: false,
         relationshipSetterPolicy: .warning,
         relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
@@ -72,7 +73,7 @@ public enum BootstrapConfigService {
         defaultDecodeFailurePolicy: .fallbackToDefaultValue,
         include: [],
         exclude: [],
-        level: .quick,
+        level: .conformance,
         report: .text,
         failOnWarning: false,
         maxIssues: 200

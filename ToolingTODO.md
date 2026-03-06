@@ -113,8 +113,8 @@
 - `[x]` 校验关系方向与基数
 - `[x]` 校验 ordered / unordered to-many
 - `[x]` 校验类级 `@PersistentModel(...)` 参数
-- `[x]` 实现 `quick` 模式（结构级 source/model/config 对比）
-- `[x]` 实现 `strict` 模式（在 quick 之上做 managed file 精确漂移比对）
+- `[x]` 实现 `conformance` 模式（结构级 source/model/config 对比）
+- `[x]` 实现 `exact` 模式（在 `conformance` 之上做 managed file 精确漂移比对）
 
 ## 7. CLI
 
@@ -129,6 +129,7 @@
 - `[x]` 将 `generate` 接入 `ToolingCore`
 - `[x]` 将 `validate` 接入 `ToolingCore`
 - `[x]` `generate` 支持 `--config`
+- `[x]` `generate` 支持 companion extension stubs
 - `[x]` `validate` 支持 `--config`
 - `[x]` `inspect` 支持 `--config`
 - `[x]` 支持 `json` 输出
@@ -165,10 +166,12 @@
 - `[x]` generate service 测试
 - `[x]` generate file plan 测试
 - `[x]` overwrite / clean-stale 测试
-- `[x]` validate quick 测试
-- `[x]` validate strict 测试
+- `[x]` validate conformance 测试
+- `[x]` validate exact 测试
 - `[x]` validate `@Ignore` 规则测试
 - `[x]` validate 默认值不一致测试
+- `[x]` validate 自定义成员提醒测试
+- `[x]` companion extension stub 测试
 - `[x]` validate CLI 报告与 exit code 集成测试
 - `[ ]` CLI `init-config` 集成测试
 - `[ ]` CLI 参数解析测试
@@ -176,7 +179,7 @@
 
 ## 11. Immediate Next Steps
 
-- `1.` 评估是否需要对 strict 增加缺失/多余 managed file 的更细粒度提示
+- `1.` 评估是否需要对 exact 增加缺失/多余 managed file 的更细粒度提示
 
 ## 12. Deferred / Known Gaps
 
@@ -188,6 +191,8 @@
 - `[ ]` validate v1 假定宏展开结果正确，不直接校验宏生成的 `Keys` / `path` / `__cdFieldTable`；当前只校验足以导出这些成员的源码输入。
 - `[ ]` generate 目前不会从模型外信息推断 `@Ignore` 字段。
 - `[ ]` tool 仍未提供描述 `@Ignore` / 纯内存属性的额外配置模型。
+- `[ ]` conformance validate 允许额外 `@Ignore` stored property，但 exact 会对 tool-managed 文件做精确漂移比对；在当前 Swift 语义下，额外 `@Ignore` stored property 仍无法与 exact 共存，除非未来引入专门的额外属性配置/生成能力。
+- `[ ]` exact 模式与 `singleFile` 可以共存，但开发体验不佳；长期使用 exact 时更推荐 `splitByEntity + emitExtensionStubs`。
 - `[ ]` generate 当前只会直接使用模型默认值；对于非可选自定义 raw/codable/composition/transformed 类型，仍缺少未来的显式代码默认值规则。
 - `[ ]` validate 当前已支持 `text/json/sarif` 报告输出，但 CLI 集成测试尚未补齐。
 - `[ ]` 当前仅补齐了 validate CLI 的报告与 exit code 集成测试，其余 CLI 子命令的集成测试仍待补齐。

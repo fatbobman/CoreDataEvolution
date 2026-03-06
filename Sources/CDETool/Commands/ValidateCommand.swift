@@ -38,12 +38,12 @@ struct ValidateCommand: ParsableCommand {
 
   @Option(
     name: .long,
-    help: "Whether strict validation should expect a single generated file (true/false).")
+    help: "Whether exact validation should expect a single generated file (true/false).")
   var singleFile: Bool?
 
   @Option(
     name: .long,
-    help: "Whether strict validation should expect split-by-entity output (true/false).")
+    help: "Whether exact validation should expect split-by-entity output (true/false).")
   var splitByEntity: Bool?
 
   @Option(name: .long, help: "Header template path used during generation.")
@@ -70,7 +70,7 @@ struct ValidateCommand: ParsableCommand {
   @Option(name: .long, help: "Comma-separated exclude glob patterns.")
   var exclude: String?
 
-  @Option(name: .long, help: "Validation level: quick/strict.")
+  @Option(name: .long, help: "Validation level: conformance/exact.")
   var level: ToolingValidationLevel?
 
   @Option(name: .long, help: "Report format: text/json/sarif.")

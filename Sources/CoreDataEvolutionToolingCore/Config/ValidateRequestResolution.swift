@@ -56,7 +56,7 @@ public func makeValidateRequest(
       ?? config.defaultDecodeFailurePolicy ?? .fallbackToDefaultValue,
     include: overrides.include ?? config.include ?? [],
     exclude: overrides.exclude ?? config.exclude ?? [],
-    level: overrides.level ?? config.level ?? .quick,
+    level: overrides.level ?? config.level ?? .conformance,
     report: overrides.report ?? config.report ?? .text,
     failOnWarning: overrides.failOnWarning ?? config.failOnWarning ?? false,
     maxIssues: overrides.maxIssues ?? config.maxIssues ?? 200

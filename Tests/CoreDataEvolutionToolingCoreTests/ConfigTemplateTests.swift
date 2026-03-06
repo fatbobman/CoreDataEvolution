@@ -47,6 +47,7 @@ struct ConfigTemplateTests {
     #expect(template.generate?.splitByEntity == true)
     #expect(template.generate?.overwrite == ToolingOverwriteMode.none)
     #expect(template.generate?.format == ToolingFormatMode.none)
+    #expect(template.generate?.emitExtensionStubs == false)
     #expect(template.generate?.relationshipSetterPolicy == .warning)
     #expect(template.generate?.relationshipCountPolicy == ToolingRelationshipCountPolicy.none)
     #expect(template.generate?.defaultDecodeFailurePolicy == .fallbackToDefaultValue)
@@ -56,7 +57,7 @@ struct ConfigTemplateTests {
     #expect(template.validate?.relationshipSetterPolicy == .warning)
     #expect(template.validate?.relationshipCountPolicy == ToolingRelationshipCountPolicy.none)
     #expect(template.validate?.defaultDecodeFailurePolicy == .fallbackToDefaultValue)
-    #expect(template.validate?.level == .quick)
+    #expect(template.validate?.level == .conformance)
     #expect(template.validate?.report == .text)
     #expect(template.validate?.maxIssues == 200)
   }

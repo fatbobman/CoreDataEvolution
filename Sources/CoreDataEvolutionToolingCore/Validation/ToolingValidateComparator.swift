@@ -18,7 +18,8 @@ import Foundation
 public enum ToolingValidateComparator {
   public static func compareQuick(
     expected modelIR: ToolingModelIR,
-    actual sourceIR: ToolingSourceModelIR
+    actual sourceIR: ToolingSourceModelIR,
+    level: ToolingValidationLevel
   ) -> [ToolingDiagnostic] {
     var diagnostics: [ToolingDiagnostic] = []
 
@@ -52,6 +53,7 @@ public enum ToolingValidateComparator {
         entity,
         sourceEntity: sourceEntity,
         generationPolicy: modelIR.generationPolicy,
+        level: level,
         diagnostics: &diagnostics
       )
     }
@@ -74,6 +76,7 @@ public enum ToolingValidateComparator {
     _ entity: ToolingEntityIR,
     sourceEntity: ToolingSourceEntityIR,
     generationPolicy: ToolingGenerationPolicyIR,
+    level: ToolingValidationLevel,
     diagnostics: inout [ToolingDiagnostic]
   ) {
     comparePersistentModelArguments(
@@ -82,6 +85,24 @@ public enum ToolingValidateComparator {
       expected: generationPolicy,
       diagnostics: &diagnostics
     )
+
+    if sourceEntity.customMembers.isEmpty == false {
+      let summary = sourceEntity.customMembers
+        .map { "\($0.kind == .function ? "func" : "computed var") \($0.name)" }
+        .sorted()
+        .joined(separator: ", ")
+      let modeText = level == .exact ? "exact" : "conformance"
+      diagnostics.append(
+        .init(
+          severity: .note,
+          code: nil,
+          message:
+            "validate \(modeText) found custom members inside '\(entity.name)': \(summary). Prefer hand-written extension files for methods and computed properties.",
+          hint:
+            "Use generate.emitExtensionStubs to create companion extension files, then move custom behavior there."
+        )
+      )
+    }
 
     let sourceProperties = Dictionary(
       uniqueKeysWithValues: sourceEntity.properties.map { ($0.name, $0) })

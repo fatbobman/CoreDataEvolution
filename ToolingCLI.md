@@ -157,7 +157,7 @@ CLI v1 先解决两件事：
     },
     "include": [],
     "exclude": [],
-    "level": "quick",
+    "level": "conformance",
     "report": "text",
     "failOnWarning": false,
     "maxIssues": 200
@@ -353,6 +353,9 @@ CLI v1 先解决两件事：
   - 单文件输出模式（默认 false）。
 - `--split-by-entity`
   - 按实体拆分多个文件（默认 true）。
+- `--emit-extension-stubs`
+  - 为每个实体额外创建一次 hand-written companion extension 示例文件。
+  - 适合在 `exact` 模式下承载方法和计算属性。
 
 ### 4.3 生成行为参数
 
@@ -433,6 +436,7 @@ CLI v1 先解决两件事：
   - 语义是“模板文件路径”，不是内联文本。
   - 配置文件中的相对路径相对配置文件目录解析。
   - CLI 显式传入的相对路径相对当前工作目录解析。
+- `emitExtensionStubs`: optional, bool，默认 `false`。
 - `generateInit`: optional, bool，默认 `false`。
 - `relationshipSetterPolicy`: optional, enum(`none`,`warning`,`plain`)，默认 `warning`。
 - `relationshipCountPolicy`: optional, enum(`none`,`warning`,`plain`)，默认 `none`。
@@ -463,9 +467,9 @@ CLI v1 先解决两件事：
 
 ### 5.2 校验级别
 
-- `--level <quick|strict>`
-  - `quick`: 只做结构级 source/model/config 对比，不要求编译，不触发真实持久化。
-  - `strict`: 在 `quick` 之上，对带 managed marker 的生成文件做精确漂移比对。
+- `--level <conformance|exact>`
+  - `conformance`: 规则符合模式。只做结构级 source/model/config 对比，不要求 tool-managed 文件与当前生成结果逐字一致。
+  - `exact`: 精确一致模式。在 `conformance` 之上，对带 managed marker 的生成文件做精确漂移比对。
 
 ### 5.3 输出与退出码
 
@@ -492,13 +496,14 @@ CLI v1 先解决两件事：
 - `singleFile`: optional, bool，默认 `false`。
 - `splitByEntity`: optional, bool，默认 `true`。
 - `headerTemplate`: optional, string/null，默认 `null`。
+- `emitExtensionStubs`: optional, bool，默认 `false`。
 - `generateInit`: optional, bool，默认 `false`。
 - `relationshipSetterPolicy`: optional, enum(`none`,`warning`,`plain`)，默认 `warning`。
 - `relationshipCountPolicy`: optional, enum(`none`,`warning`,`plain`)，默认 `none`。
 - `defaultDecodeFailurePolicy`: optional, enum(`fallbackToDefaultValue`,`debugAssertNil`)，默认 `fallbackToDefaultValue`。
 - `include`: optional, array<string>，默认 `[]`。
 - `exclude`: optional, array<string>，默认 `[]`。
-- `level`: optional, enum(`quick`,`strict`)，默认 `quick`。
+- `level`: optional, enum(`conformance`,`exact`)，默认 `conformance`。
 - `report`: optional, enum(`text`,`json`,`sarif`)，默认 `text`。
 - `failOnWarning`: optional, bool，默认 `false`。
 - `maxIssues`: optional, integer，默认 `200`。
@@ -527,20 +532,20 @@ CLI v1 先解决两件事：
 - `validate` 只检查开发者提供的源码输入是否满足模型与工具规则
 - 宏展开正确性由宏测试与编译器保障，不属于 tooling validate 的职责
 
-`quick` 目标：
+`conformance` 目标：
 
 - 解析 `@PersistentModel`、`@objc`、`@Attribute`、`@Ignore`
 - 解析属性/关系类型、可选性和默认值字面量
 - 比较模型、配置、源码三者是否一致
 - 当前已实现并接入 `cde-tool validate`
 
-`strict` 目标：
+`exact` 目标：
 
-- 在 `quick` 通过的前提下
+- 在 `conformance` 通过的前提下
 - 重新生成期望文件计划
 - 对带 `// cde-tool:generated` marker 的文件做精确内容比对
 - 报告缺失文件、多余 managed file、内容漂移
-- v1 的 `strict` 仍是静态验证，不自动执行真实 SQLite / Core Data fetch 级运行时检查
+- v1 的 `exact` 仍是静态验证，不自动执行真实 SQLite / Core Data fetch 级运行时检查
 - 当前已实现并接入 `cde-tool validate`
 
 `@Ignore` 规则：
@@ -549,6 +554,15 @@ CLI v1 先解决两件事：
 - 代码中额外的 stored property 若未标记 `@Ignore`，视为 drift
 - `@Ignore` 不得遮蔽模型中的持久化属性名
 - `@Ignore` 不通过配置声明，必须从源码直接识别
+
+自定义成员规则：
+
+- `conformance` 允许在 `@PersistentModel` 类型中出现方法和计算属性，只要其余源码输入仍满足规则。
+- `exact` 期望 tool-managed 文件保持 unchanged。
+- 因此方法和计算属性应优先放在手写 extension 文件中，而不是直接修改生成文件。
+- 当 validate 在类型本体中发现方法或计算属性时，会给出 `note`，提醒开发者将其移动到 extension 文件。
+- `generate.emitExtensionStubs = true` 时，tool 会为每个实体创建一次 companion extension 示例文件，例如 `Item+Extensions.swift`。
+- companion extension stub 不带 managed marker，只在文件缺失时创建，后续不会被覆盖或纳入 stale cleanup。
 
 默认值规则：
 
@@ -559,9 +573,17 @@ CLI v1 先解决两件事：
 
 composition 边界：
 
-- 当前 `quick` 只校验 composition 属性声明本身是否与规则一致
+- 当前 `conformance` 只校验 composition 属性声明本身是否与规则一致
 - 尚未校验 composition 的子路径/字段展开细节
 - 这部分要等 tooling 配置真正描述 composition field mapping 后再补
+
+`singleFile` 与 `exact`：
+
+- `singleFile` 与 `exact` 在技术上可以共存。
+- 但开发体验通常较差，因为所有实体的 managed 代码集中在一个文件里，自定义逻辑只能继续拆到外部文件。
+- 长期使用 `exact` 时，更推荐：
+  - `splitByEntity = true`
+  - `emitExtensionStubs = true`
 
 严重级别建议：
 
@@ -570,7 +592,7 @@ composition 边界：
   - `originalName` / `storageMethod` / `swiftType` 不一致
   - 默认值不一致
   - `@Ignore` 规则违规
-  - strict 下的 managed file 内容漂移
+  - exact 下的 managed file 内容漂移
 - `warning`
   - 仅保留给建议性、非阻塞性提示；v1 应尽量少用
 
@@ -646,5 +668,5 @@ composition 边界：
 
 - 生成文件命名规则（实体一文件 vs 功能分文件）。
 - 是否默认生成“注释提示模板”（例如建议 init / count 用法）。
-- `validate --strict` 是否要执行真实 SQLite 集成验证（速度 vs 可靠性）。
+- `validate --exact` 是否要执行真实 SQLite 集成验证（速度 vs 可靠性）。
 - 与现有宏测试快照体系的联动方式（是否生成 golden files）。

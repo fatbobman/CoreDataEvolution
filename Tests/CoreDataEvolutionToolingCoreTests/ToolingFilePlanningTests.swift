@@ -31,7 +31,18 @@ struct ToolingFilePlanningTests {
     let contents = try #require(plan.first?.contents)
     #expect(contents.contains(toolingManagedFileMarker))
     #expect(
-      contents.contains("// HEADER\n// HEADER 2\n\n// cde-tool:generated\n\nimport Foundation"))
+      contents.contains(
+        """
+        // HEADER
+        // HEADER 2
+
+        // cde-tool:generated
+        // Do not edit by hand.
+        // Regenerate with cde-tool generate.
+
+        import Foundation
+        """
+      ))
   }
 
   @Test("file writer respects overwrite modes and stale cleanup")
@@ -43,12 +54,12 @@ struct ToolingFilePlanningTests {
     let staleURL = outputDirectory.appendingPathComponent("Old+CoreDataEvolution.swift")
     let manualURL = outputDirectory.appendingPathComponent("Manual.swift")
 
-    try (toolingManagedFileMarker + "\n\nold").write(
+    try (toolingManagedFileHeader + "\n\nold").write(
       to: existingURL,
       atomically: true,
       encoding: .utf8
     )
-    try (toolingManagedFileMarker + "\n\nstale").write(
+    try (toolingManagedFileHeader + "\n\nstale").write(
       to: staleURL,
       atomically: true,
       encoding: .utf8
@@ -59,7 +70,7 @@ struct ToolingFilePlanningTests {
       ToolingGeneratedFilePlan(
         relativePath: "Item+CoreDataEvolution.swift",
         outputPath: existingURL.path,
-        contents: toolingManagedFileMarker + "\n\nnew"
+        contents: toolingManagedFileHeader + "\n\nnew"
       )
     ]
 
@@ -81,7 +92,7 @@ struct ToolingFilePlanningTests {
       }))
     #expect(FileManager.default.fileExists(atPath: staleURL.path) == false)
     #expect(
-      try String(contentsOf: existingURL, encoding: .utf8) == toolingManagedFileMarker + "\n\nnew")
+      try String(contentsOf: existingURL, encoding: .utf8) == toolingManagedFileHeader + "\n\nnew")
     #expect(FileManager.default.fileExists(atPath: manualURL.path))
   }
 
@@ -99,7 +110,7 @@ struct ToolingFilePlanningTests {
           .init(
             relativePath: "Item+CoreDataEvolution.swift",
             outputPath: existingURL.path,
-            contents: toolingManagedFileMarker + "\n\ncontent"
+            contents: toolingManagedFileHeader + "\n\ncontent"
           )
         ],
         outputDir: outputDirectory.path,
@@ -111,6 +122,47 @@ struct ToolingFilePlanningTests {
     } catch let error as ToolingFailure {
       #expect(error.code == .writeDenied)
     }
+  }
+
+  @Test("companion stubs are created once and then skipped")
+  func companionStubsAreCreatedOnceAndThenSkipped() throws {
+    let outputDirectory = makeTemporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: outputDirectory) }
+
+    let stubURL = outputDirectory.appendingPathComponent("Item+Extensions.swift")
+    let plan = [
+      ToolingGeneratedFilePlan(
+        relativePath: "Item+Extensions.swift",
+        outputPath: stubURL.path,
+        management: .companionStub,
+        contents: "import Foundation\n\nextension Item {}\n"
+      )
+    ]
+
+    let first = try ToolingFileWriter.apply(
+      plan: plan,
+      outputDir: outputDirectory.path,
+      overwrite: .changed,
+      cleanStale: true,
+      dryRun: false
+    )
+    #expect(first.operations.first?.kind == .create)
+
+    try "import Foundation\n\nextension Item { func helper() {} }\n".write(
+      to: stubURL,
+      atomically: true,
+      encoding: .utf8
+    )
+
+    let second = try ToolingFileWriter.apply(
+      plan: plan,
+      outputDir: outputDirectory.path,
+      overwrite: .changed,
+      cleanStale: true,
+      dryRun: false
+    )
+    #expect(second.operations.first?.kind == .skipExisting)
+    #expect(try String(contentsOf: stubURL, encoding: .utf8).contains("helper"))
   }
 
   private func makeTemporaryDirectory() -> URL {

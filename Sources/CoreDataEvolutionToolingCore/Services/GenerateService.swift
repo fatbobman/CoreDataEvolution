@@ -38,8 +38,14 @@ public enum GenerateService {
       moduleName: request.moduleName,
       header: request.headerTemplate
     )
+    let extensionSources = ToolingSourceRenderer.renderExtensionStubs(
+      from: buildResult.modelIR,
+      header: request.headerTemplate,
+      enabled: request.emitExtensionStubs
+    )
+    let allGeneratedSources = generatedSources + extensionSources
     let filePlan = try ToolingFilePlanner.makeFilePlan(
-      from: generatedSources,
+      from: allGeneratedSources,
       outputDir: request.outputDir
     )
     let writeResult = try ToolingFileWriter.apply(
@@ -52,7 +58,7 @@ public enum GenerateService {
 
     return .init(
       modelIR: buildResult.modelIR,
-      generatedSources: generatedSources,
+      generatedSources: allGeneratedSources,
       filePlan: filePlan,
       writeResult: writeResult,
       diagnostics: buildResult.diagnostics
@@ -79,6 +85,7 @@ public enum GenerateService {
       dryRun: request.dryRun,
       format: request.format,
       headerTemplate: request.headerTemplate,
+      emitExtensionStubs: request.emitExtensionStubs,
       generateInit: request.generateInit,
       relationshipSetterPolicy: request.relationshipSetterPolicy,
       relationshipCountPolicy: request.relationshipCountPolicy,

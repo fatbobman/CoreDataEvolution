@@ -44,6 +44,7 @@ struct BootstrapConfigServiceTests {
     #expect(result.template.validate?.singleFile == false)
     #expect(result.template.validate?.splitByEntity == true)
     #expect(result.template.validate?.headerTemplate == nil)
+    #expect(result.template.generate?.emitExtensionStubs == false)
     #expect(result.template.validate?.generateInit == false)
     #expect(result.template.validate?.relationshipSetterPolicy == .warning)
     #expect(

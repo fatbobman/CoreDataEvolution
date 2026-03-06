@@ -45,6 +45,31 @@ public enum ToolingSourceRenderer {
     }
   }
 
+  /// Renders one-time companion extension stubs for developer-authored methods and computed
+  /// properties.
+  ///
+  /// These files are intentionally not tooling-managed after creation so exact validation can keep
+  /// generated files unchanged while developers extend entities in separate files.
+  public static func renderExtensionStubs(
+    from modelIR: ToolingModelIR,
+    header: String? = nil,
+    enabled: Bool
+  ) -> [ToolingGeneratedSource] {
+    guard enabled else { return [] }
+
+    return modelIR.entities.map { entity in
+      .init(
+        entityName: entity.name,
+        suggestedFileName: "\(entity.name)+Extensions.swift",
+        management: .companionStub,
+        contents: renderExtensionStub(
+          for: entity,
+          header: header
+        )
+      )
+    }
+  }
+
   private static func renderModuleSource(
     _ entities: [ToolingEntityIR],
     generationPolicy: ToolingGenerationPolicyIR,
@@ -93,6 +118,22 @@ public enum ToolingSourceRenderer {
     lines.append("import Foundation")
     lines.append("")
     return lines
+  }
+
+  private static func renderExtensionStub(
+    for entity: ToolingEntityIR,
+    header: String?
+  ) -> String {
+    var lines = renderFilePrelude(header: header)
+    lines.append("// Add methods and computed properties in this hand-written extension file.")
+    lines.append("")
+    lines.append("extension \(entity.name) {")
+    lines.append("  // Example:")
+    lines.append(
+      "  // var displayTitle: String { \(entity.name.lowercased())SpecificDisplayTitle() }")
+    lines.append("  // func configureForUI() {}")
+    lines.append("}")
+    return lines.joined(separator: "\n")
   }
 
   private static func renderEntityDeclaration(

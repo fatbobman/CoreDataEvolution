@@ -65,6 +65,7 @@ public struct GenerateRequest: Sendable, Equatable {
   public let dryRun: Bool
   public let format: ToolingFormatMode
   public let headerTemplate: String?
+  public let emitExtensionStubs: Bool
   public let generateInit: Bool
   public let relationshipSetterPolicy: ToolingRelationshipSetterPolicy
   public let relationshipCountPolicy: ToolingRelationshipCountPolicy
@@ -86,6 +87,7 @@ public struct GenerateRequest: Sendable, Equatable {
     dryRun: Bool,
     format: ToolingFormatMode,
     headerTemplate: String?,
+    emitExtensionStubs: Bool = false,
     generateInit: Bool,
     relationshipSetterPolicy: ToolingRelationshipSetterPolicy,
     relationshipCountPolicy: ToolingRelationshipCountPolicy,
@@ -106,6 +108,7 @@ public struct GenerateRequest: Sendable, Equatable {
     self.dryRun = dryRun
     self.format = format
     self.headerTemplate = headerTemplate
+    self.emitExtensionStubs = emitExtensionStubs
     self.generateInit = generateInit
     self.relationshipSetterPolicy = relationshipSetterPolicy
     self.relationshipCountPolicy = relationshipCountPolicy
@@ -281,6 +284,7 @@ public struct GenerateRequestOverrides: Sendable, Equatable {
   public var dryRun: Bool?
   public var format: ToolingFormatMode?
   public var headerTemplate: String?
+  public var emitExtensionStubs: Bool?
   public var generateInit: Bool?
   public var relationshipSetterPolicy: ToolingRelationshipSetterPolicy?
   public var relationshipCountPolicy: ToolingRelationshipCountPolicy?

@@ -36,12 +36,15 @@ public enum ToolingFilePlanner {
       return .init(
         relativePath: relativePath,
         outputPath: outputURL.path,
-        contents: makeManagedContents(from: source.contents)
+        management: source.management,
+        contents: source.management == .managed
+          ? makeManagedContents(from: source.contents)
+          : source.contents
       )
     }
   }
 
-  /// Injects the stable management marker after any leading header comments.
+  /// Injects the stable management header after any leading header comments.
   ///
   /// This keeps custom copyright headers at the top while still allowing later file detection to
   /// distinguish tooling-managed files from hand-written sources.
@@ -59,8 +62,12 @@ public enum ToolingFilePlanner {
       }
     }
 
-    lines.insert(Substring(toolingManagedFileMarker), at: insertionIndex)
-    lines.insert(Substring(""), at: insertionIndex + 1)
+    let headerLines = toolingManagedFileHeader.split(
+      separator: "\n", omittingEmptySubsequences: false)
+    for (offset, headerLine) in headerLines.enumerated() {
+      lines.insert(headerLine, at: insertionIndex + offset)
+    }
+    lines.insert(Substring(""), at: insertionIndex + headerLines.count)
     return lines.joined(separator: "\n")
   }
 }

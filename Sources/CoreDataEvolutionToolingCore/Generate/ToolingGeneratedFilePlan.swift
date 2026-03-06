@@ -15,6 +15,17 @@ import Foundation
 /// managed by the tooling pipeline.
 public let toolingManagedFileMarker = "// cde-tool:generated"
 
+/// Human-readable managed-file header inserted into every generated Swift file.
+///
+/// The first line is the stable machine-readable marker used by validate/write logic. The
+/// following lines are intentionally static guidance for developers and avoid timestamps or other
+/// changing metadata that would introduce noisy diffs.
+public let toolingManagedFileHeader = """
+  // cde-tool:generated
+  // Do not edit by hand.
+  // Regenerate with cde-tool generate.
+  """
+
 /// One planned output file derived from rendered Swift sources.
 ///
 /// The file plan is the boundary between source rendering and disk writes. It carries fully
@@ -22,15 +33,18 @@ public let toolingManagedFileMarker = "// cde-tool:generated"
 public struct ToolingGeneratedFilePlan: Codable, Sendable, Equatable {
   public let relativePath: String
   public let outputPath: String
+  public let management: ToolingGeneratedFileManagement
   public let contents: String
 
   public init(
     relativePath: String,
     outputPath: String,
+    management: ToolingGeneratedFileManagement = .managed,
     contents: String
   ) {
     self.relativePath = relativePath
     self.outputPath = outputPath
+    self.management = management
     self.contents = contents
   }
 }

@@ -11,9 +11,9 @@
 
 import Foundation
 
-/// Performs strict drift checks against tool-managed files on disk.
+/// Performs exact drift checks against tool-managed files on disk.
 ///
-/// Strict validation only compares files carrying the stable generated marker. Hand-written files
+/// Exact validation only compares files carrying the stable generated marker. Hand-written files
 /// without the marker are ignored even when they live under the same source directory.
 enum ToolingManagedFileComparator {
   static func compareStrict(
@@ -46,13 +46,13 @@ enum ToolingManagedFileComparator {
         if fileManager.fileExists(atPath: outputURL.path) {
           diagnostics.append(
             error(
-              "validate strict expected managed file '\(relativePath)' but found a non-managed file at the same path."
+              "validate exact expected managed file '\(relativePath)' but found a non-managed file at the same path."
             )
           )
         } else {
           diagnostics.append(
             error(
-              "validate strict could not find managed file '\(relativePath)'."
+              "validate exact could not find managed file '\(relativePath)'."
             )
           )
         }
@@ -62,7 +62,7 @@ enum ToolingManagedFileComparator {
       if actualContents != expectedFile.contents {
         diagnostics.append(
           error(
-            "validate strict found content drift in managed file '\(relativePath)'."
+            "validate exact found content drift in managed file '\(relativePath)'."
           )
         )
       }
@@ -72,7 +72,7 @@ enum ToolingManagedFileComparator {
     where expectedByRelativePath[relativePath] == nil {
       diagnostics.append(
         error(
-          "validate strict found stale managed file '\(relativePath)' not produced by current rules."
+          "validate exact found stale managed file '\(relativePath)' not produced by current rules."
         )
       )
     }

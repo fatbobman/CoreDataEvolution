@@ -58,6 +58,13 @@ struct GenerateCommand: ParsableCommand {
   @Option(name: .long, help: "Header template path.")
   var headerTemplate: String?
 
+  @Option(
+    name: .long,
+    help:
+      "Whether to emit companion extension stub files for custom methods/computed properties (true/false)."
+  )
+  var emitExtensionStubs: Bool?
+
   @Option(name: .long, help: "Whether to generate a convenience init (true/false).")
   var generateInit: Bool?
 

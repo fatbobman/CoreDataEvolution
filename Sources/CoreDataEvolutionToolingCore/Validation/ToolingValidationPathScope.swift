@@ -11,7 +11,7 @@
 
 import Foundation
 
-/// Shared include/exclude path matching used by validate source parsing and strict file drift
+/// Shared include/exclude path matching used by validate source parsing and exact file drift
 /// detection.
 struct ToolingValidationPathScope {
   let includeMatchers: [ToolingGlobMatcher]

@@ -46,9 +46,14 @@ public enum ToolingDecodeFailurePolicy: String, Codable, Sendable, Equatable {
   case debugAssertNil
 }
 
+/// Validation modes for source/code drift checks.
+///
+/// `conformance` checks whether source satisfies model/tooling rules. `exact` builds on top of
+/// that and additionally requires tooling-managed files to remain byte-for-byte identical to the
+/// current generator output.
 public enum ToolingValidationLevel: String, Codable, Sendable, Equatable {
-  case quick
-  case strict
+  case conformance
+  case exact
 }
 
 public enum ToolingReportFormat: String, Codable, Sendable, Equatable {

@@ -51,6 +51,7 @@ public func makeGenerateRequest(
     dryRun: overrides.dryRun ?? config.dryRun ?? false,
     format: overrides.format ?? config.format ?? .none,
     headerTemplate: headerTemplate,
+    emitExtensionStubs: overrides.emitExtensionStubs ?? config.emitExtensionStubs ?? false,
     generateInit: overrides.generateInit ?? config.generateInit ?? false,
     relationshipSetterPolicy: overrides.relationshipSetterPolicy
       ?? config.relationshipSetterPolicy ?? .warning,

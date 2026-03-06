@@ -116,6 +116,22 @@ public enum ToolingFileWriter {
     overwrite: ToolingOverwriteMode,
     fileManager: FileManager
   ) throws -> ToolingGeneratedFileOperation {
+    if plan.management == .companionStub {
+      guard existingContents == nil else {
+        return .init(
+          kind: .skipExisting,
+          relativePath: plan.relativePath,
+          outputPath: plan.outputPath
+        )
+      }
+
+      return .init(
+        kind: .create,
+        relativePath: plan.relativePath,
+        outputPath: plan.outputPath
+      )
+    }
+
     guard let existingContents else {
       return .init(kind: .create, relativePath: plan.relativePath, outputPath: plan.outputPath)
     }

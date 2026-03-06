@@ -133,7 +133,7 @@ struct ConfigLoadingAndMergingTests {
       defaultDecodeFailurePolicy: .fallbackToDefaultValue,
       include: [],
       exclude: [],
-      level: .quick,
+      level: .conformance,
       report: .text,
       failOnWarning: false,
       maxIssues: 200
@@ -153,7 +153,7 @@ struct ConfigLoadingAndMergingTests {
     #expect(request.headerTemplate == nil)
     #expect(request.relationshipSetterPolicy == .warning)
     #expect(request.defaultDecodeFailurePolicy == .fallbackToDefaultValue)
-    #expect(request.level == .quick)
+    #expect(request.level == .conformance)
     #expect(request.report == .text)
     #expect(request.maxIssues == 200)
   }
