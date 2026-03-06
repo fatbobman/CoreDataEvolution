@@ -11,9 +11,10 @@
 
 import Foundation
 import SwiftSyntax
-/// The ModelActor in SwiftData corresponding to the Core Data version.
-/// Only run in MainActor and using viewContext
-/// An interface for providing mutually-exclusive access to the attributes of a conforming model.
+/// Main-thread companion macro for Core Data types that should operate on `viewContext`.
+///
+/// Attach this macro to an `@MainActor` class to synthesize the stored container property and,
+/// by default, a `modelContainer:` initializer.
 ///
 ///     @NSMainModelActor
 ///     @MainActor
@@ -21,7 +22,7 @@ import SwiftSyntax
 ///
 ///  will expand to
 ///
-///     @NSModelActor
+///     @NSMainModelActor
 ///     @MainActor
 ///     final class DataHandler{}
 ///       public let modelContainer: CoreData.NSPersistentContainer
@@ -29,7 +30,7 @@ import SwiftSyntax
 ///       public init(modelContainer: CoreData.NSPersistentContainer) {
 ///           self.modelContainer = modelContainer
 ///       }
-///    extension DataHandler: CoreDataEvolution.NSModelActor {
+///    extension DataHandler: CoreDataEvolution.NSMainModelActor {
 ///    }
 import SwiftSyntaxMacros
 

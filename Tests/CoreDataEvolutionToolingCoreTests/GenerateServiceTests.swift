@@ -80,23 +80,23 @@ struct GenerateServiceTests {
     #expect(itemSource.contents.contains("// GENERATED"))
     #expect(itemSource.contents.contains("@objc(CDEItem)"))
     #expect(itemSource.contents.contains("@PersistentModel(relationshipSetterPolicy: .warning)"))
-    #expect(itemSource.contents.contains(#"@Attribute(.unique, originalName: "name")"#))
+    #expect(itemSource.contents.contains(#"@Attribute(.unique, persistentName: "name")"#))
     #expect(itemSource.contents.contains(#"var title: String = """#))
     #expect(
       itemSource.contents.contains(
-        #"@Attribute(originalName: "status_raw", storageMethod: .raw, decodeFailurePolicy: .fallbackToDefaultValue)"#
+        #"@Attribute(persistentName: "status_raw", storageMethod: .raw, decodeFailurePolicy: .fallbackToDefaultValue)"#
       ))
     #expect(itemSource.contents.contains("var status: CDEItemStatus? = nil"))
     #expect(
       itemSource.contents.contains(
-        #"@Attribute(originalName: "config_blob", storageMethod: .codable, decodeFailurePolicy: .fallbackToDefaultValue)"#
+        #"@Attribute(persistentName: "config_blob", storageMethod: .codable, decodeFailurePolicy: .fallbackToDefaultValue)"#
       ))
     #expect(itemSource.contents.contains("var config: CDEItemConfig? = nil"))
     #expect(itemSource.contents.contains(#"@Attribute(storageMethod: .composition)"#))
     #expect(itemSource.contents.contains("var location: CDEItemLocation? = nil"))
     #expect(
       itemSource.contents.contains(
-        #"@Attribute(originalName: "keywords_payload", storageMethod: .transformed(CDEStringListTransformer.self), decodeFailurePolicy: .fallbackToDefaultValue)"#
+        #"@Attribute(persistentName: "keywords_payload", storageMethod: .transformed(CDEStringListTransformer.self), decodeFailurePolicy: .fallbackToDefaultValue)"#
       ))
     #expect(itemSource.contents.contains("var keywords: [String]? = nil"))
     #expect(itemSource.contents.contains("var tag: CDETag?"))

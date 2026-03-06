@@ -169,8 +169,8 @@ struct ValidateServiceTests {
       in: fixture.sourceDirectory
     ) { contents in
       contents.replacingOccurrences(
-        of: #"@Attribute(.unique, originalName: "name")"#,
-        with: #"@Attribute(originalName: "name")"#
+        of: #"@Attribute(.unique, persistentName: "name")"#,
+        with: #"@Attribute(persistentName: "name")"#
       )
     }
 

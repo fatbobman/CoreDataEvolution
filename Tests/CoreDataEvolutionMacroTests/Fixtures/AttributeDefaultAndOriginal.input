@@ -2,7 +2,7 @@ import CoreDataEvolution
 import Foundation
 
 struct Item {
-  @Attribute(originalName: "timestamp")
+  @Attribute(persistentName: "timestamp")
   var date: Date? = nil
 
   @Attribute

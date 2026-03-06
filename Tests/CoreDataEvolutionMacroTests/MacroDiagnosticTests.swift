@@ -656,13 +656,13 @@ struct MacroDiagnosticTests {
       })
   }
 
-  @Test("Attribute originalName rejects interpolation")
-  func attributeOriginalNameRejectsInterpolation() throws {
+  @Test("Attribute persistentName rejects interpolation")
+  func attributePersistentNameRejectsInterpolation() throws {
     let result = try MacroTestSupport.expand(
       source: """
         let suffix = "stamp"
         struct S {
-          @Attribute(originalName: "time\\(suffix)")
+          @Attribute(persistentName: "time\\(suffix)")
           var date: Date? = nil
         }
         """
@@ -670,12 +670,12 @@ struct MacroDiagnosticTests {
     #expect(result.diagnostics.contains { $0.contains("must be a string literal or nil") })
   }
 
-  @Test("Attribute originalName validates core data name format")
-  func attributeOriginalNameValidatesCoreDataNameFormat() throws {
+  @Test("Attribute persistentName validates core data name format")
+  func attributePersistentNameValidatesCoreDataNameFormat() throws {
     let result = try MacroTestSupport.expand(
       source: """
         struct S {
-          @Attribute(originalName: "9-bad-name")
+          @Attribute(persistentName: "9-bad-name")
           var date: Date? = nil
         }
         """
@@ -683,7 +683,7 @@ struct MacroDiagnosticTests {
     #expect(result.diagnostics.contains { $0.contains("valid Core Data attribute name") })
   }
 
-  @Test("Attribute rejects old original label")
+  @Test("Attribute rejects old persistent label")
   func attributeRejectsOldOriginalLabel() throws {
     let result = try MacroTestSupport.expand(
       source: """

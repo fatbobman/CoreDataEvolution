@@ -285,7 +285,7 @@ private func parseAttributeAnnotation(
     return .init(
       isUnique: false,
       isTransient: false,
-      originalName: nil,
+      persistentName: nil,
       storageMethod: nil,
       transformerType: nil,
       decodeFailurePolicy: nil
@@ -294,7 +294,7 @@ private func parseAttributeAnnotation(
 
   var isUnique = false
   var isTransient = false
-  var originalName: String?
+  var persistentName: String?
   var storageMethod: ToolingAttributeStorageRule?
   var transformerType: String?
   var decodeFailurePolicy: ToolingDecodeFailurePolicy?
@@ -318,8 +318,8 @@ private func parseAttributeAnnotation(
     let raw = normalizedExpression(argument.expression)
 
     switch label {
-    case "originalName":
-      originalName = parseStringLiteral(argument.expression)
+    case "persistentName":
+      persistentName = parseStringLiteral(argument.expression)
     case "storageMethod":
       let storage = parseStorageMethod(from: raw)
       storageMethod = storage.method
@@ -334,7 +334,7 @@ private func parseAttributeAnnotation(
   return .init(
     isUnique: isUnique,
     isTransient: isTransient,
-    originalName: originalName,
+    persistentName: persistentName,
     storageMethod: storageMethod,
     transformerType: transformerType,
     decodeFailurePolicy: decodeFailurePolicy

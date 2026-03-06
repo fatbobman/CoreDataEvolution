@@ -9,7 +9,7 @@ import Foundation
   relationshipCountPolicy: .none
 )
 final class Item: NSManagedObject {
-  @Attribute(originalName: "timestamp")
+  @Attribute(persistentName: "timestamp")
   var date: Date?
 
   var title: String = ""

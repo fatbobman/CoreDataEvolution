@@ -239,13 +239,13 @@ public enum ToolingValidateComparator {
       )
     }
 
-    let expectedOriginalName =
+    let expectedPersistentName =
       attribute.persistentName == expectedPropertyName ? nil : attribute.persistentName
-    let actualOriginalName = sourceProperty.attribute?.originalName
-    if expectedOriginalName != actualOriginalName {
+    let actualPersistentName = sourceProperty.attribute?.persistentName
+    if expectedPersistentName != actualPersistentName {
       diagnostics.append(
         error(
-          "validate found originalName mismatch for '\(entityName).\(expectedPropertyName)'. Expected '\(expectedOriginalName ?? "<none>")', found '\(actualOriginalName ?? "<none>")'."
+          "validate found persistentName mismatch for '\(entityName).\(expectedPropertyName)'. Expected '\(expectedPersistentName ?? "<none>")', found '\(actualPersistentName ?? "<none>")'."
         )
       )
     }

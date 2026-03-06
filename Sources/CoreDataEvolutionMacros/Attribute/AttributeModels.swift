@@ -37,7 +37,7 @@ enum ParsedAttributeStorageMethod: Equatable {
 
 struct ParsedAttributeArguments {
   let traits: [ParsedAttributeTrait]
-  let originalName: String?
+  let persistentName: String?
   let storageMethod: ParsedAttributeStorageMethod?
   let decodeFailurePolicy: ParsedAttributeDecodeFailurePolicy?
 }

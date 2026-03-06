@@ -110,7 +110,7 @@ protocol PersistentEntity: NSManagedObject {}
 @PersistentModel
 final class Item: NSManagedObject, Identifiable {
 
-    @Attribute(originalName: "timestamp")
+    @Attribute(persistentName: "timestamp")
     var date: Date?
 
     var tags: Set<Tag>     // Tag 符合 PersistentEntity → 自动识别为对多关系
@@ -215,7 +215,7 @@ enum RelationshipGenerationPolicy {
 
 ### 关系不支持重命名
 
-属性可以通过 `@Attribute(originalName:)` 映射底层字段名，但**关系不提供此能力**，Swift 侧的属性名必须与 xcdatamodeld 中的关系名保持一致。
+属性可以通过 `@Attribute(persistentName:)` 映射底层字段名，但**关系不提供此能力**，Swift 侧的属性名必须与 xcdatamodeld 中的关系名保持一致。
 
 原因：
 
@@ -229,9 +229,9 @@ enum RelationshipGenerationPolicy {
 | | 属性 | 关系 |
 |---|---|---|
 | Swift 侧命名 | 可自定义（对外名） | 必须与模型一致 |
-| 底层名映射 | `@Attribute(originalName:)` | 不支持 |
+| 底层名映射 | `@Attribute(persistentName:)` | 不支持 |
 | 改名方式 | 代码层映射 | xcdatamodeld Renaming ID |
-| 宏是否需要标注 | 是（`originalName:`）| 否 |
+| 宏是否需要标注 | 是（`persistentName:`）| 否 |
 | 工具检查内容 | Swift 名 → 持久化名是否存在 | Swift 名是否与模型当前关系名一致 |
 
 ### 自动生成构造方法
@@ -297,7 +297,7 @@ try context.save()
 @PersistentModel
 final class Item: NSManagedObject, Identifiable {
 
-    @Attribute(originalName: "timestamp")
+    @Attribute(persistentName: "timestamp")
     var date: Date?
 
     // RelationshipInfo(inverse: "items", deleteRule: .cascade)
@@ -393,13 +393,13 @@ v1 不自动生成 `*Count`；若需要数量，推荐通过 `NSManagedObjectCon
 ```swift
 // 声明为 public
 public final class Item: NSManagedObject {
-    @Attribute(originalName: "timestamp")
+    @Attribute(persistentName: "timestamp")
     public var date: Date?       // 宏生成 public 的 getter/setter
 }
 
 // 声明为 internal（默认）
 final class Item: NSManagedObject {
-    @Attribute(originalName: "timestamp")
+    @Attribute(persistentName: "timestamp")
     var date: Date?              // 宏生成 internal 的 getter/setter
 }
 ```
@@ -448,7 +448,7 @@ swift package generate-coredata-model --entity Item --access-level internal
 @PersistentModel
 final class Item: NSManagedObject {
 
-    @Attribute(originalName: "timestamp")
+    @Attribute(persistentName: "timestamp")
     var date: Date?
 
     @Ignore
@@ -468,7 +468,7 @@ final class Item: NSManagedObject {
 SwiftData 提供 `@Transient` 宏，对应 Core Data 模型里的 transient 属性（不持久化但受 undo/redo 追踪）。本方案在 v1 不新增单独 `@Transient` 宏，而是统一采用 `@Attribute(.transient, ...)` trait 写法：
 
 ```swift
-@Attribute(.transient, originalName: "cached_summary")
+@Attribute(.transient, persistentName: "cached_summary")
 var cachedSummary: String = ""
 ```
 
@@ -604,7 +604,7 @@ NSPredicate(format: "%K > %@", Item.Keys.date.rawValue, someDate as CVarArg)
 
 `#Predicate` 在以下场景存在能力限制，容易与持久化层真实字段不一致：
 
-- Swift 对外属性名与持久化字段名不一致（`@Attribute(originalName:)`）
+- Swift 对外属性名与持久化字段名不一致（`@Attribute(persistentName:)`）
 - Swift 类型与持久化存储类型不一致（如 `enum` 对应 `rawValue` 存储）
 
 因此在上述场景中应统一使用 `NSPredicate`（配合 `%K` + `Keys.rawValue`）。
@@ -646,7 +646,7 @@ NSPredicate(format: "%K > %@", Item.Keys.date.rawValue, someDate as CVarArg)
 ```swift
 @PersistentModel
 final class Item: NSManagedObject, Identifiable {
-    @Attribute(originalName: "timestamp")
+    @Attribute(persistentName: "timestamp")
     var date: Date?
 }
 
@@ -691,7 +691,7 @@ enum AttributeDecodeFailurePolicy {
 ### @Attribute（属性级别宏）
 
 附加在属性声明上，根据 `storageMethod` 生成对应的 getter/setter。
-字段名参数使用 `originalName:`。
+字段名参数使用 `persistentName:`。
 默认值约束：非可选持久化属性必须显式提供默认值；可选属性可省略初始化器（按 `nil` 处理）。
 可选属性省略初始化器时，视为默认 `nil`（无需显式写 `= nil`）。
 模型侧同构约束：xcdatamodeld 中若 attribute 为 `Optional=false`，必须配置默认值；`Optional=true` 可以不配置默认值。
@@ -743,7 +743,7 @@ enum StorageMethod {
 ### .default — 原生类型 + NSNumber 桥接
 
 ```swift
-@Attribute(originalName: "timestamp")
+@Attribute(persistentName: "timestamp")
 var date: Date?
 // 展开：
 var date: Date? {
@@ -751,7 +751,7 @@ var date: Date? {
     set { setValue(newValue, forKey: "timestamp") }
 }
 
-@Attribute(originalName: "price")
+@Attribute(persistentName: "price")
 var price: Double?
 // 展开（自动 NSNumber 桥接）：
 var price: Double? {
@@ -765,7 +765,7 @@ var price: Double? {
 ### .raw — RawRepresentable 枚举
 
 ```swift
-@Attribute(originalName: "status", storageMethod: .raw)
+@Attribute(persistentName: "status", storageMethod: .raw)
 var status: Status?   // enum Status: String
 
 // 展开：
@@ -780,7 +780,7 @@ var status: Status? {
 ### .codable — Codable 序列化为 Data
 
 ```swift
-@Attribute(originalName: "metadata", storageMethod: .codable)
+@Attribute(persistentName: "metadata", storageMethod: .codable)
 var metadata: MyConfig?   // struct MyConfig: Codable
 
 // 展开：
@@ -812,7 +812,7 @@ var metadata: MyConfig? {
 适用于迁移已有 `ValueTransformer` 子类的场景：
 
 ```swift
-@Attribute(originalName: "color", storageMethod: .transformed(ColorTransformer.self))
+@Attribute(persistentName: "color", storageMethod: .transformed(ColorTransformer.self))
 var color: UIColor?
 
 // 展开：
@@ -844,7 +844,7 @@ struct Magnitude {
     var depth: Double = 0
 }
 
-@Attribute(originalName: "magnitude", storageMethod: .composition)
+@Attribute(persistentName: "magnitude", storageMethod: .composition)
 var magnitude: Magnitude?
 
 // 预期展开（v1）：
@@ -975,7 +975,7 @@ relationship inverse 规则补充：
 | 检查项 | 说明 |
 |---|---|
 | Codegen 模式 | 每个 Entity 的 Codegen 必须为 Manual/None（硬性要求） |
-| 持久化字段名 | `@Attribute(originalName:)` 中的名称是否在模型中存在 |
+| 持久化字段名 | `@Attribute(persistentName:)` 中的名称是否在模型中存在 |
 | 类型兼容性 | Swift 类型与 Core Data attribute type 是否匹配（含 NSNumber 桥接规则）|
 | Attribute Optional 一致性 | Swift 侧 attribute 是否可选与模型中 Optional 勾选是否一致 |
 | Default value | 模型中设置的默认值与 Swift 侧初始值是否匹配 |
@@ -1050,20 +1050,20 @@ relationship inverse 规则补充：
 final class Item: NSManagedObject, Identifiable {
 
     // TODO: rename if needed. persistent key: "timestamp"
-    @Attribute(originalName: "timestamp")
+    @Attribute(persistentName: "timestamp")
     var timestamp: Date?
 
     // TODO: rename if needed. persistent key: "price"
-    @Attribute(originalName: "price")
+    @Attribute(persistentName: "price")
     var price: Double?
 
     // TODO: rename if needed. persistent key: "status"
     // NOTE: consider .raw if this maps to an enum
-    @Attribute(originalName: "status")
+    @Attribute(persistentName: "status")
     var status: String?
 
     // TODO: rename if needed. persistent key: "count"
-    @Attribute(originalName: "count")
+    @Attribute(persistentName: "count")
     var count: Int?
 }
 ```

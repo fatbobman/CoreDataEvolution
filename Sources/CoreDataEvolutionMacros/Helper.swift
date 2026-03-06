@@ -12,14 +12,6 @@
 import Foundation
 import SwiftDiagnostics
 import SwiftSyntax
-/// Determines whether to generate an initializer based on the attribute node.
-///
-/// This function checks the attribute node for an argument labeled "disableGenerateInit" with a boolean value.
-/// If such an argument is found and its value is false, the function returns false, indicating that an initializer should not be generated.
-/// Otherwise, it returns true, indicating that an initializer should be generated.
-///
-/// - Parameter node: The attribute node to check.
-/// - Returns: A boolean indicating whether to generate an initializer.
 import SwiftSyntaxMacros
 
 let coreDataPrimitiveTypeNamesInOrder: [String] = [
@@ -45,6 +37,7 @@ func coreDataPrimitiveTypeListDescription(includeOptionals: Bool = true) -> Stri
   return includeOptionals ? "\(joined) and optionals" : joined
 }
 
+/// Returns `false` only when the macro is declared with `disableGenerateInit: true`.
 func shouldGenerateInitializer(from node: AttributeSyntax) -> Bool {
   guard let argumentList = node.arguments?.as(LabeledExprListSyntax.self) else {
     return true  // Default to true if no arguments are present.

@@ -147,7 +147,7 @@ public struct ToolingSourcePropertyIR: Codable, Sendable, Equatable {
 public struct ToolingSourceAttributeAnnotationIR: Codable, Sendable, Equatable {
   public let isUnique: Bool
   public let isTransient: Bool
-  public let originalName: String?
+  public let persistentName: String?
   public let storageMethod: ToolingAttributeStorageRule?
   public let transformerType: String?
   public let decodeFailurePolicy: ToolingDecodeFailurePolicy?
@@ -155,14 +155,14 @@ public struct ToolingSourceAttributeAnnotationIR: Codable, Sendable, Equatable {
   public init(
     isUnique: Bool = false,
     isTransient: Bool = false,
-    originalName: String?,
+    persistentName: String?,
     storageMethod: ToolingAttributeStorageRule?,
     transformerType: String?,
     decodeFailurePolicy: ToolingDecodeFailurePolicy?
   ) {
     self.isUnique = isUnique
     self.isTransient = isTransient
-    self.originalName = originalName
+    self.persistentName = persistentName
     self.storageMethod = storageMethod
     self.transformerType = transformerType
     self.decodeFailurePolicy = decodeFailurePolicy

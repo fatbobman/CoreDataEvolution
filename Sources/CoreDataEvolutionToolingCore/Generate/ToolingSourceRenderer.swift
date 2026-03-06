@@ -260,13 +260,13 @@ public enum ToolingSourceRenderer {
   ) throws -> [String] {
     var lines: [String] = []
 
-    let originalName =
+    let persistentName =
       backingAttribute.persistentName == composition.swiftName
       ? nil : backingAttribute.persistentName
     let macro = renderAttributeMacro(
       isUnique: backingAttribute.isUnique,
       isTransient: backingAttribute.isTransient,
-      originalName: originalName,
+      persistentName: persistentName,
       storageMethod: .composition,
       transformerType: nil,
       decodeFailurePolicy: nil
@@ -386,12 +386,12 @@ public enum ToolingSourceRenderer {
   private static func renderAttributeMacro(
     for attribute: ToolingAttributeIR
   ) -> String? {
-    let originalName =
+    let persistentName =
       attribute.persistentName == attribute.swiftName ? nil : attribute.persistentName
     return renderAttributeMacro(
       isUnique: attribute.isUnique,
       isTransient: attribute.isTransient,
-      originalName: originalName,
+      persistentName: persistentName,
       storageMethod: attribute.storage.method,
       transformerType: attribute.storage.transformerType,
       decodeFailurePolicy: attribute.storage.decodeFailurePolicy
@@ -401,7 +401,7 @@ public enum ToolingSourceRenderer {
   private static func renderAttributeMacro(
     isUnique: Bool,
     isTransient: Bool,
-    originalName: String?,
+    persistentName: String?,
     storageMethod: ToolingAttributeStorageRule,
     transformerType: String?,
     decodeFailurePolicy: ToolingDecodeFailurePolicy?
@@ -421,8 +421,8 @@ public enum ToolingSourceRenderer {
       arguments.append(".transient")
     }
 
-    if let originalName {
-      arguments.append(#"originalName: "\#(originalName)""#)
+    if let persistentName {
+      arguments.append(#"persistentName: "\#(persistentName)""#)
     }
 
     switch storageMethod {

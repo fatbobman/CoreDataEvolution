@@ -64,17 +64,17 @@ final class CDETag: NSManagedObject {
 @PersistentModel
 final class CDEItem: NSManagedObject {
   var id: UUID? = nil
-  @Attribute(originalName: "name")
+  @Attribute(persistentName: "name")
   var title: String = ""
   var priority: Int16 = 0
-  @Attribute(originalName: "status_raw", storageMethod: .raw)
+  @Attribute(persistentName: "status_raw", storageMethod: .raw)
   var status: CDEItemStatus? = nil
-  @Attribute(originalName: "config_blob", storageMethod: .codable)
+  @Attribute(persistentName: "config_blob", storageMethod: .codable)
   var config: CDEItemConfig? = nil
   @Attribute(storageMethod: .composition)
   var location: CDEItemLocation? = nil
   @Attribute(
-    originalName: "keywords_payload", storageMethod: .transformed(CDEStringListTransformer.self))
+    persistentName: "keywords_payload", storageMethod: .transformed(CDEStringListTransformer.self))
   var keywords: [String] = []
   var tag: CDETag?
 }

@@ -126,13 +126,14 @@ struct ToolingSourceRendererTests {
     #expect(rendered.contains("@objc(Item)"))
     #expect(rendered.contains("@PersistentModel("))
     #expect(rendered.contains("relationshipSetterPolicy: .warning"))
-    #expect(rendered.contains(#"@Attribute(originalName: "name")"#))
+    #expect(rendered.contains(#"@Attribute(persistentName: "name")"#))
     #expect(
       rendered.contains(
-        #"@Attribute(originalName: "status_raw", storageMethod: .raw, decodeFailurePolicy: .debugAssertNil)"#
+        #"@Attribute(persistentName: "status_raw", storageMethod: .raw, decodeFailurePolicy: .debugAssertNil)"#
       ))
     #expect(
-      rendered.contains(#"@Attribute(originalName: "location_blob", storageMethod: .composition)"#))
+      rendered.contains(
+        #"@Attribute(persistentName: "location_blob", storageMethod: .composition)"#))
     #expect(rendered.contains("var title: String = \"\""))
     #expect(rendered.contains("var status: ItemStatus? = nil"))
     #expect(rendered.contains("var location: ItemLocation? = nil"))

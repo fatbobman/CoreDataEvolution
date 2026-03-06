@@ -126,7 +126,7 @@ func buildAttributeInfo(
   }
 
   let propertyName = identifierPattern.identifier.text
-  let persistentName = arguments.originalName ?? propertyName
+  let persistentName = arguments.persistentName ?? propertyName
   let typeName = typeAnnotation.type.trimmedDescription
   let nonOptionalTypeName = attributeOptionalWrappedTypeName(typeAnnotation.type) ?? typeName
   let baseTypeName = normalizedBaseTypeName(typeAnnotation.type) ?? nonOptionalTypeName
@@ -257,14 +257,14 @@ private func parseAttributeArguments(
   guard let argumentList = attribute.arguments?.as(LabeledExprListSyntax.self) else {
     return ParsedAttributeArguments(
       traits: [],
-      originalName: nil,
+      persistentName: nil,
       storageMethod: nil,
       decodeFailurePolicy: nil
     )
   }
 
   var traits: [ParsedAttributeTrait] = []
-  var originalName: String?
+  var persistentName: String?
   var storageMethod: ParsedAttributeStorageMethod?
   var decodeFailurePolicy: ParsedAttributeDecodeFailurePolicy?
 
@@ -285,32 +285,32 @@ private func parseAttributeArguments(
       continue
     }
     switch label {
-    case "originalName":
+    case "persistentName":
       if let literal = argument.expression.as(StringLiteralExprSyntax.self),
         literal.segments.count == 1,
         let segment = literal.segments.first?.as(StringSegmentSyntax.self)
       {
-        originalName = segment.content.text
+        persistentName = segment.content.text
       } else if argument.expression.trimmedDescription == "nil" {
-        originalName = nil
+        persistentName = nil
       } else {
         if emitDiagnostics {
           MacroDiagnosticReporter.error(
-            "@Attribute argument `originalName` must be a string literal or nil.",
+            "@Attribute argument `persistentName` must be a string literal or nil.",
             domain: attributeMacroDomain,
-            id: "invalid-original",
+            id: "invalid-persistent-name",
             in: context,
             node: argument.expression
           )
         }
         return nil
       }
-      if let originalName, isValidCoreDataAttributeName(originalName) == false {
+      if let persistentName, isValidCoreDataAttributeName(persistentName) == false {
         if emitDiagnostics {
           MacroDiagnosticReporter.error(
             "@Attribute argument `\(label)` must be a valid Core Data attribute name (letters, numbers, underscore; cannot start with number).",
             domain: attributeMacroDomain,
-            id: "invalid-original-name",
+            id: "invalid-persistent-name-format",
             in: context,
             node: argument.expression
           )
@@ -355,7 +355,7 @@ private func parseAttributeArguments(
 
   return ParsedAttributeArguments(
     traits: traits,
-    originalName: originalName,
+    persistentName: persistentName,
     storageMethod: storageMethod,
     decodeFailurePolicy: decodeFailurePolicy
   )

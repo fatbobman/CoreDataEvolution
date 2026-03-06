@@ -80,7 +80,7 @@ func analyzePersistentModelProperties(in classDecl: ClassDeclSyntax)
             propertyName: propertyName,
             typeName: typeName,
             nonOptionalTypeName: nonOptionalTypeName,
-            persistentName: parsed.originalName ?? propertyName,
+            persistentName: parsed.persistentName ?? propertyName,
             isOptional: isOptional,
             storageMethod: parsed.storageMethod ?? .default,
             defaultValueExpression: defaultValueExpression
@@ -420,7 +420,7 @@ private func isPersistentModelInstanceStoredVariable(_ variable: VariableDeclSyn
 
 private struct ParsedAttributeDeclArguments {
   let traits: [ParsedAttributeTrait]
-  let originalName: String?
+  let persistentName: String?
   let storageMethod: ParsedAttributeStorageMethod?
 }
 
@@ -428,10 +428,10 @@ private func parseAttributeDeclArguments(_ attribute: AttributeSyntax)
   -> ParsedAttributeDeclArguments
 {
   guard let list = attribute.arguments?.as(LabeledExprListSyntax.self) else {
-    return ParsedAttributeDeclArguments(traits: [], originalName: nil, storageMethod: nil)
+    return ParsedAttributeDeclArguments(traits: [], persistentName: nil, storageMethod: nil)
   }
   var traits: [ParsedAttributeTrait] = []
-  var originalName: String?
+  var persistentName: String?
   var storageMethod: ParsedAttributeStorageMethod?
 
   for argument in list {
@@ -444,12 +444,12 @@ private func parseAttributeDeclArguments(_ attribute: AttributeSyntax)
       continue
     }
     switch label {
-    case "originalName":
+    case "persistentName":
       if let literal = argument.expression.as(StringLiteralExprSyntax.self),
         literal.segments.count == 1,
         let segment = literal.segments.first?.as(StringSegmentSyntax.self)
       {
-        originalName = segment.content.text
+        persistentName = segment.content.text
       }
     case "storageMethod":
       storageMethod = parseAttributeStorageMethod(
@@ -462,7 +462,7 @@ private func parseAttributeDeclArguments(_ attribute: AttributeSyntax)
 
   return ParsedAttributeDeclArguments(
     traits: traits,
-    originalName: originalName,
+    persistentName: persistentName,
     storageMethod: storageMethod
   )
 }

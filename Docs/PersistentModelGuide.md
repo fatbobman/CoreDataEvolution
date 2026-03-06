@@ -550,14 +550,13 @@ This runtime schema path is intentionally limited:
 Example:
 
 ```swift
-let model = try NSManagedObjectModel.makeRuntimeModel([
+let model = try NSManagedObjectModel.makeRuntimeModel(
   Item.self,
-  Tag.self,
-])
+  Tag.self
+)
 
 let container = try NSPersistentContainer.makeRuntimeTest(
-  modelTypes: [Item.self, Tag.self],
-  testName: "RuntimeModelTests"
+  modelTypes: Item.self, Tag.self
 )
 ```
 

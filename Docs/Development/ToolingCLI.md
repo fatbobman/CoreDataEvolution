@@ -600,7 +600,7 @@ composition 边界：
 
 - `error`
   - entity / property / relationship 漂移
-  - `originalName` / `storageMethod` / `swiftType` 不一致
+  - `persistentName` / `storageMethod` / `swiftType` 不一致
   - 默认值不一致
   - `@Ignore` 规则违规
   - exact 下的 managed file 内容漂移
@@ -642,7 +642,7 @@ composition 边界：
 至少检查以下项：
 
 - 实体是否一一对应。
-- 属性名与 `originalName` 映射是否一致。
+- 属性名与 `persistentName` 映射是否一致。
 - 默认类型映射是否符合 `typeMappings`。
 - 属性级覆盖是否符合 `attributeRules`。
 - 存储策略是否匹配（`default/raw/codable/composition/transformed`）。

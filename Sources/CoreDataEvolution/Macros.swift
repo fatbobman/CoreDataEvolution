@@ -38,7 +38,7 @@ public enum RelationshipGenerationPolicy {
 public macro NSModelActor(disableGenerateInit: Bool = false) =
   #externalMacro(module: "CoreDataEvolutionMacros", type: "NSModelActorMacro")
 
-@attached(member, names: named(modelExecutor), named(modelContainer), named(init))
+@attached(member, names: named(modelContainer), named(init))
 @attached(extension, conformances: NSMainModelActor)
 public macro NSMainModelActor(disableGenerateInit: Bool = false) =
   #externalMacro(module: "CoreDataEvolutionMacros", type: "NSMainModelActorMacro")
@@ -84,7 +84,7 @@ public macro PersistentModel(
 @attached(peer, names: arbitrary)
 public macro Attribute(
   _ traits: AttributeTrait...,
-  originalName: String? = nil,
+  persistentName: String? = nil,
   storageMethod: AttributeStorageMethod? = nil,
   decodeFailurePolicy: AttributeDecodeFailurePolicy? = nil
 ) = #externalMacro(module: "CoreDataEvolutionMacros", type: "AttributeMacro")

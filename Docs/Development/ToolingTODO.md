@@ -102,7 +102,7 @@
 - `[x]` 解析 `@PersistentModel` / `@objc` / `@Attribute` / `@Ignore`
 - `[x]` 解析代码中的默认值字面量
 - `[x]` 校验实体是否一一对应
-- `[x]` 校验属性名与 `originalName`
+- `[x]` 校验属性名与 `persistentName`
 - `[x]` 根据 `attributeRules` 校验属性重命名
 - `[x]` 根据 `typeMappings` 校验默认类型映射
 - `[x]` 根据 `attributeRules` 校验属性级类型与 storage method 覆盖

@@ -41,7 +41,7 @@ struct IntegrationModelAttributeStorageActorTests {
     #expect(CDEItem.path.config.raw == "config_blob")
   }
 
-  @Test func originalNameRawAndCodableMapToPersistentFields() async throws {
+  @Test func persistentNameRawAndCodableMapToPersistentFields() async throws {
     let stack = IntegrationModelStack()
     let handler = IntegrationAttributeStorageHandler(container: stack.container)
     try await handler.seedStorageData()
