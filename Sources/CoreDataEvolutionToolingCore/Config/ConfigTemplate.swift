@@ -63,8 +63,8 @@ public struct GenerateTemplate: Codable, Sendable, Equatable {
   public let format: ToolingFormatMode?
   public let headerTemplate: String?
   public let generateInit: Bool?
-  public let relationshipSetterPolicy: ToolingRelationshipGenerationPolicy?
-  public let relationshipCountPolicy: ToolingRelationshipGenerationPolicy?
+  public let relationshipSetterPolicy: ToolingRelationshipSetterPolicy?
+  public let relationshipCountPolicy: ToolingRelationshipCountPolicy?
   public let defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy?
 
   public init(
@@ -84,8 +84,8 @@ public struct GenerateTemplate: Codable, Sendable, Equatable {
     format: ToolingFormatMode?,
     headerTemplate: String?,
     generateInit: Bool?,
-    relationshipSetterPolicy: ToolingRelationshipGenerationPolicy?,
-    relationshipCountPolicy: ToolingRelationshipGenerationPolicy?,
+    relationshipSetterPolicy: ToolingRelationshipSetterPolicy?,
+    relationshipCountPolicy: ToolingRelationshipCountPolicy?,
     defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy?
   ) {
     self.modelPath = modelPath
@@ -114,6 +114,7 @@ public struct GenerateTemplate: Codable, Sendable, Equatable {
 public struct ValidateTemplate: Codable, Sendable, Equatable {
   public let modelPath: String
   public let modelVersion: String?
+  public let momcBin: String?
   public let sourceDir: String
   public let moduleName: String
   public let typeMappings: ToolingTypeMappings?
@@ -128,6 +129,7 @@ public struct ValidateTemplate: Codable, Sendable, Equatable {
   public init(
     modelPath: String,
     modelVersion: String?,
+    momcBin: String?,
     sourceDir: String,
     moduleName: String,
     typeMappings: ToolingTypeMappings?,
@@ -141,6 +143,7 @@ public struct ValidateTemplate: Codable, Sendable, Equatable {
   ) {
     self.modelPath = modelPath
     self.modelVersion = modelVersion
+    self.momcBin = momcBin
     self.sourceDir = sourceDir
     self.moduleName = moduleName
     self.typeMappings = typeMappings
@@ -188,6 +191,7 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
       validate: .init(
         modelPath: "Models/AppModel.xcdatamodeld",
         modelVersion: nil,
+        momcBin: nil,
         sourceDir: "Sources/AppModels",
         moduleName: "AppModels",
         typeMappings: nil,
@@ -221,12 +225,13 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         headerTemplate: nil,
         generateInit: false,
         relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: ToolingRelationshipGenerationPolicy.none,
+        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       validate: .init(
         modelPath: "Models/AppModel.xcdatamodeld",
         modelVersion: nil,
+        momcBin: nil,
         sourceDir: "Sources/AppModels",
         moduleName: "AppModels",
         typeMappings: makeDefaultToolingTypeMappings(),
@@ -269,7 +274,9 @@ public func loadToolingConfigTemplate(from data: Data) throws -> ToolingConfigTe
         "config schema version '\(schemaVersion)' is newer than supported '\(toolingSupportedSchemaVersion)'. Please upgrade cde-tool."
       )
     }
-    return try decoder.decode(ToolingConfigTemplate.self, from: data)
+    let template = try decoder.decode(ToolingConfigTemplate.self, from: data)
+    try validateToolingConfigTemplate(template)
+    return template
   } catch let failure as ToolingFailure {
     throw failure
   } catch {
@@ -305,7 +312,7 @@ extension GenerateRequest {
       momcBin: overrides.momcBin ?? config.momcBin,
       outputDir: overrides.outputDir ?? config.outputDir,
       moduleName: overrides.moduleName ?? config.moduleName,
-      typeMappings: config.typeMappings ?? makeDefaultToolingTypeMappings(),
+      typeMappings: mergeToolingTypeMappings(config.typeMappings),
       attributeRules: config.attributeRules ?? .init(),
       accessLevel: overrides.accessLevel ?? config.accessLevel ?? .internal,
       singleFile: overrides.singleFile ?? config.singleFile ?? false,
@@ -332,9 +339,10 @@ extension ValidateRequest {
     self.init(
       modelPath: overrides.modelPath ?? config.modelPath,
       modelVersion: overrides.modelVersion ?? config.modelVersion,
+      momcBin: overrides.momcBin ?? config.momcBin,
       sourceDir: overrides.sourceDir ?? config.sourceDir,
       moduleName: overrides.moduleName ?? config.moduleName,
-      typeMappings: config.typeMappings ?? makeDefaultToolingTypeMappings(),
+      typeMappings: mergeToolingTypeMappings(config.typeMappings),
       attributeRules: config.attributeRules ?? .init(),
       include: overrides.include ?? config.include ?? [],
       exclude: overrides.exclude ?? config.exclude ?? [],

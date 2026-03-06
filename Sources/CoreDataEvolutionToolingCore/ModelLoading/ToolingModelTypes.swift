@@ -43,3 +43,20 @@ public struct ToolingResolvedModelInput: Sendable, Equatable {
     self.selectedVersionName = selectedVersionName
   }
 }
+
+/// Holds the temporary compile root alive for as long as a loaded source model is retained.
+///
+/// Source models are compiled into a unique temp directory. Tying cleanup to the loaded-model
+/// lifetime avoids leaking `.mom` / `.momd` artifacts across repeated CLI runs.
+public final class ToolingTemporaryArtifactToken: @unchecked Sendable {
+  private let rootURL: URL?
+
+  public init(rootURL: URL?) {
+    self.rootURL = rootURL
+  }
+
+  deinit {
+    guard let rootURL else { return }
+    try? FileManager.default.removeItem(at: rootURL)
+  }
+}

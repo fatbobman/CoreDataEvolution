@@ -24,6 +24,9 @@ struct InspectCommand: ParsableCommand {
   @Option(name: .long, help: "Specific model version name. Defaults to current/latest.")
   var modelVersion: String?
 
+  @Option(name: .long, help: "Path to momc binary.")
+  var momcBin: String?
+
   @Option(name: .long, help: "Path to JSON config file.")
   var config: String?
 

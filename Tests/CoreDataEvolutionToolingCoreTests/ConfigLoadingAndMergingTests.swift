@@ -73,7 +73,7 @@ struct ConfigLoadingAndMergingTests {
       headerTemplate: nil,
       generateInit: false,
       relationshipSetterPolicy: .warning,
-      relationshipCountPolicy: ToolingRelationshipGenerationPolicy.none,
+      relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
       defaultDecodeFailurePolicy: .fallbackToDefaultValue
     )
     var overrides = GenerateRequestOverrides()
@@ -89,7 +89,8 @@ struct ConfigLoadingAndMergingTests {
 
     #expect(request.modelPath == "Models/AppModel.xcdatamodeld")
     #expect(request.modelVersion == "V2")
-    #expect(request.typeMappings == typeMappings)
+    #expect(request.typeMappings[coreDataType: "Integer 64"]?.swiftType == "Int")
+    #expect(request.typeMappings[coreDataType: "UUID"]?.swiftType == "UUID")
     #expect(request.attributeRules == attributeRules)
     #expect(request.accessLevel == .public)
     #expect(request.overwrite == .all)
@@ -116,6 +117,7 @@ struct ConfigLoadingAndMergingTests {
     let config = ValidateTemplate(
       modelPath: "Models/AppModel.xcdatamodeld",
       modelVersion: nil,
+      momcBin: nil,
       sourceDir: "Sources/AppModels",
       moduleName: "AppModels",
       typeMappings: typeMappings,
@@ -133,7 +135,8 @@ struct ConfigLoadingAndMergingTests {
 
     #expect(request.modelPath == "Models/AppModel.xcdatamodeld")
     #expect(request.sourceDir == "Sources/AppModels")
-    #expect(request.typeMappings == typeMappings)
+    #expect(request.typeMappings[coreDataType: "Integer 64"]?.swiftType == "Int")
+    #expect(request.typeMappings[coreDataType: "Date"]?.swiftType == "Date")
     #expect(request.attributeRules == attributeRules)
     #expect(request.level == .quick)
     #expect(request.report == .text)

@@ -66,8 +66,8 @@ public struct GenerateRequest: Sendable, Equatable {
   public let format: ToolingFormatMode
   public let headerTemplate: String?
   public let generateInit: Bool
-  public let relationshipSetterPolicy: ToolingRelationshipGenerationPolicy
-  public let relationshipCountPolicy: ToolingRelationshipGenerationPolicy
+  public let relationshipSetterPolicy: ToolingRelationshipSetterPolicy
+  public let relationshipCountPolicy: ToolingRelationshipCountPolicy
   public let defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy
 
   public init(
@@ -87,8 +87,8 @@ public struct GenerateRequest: Sendable, Equatable {
     format: ToolingFormatMode,
     headerTemplate: String?,
     generateInit: Bool,
-    relationshipSetterPolicy: ToolingRelationshipGenerationPolicy,
-    relationshipCountPolicy: ToolingRelationshipGenerationPolicy,
+    relationshipSetterPolicy: ToolingRelationshipSetterPolicy,
+    relationshipCountPolicy: ToolingRelationshipCountPolicy,
     defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy
   ) {
     self.modelPath = modelPath
@@ -117,6 +117,7 @@ public struct GenerateRequest: Sendable, Equatable {
 public struct ValidateRequest: Sendable, Equatable {
   public let modelPath: String
   public let modelVersion: String?
+  public let momcBin: String?
   public let sourceDir: String
   public let moduleName: String
   public let typeMappings: ToolingTypeMappings
@@ -131,6 +132,7 @@ public struct ValidateRequest: Sendable, Equatable {
   public init(
     modelPath: String,
     modelVersion: String?,
+    momcBin: String?,
     sourceDir: String,
     moduleName: String,
     typeMappings: ToolingTypeMappings,
@@ -144,6 +146,7 @@ public struct ValidateRequest: Sendable, Equatable {
   ) {
     self.modelPath = modelPath
     self.modelVersion = modelVersion
+    self.momcBin = momcBin
     self.sourceDir = sourceDir
     self.moduleName = moduleName
     self.typeMappings = typeMappings
@@ -161,10 +164,12 @@ public struct ValidateRequest: Sendable, Equatable {
 public struct InspectRequest: Sendable, Equatable {
   public let modelPath: String
   public let modelVersion: String?
+  public let momcBin: String?
 
-  public init(modelPath: String, modelVersion: String?) {
+  public init(modelPath: String, modelVersion: String?, momcBin: String?) {
     self.modelPath = modelPath
     self.modelVersion = modelVersion
+    self.momcBin = momcBin
   }
 }
 
@@ -184,8 +189,8 @@ public struct GenerateRequestOverrides: Sendable, Equatable {
   public var format: ToolingFormatMode?
   public var headerTemplate: String?
   public var generateInit: Bool?
-  public var relationshipSetterPolicy: ToolingRelationshipGenerationPolicy?
-  public var relationshipCountPolicy: ToolingRelationshipGenerationPolicy?
+  public var relationshipSetterPolicy: ToolingRelationshipSetterPolicy?
+  public var relationshipCountPolicy: ToolingRelationshipCountPolicy?
   public var defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy?
 
   public init() {}
@@ -195,6 +200,7 @@ public struct GenerateRequestOverrides: Sendable, Equatable {
 public struct ValidateRequestOverrides: Sendable, Equatable {
   public var modelPath: String?
   public var modelVersion: String?
+  public var momcBin: String?
   public var sourceDir: String?
   public var moduleName: String?
   public var include: [String]?

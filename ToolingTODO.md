@@ -34,8 +34,23 @@
 - `[x]` 支持 `modelVersion` 显式选择
 - `[x]` 默认选择 `xccurrentversion`
 - `[x]` 缺失 `xccurrentversion` 时回退到最新版本
+- `[x]` `.xccurrentversion` 损坏或指向缺失版本时直接报错
 - `[x]` 支持 `momc` 自动发现
 - `[x]` 支持 `momcBin` 手动覆盖
+- `[x]` 清理源码模型编译产生的临时 `.mom` / `.momd`
+
+## 2.1. Pre-IR Hardening
+
+- `[x]` 建立 `NSAttributeType -> typeMappings key` 中心映射
+- `[x]` 明确 `storageMethod == nil` 等价于 `.default`
+- `[x]` 明确 `decodeFailurePolicy` 的优先级：attribute > request default
+- `[x]` 增加配置语义校验层
+- `[x]` 校验 `singleFile` 与 `splitByEntity` 冲突
+- `[x]` 校验 `attributeRules` 指向不存在的 entity / field
+- `[x]` 将 CLI 可覆盖参数改为可区分“未传入”
+- `[x]` 为 `inspect` 请求补充 `momcBin`
+- `[x]` 拆分 `relationshipSetterPolicy` 与 `relationshipCountPolicy` 枚举
+- `[x]` bootstrap-config 写回实际解析出的 `modelVersion`
 
 ## 3. IR
 
@@ -154,3 +169,10 @@
 - `2.` 将 `inspect` 接入 `ToolingCore`
 - `3.` 为 `generate` / `validate` 建立 service 层入口
 - `4.` 将 CLI `--config` 接入 `ToolingCore`
+
+## 12. Deferred / Known Gaps
+
+- `[ ]` `bootstrap-config` 仍不会自动识别 enum/raw 候选字段，只保留手动调整空间。
+- `[ ]` `bootstrap-config` 仍不会自动推断 composition 候选字段。
+- `[ ]` `generate.attributeRules` 与 `validate.attributeRules` 仍是两份独立配置，暂不提供引用/复用语法。
+- `[ ]` `generate` / `validate` service 接线后，仍需在“合并 CLI overrides 后”的 request 层再做一次最终校验。

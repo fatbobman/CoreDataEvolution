@@ -19,34 +19,37 @@ struct ValidateCommand: ParsableCommand {
   )
 
   @Option(name: .long, help: "Path to model (.xcdatamodeld/.xcdatamodel/.momd).")
-  var modelPath: String
+  var modelPath: String?
 
   @Option(name: .long, help: "Specific model version name. Defaults to current/latest.")
   var modelVersion: String?
 
+  @Option(name: .long, help: "Path to momc binary.")
+  var momcBin: String?
+
   @Option(name: .long, help: "Source directory containing generated/model code.")
-  var sourceDir: String
+  var sourceDir: String?
 
   @Option(name: .long, help: "Swift module name.")
-  var moduleName: String
+  var moduleName: String?
 
-  @Option(name: .long, parsing: .upToNextOption, help: "Include glob patterns.")
-  var include: [String] = []
+  @Option(name: .long, help: "Comma-separated include glob patterns.")
+  var include: String?
 
-  @Option(name: .long, parsing: .upToNextOption, help: "Exclude glob patterns.")
-  var exclude: [String] = []
+  @Option(name: .long, help: "Comma-separated exclude glob patterns.")
+  var exclude: String?
 
   @Option(name: .long, help: "Validation level: quick/strict.")
-  var level: ToolingValidationLevel = .quick
+  var level: ToolingValidationLevel?
 
   @Option(name: .long, help: "Report format: text/json/sarif.")
-  var report: ToolingReportFormat = .text
+  var report: ToolingReportFormat?
 
-  @Flag(name: .long, help: "Treat warnings as errors.")
-  var failOnWarning = false
+  @Option(name: .long, help: "Whether to treat warnings as errors (true/false).")
+  var failOnWarning: Bool?
 
   @Option(name: .long, help: "Maximum issues to report.")
-  var maxIssues = 200
+  var maxIssues: Int?
 
   @Option(name: .long, help: "Path to JSON config file.")
   var config: String?

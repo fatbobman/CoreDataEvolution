@@ -36,6 +36,10 @@ struct BootstrapConfigServiceTests {
     )
 
     let itemRules = try #require(result.template.generate?.attributeRules?.entities["CDEItem"])
+    #expect(
+      result.template.generate?.modelVersion == "CoreDataEvolutionIntegrationModel.xcdatamodel")
+    #expect(
+      result.template.validate?.modelVersion == "CoreDataEvolutionIntegrationModel.xcdatamodel")
     let nameRule = try #require(itemRules["name"])
     #expect(nameRule.swiftName == nil)
     #expect(nameRule.swiftType == nil)
@@ -50,6 +54,7 @@ struct BootstrapConfigServiceTests {
     #expect(json.contains("\"typeMappings\""))
     #expect(json.contains("\"location\""))
     #expect(result.diagnostics.isEmpty == false)
+    #expect(result.diagnostics.contains(where: { $0.message.contains("Binary -> Data") }))
   }
 
   private func findRepositoryRoot(filePath: String = #filePath) throws -> URL {

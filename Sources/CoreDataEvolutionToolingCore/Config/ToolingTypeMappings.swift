@@ -84,18 +84,18 @@ public struct ToolingTypeMappings: Codable, Sendable, Equatable {
 public func makeDefaultToolingTypeMappings() -> ToolingTypeMappings {
   .init(
     coreDataTypes: [
-      "Binary": .init(swiftType: "Data"),
-      "Boolean": .init(swiftType: "Bool"),
-      "Date": .init(swiftType: "Date"),
-      "Decimal": .init(swiftType: "Decimal"),
-      "Double": .init(swiftType: "Double"),
-      "Float": .init(swiftType: "Float"),
-      "Integer 16": .init(swiftType: "Int16"),
-      "Integer 32": .init(swiftType: "Int32"),
-      "Integer 64": .init(swiftType: "Int64"),
-      "String": .init(swiftType: "String"),
-      "URI": .init(swiftType: "URL"),
-      "UUID": .init(swiftType: "UUID"),
+      ToolingCoreDataPrimitiveType.binary.rawValue: .init(swiftType: "Data"),
+      ToolingCoreDataPrimitiveType.boolean.rawValue: .init(swiftType: "Bool"),
+      ToolingCoreDataPrimitiveType.date.rawValue: .init(swiftType: "Date"),
+      ToolingCoreDataPrimitiveType.decimal.rawValue: .init(swiftType: "Decimal"),
+      ToolingCoreDataPrimitiveType.double.rawValue: .init(swiftType: "Double"),
+      ToolingCoreDataPrimitiveType.float.rawValue: .init(swiftType: "Float"),
+      ToolingCoreDataPrimitiveType.integer16.rawValue: .init(swiftType: "Int16"),
+      ToolingCoreDataPrimitiveType.integer32.rawValue: .init(swiftType: "Int32"),
+      ToolingCoreDataPrimitiveType.integer64.rawValue: .init(swiftType: "Int64"),
+      ToolingCoreDataPrimitiveType.string.rawValue: .init(swiftType: "String"),
+      ToolingCoreDataPrimitiveType.uri.rawValue: .init(swiftType: "URL"),
+      ToolingCoreDataPrimitiveType.uuid.rawValue: .init(swiftType: "UUID"),
     ]
   )
 }

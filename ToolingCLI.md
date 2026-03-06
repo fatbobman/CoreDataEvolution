@@ -103,6 +103,7 @@ CLI v1 先解决两件事：
   "validate": {
     "modelPath": "Models/AppModel.xcdatamodeld",
     "modelVersion": null,
+    "momcBin": null,
     "sourceDir": "Sources/AppModels",
     "moduleName": "AppModels",
     "typeMappings": {
@@ -269,12 +270,16 @@ CLI v1 先解决两件事：
 
 - 生成完整 `typeMappings`，方便用户直接修改默认类型映射策略。
 - 为每个实体的每个 attribute 生成一条 `attributeRules` 占位规则。
+- 如果未显式传入 `modelVersion`，导出的配置会写入实际解析出的版本名，保证后续 `generate` / `validate` 可复现。
 - 如果 `swiftName == persistentField`，默认省略 `swiftName`，保持草案简洁。
 - 只有当属性需要重命名时，才显式填写 `swiftName`。
 - 对 `Transformable` 字段：
   - 自动生成 `storageMethod: "transformed"`
   - 如果模型里已有 transformer 名称，则带出 `transformerType`
   - 同时在 diagnostics 中提示用户补齐/确认 `swiftType`
+- 对 `Binary` 字段：
+  - 保持默认 `Binary -> Data` 映射
+  - 在 diagnostics 中提示开发者，如需业务类型应改成 `storageMethod: "codable"`
 - 对普通基础字段，不自动写入 `storageMethod`，保持可编辑但不过度冗余。
 - v1 不为 relationship 生成配置规则。
 
@@ -307,6 +312,7 @@ CLI v1 先解决两件事：
 
 - `.xccurrentversion` 是 Xcode / Core Data 对“当前版本”的权威来源。
 - “回退到最新版本”仅是容错策略，不应替代对 `.xccurrentversion` 的维护。
+- 如果 `.xccurrentversion` 存在但内容损坏，或指向了不存在的版本，tool 会直接报错，不会静默回退到最新版本。
 - `modelVersion` 同时接受 `V2` 和 `V2.xcdatamodel` 两种写法。
 
 ### 4.2 输出参数
@@ -373,6 +379,7 @@ CLI v1 先解决两件事：
 - `accessLevel`: optional, enum(`internal`,`public`)，默认 `internal`。
 - `singleFile`: optional, bool，默认 `false`。
 - `splitByEntity`: optional, bool，默认 `true`。
+- `singleFile` 与 `splitByEntity` 不能同时为 `true`。
 - `overwrite`: optional, enum(`none`,`changed`,`all`)，默认 `none`。
 - `cleanStale`: optional, bool，默认 `false`。
 - `dryRun`: optional, bool，默认 `false`。
@@ -388,6 +395,7 @@ CLI v1 先解决两件事：
 ### 5.1 输入范围
 
 - `--model-path <path>`
+- `--momc-bin <path>`
 - `--source-dir <path>`
 - `--module-name <name>`
 - `--type-mappings`
@@ -419,6 +427,7 @@ CLI v1 先解决两件事：
 
 - `modelPath`: required, string，无默认值。
 - `modelVersion`: optional, string/null，默认 `null`（自动选择当前版本，缺失则最新）。
+- `momcBin`: optional, string/null，默认 `null`（自动发现）。
 - `sourceDir`: required, string，无默认值。
 - `moduleName`: required, string，无默认值。
 - `typeMappings`: optional, object，默认内建精确类型映射表。
@@ -430,7 +439,21 @@ CLI v1 先解决两件事：
 - `failOnWarning`: optional, bool，默认 `false`。
 - `maxIssues`: optional, integer，默认 `200`。
 
-### 5.5 全局退出码约定（建议统一）
+### 5.5 配置语义校验（当前已实现）
+
+- 配置文件除 `"$schemaVersion"` 外，还会做一层语义校验。
+- 当前会提前拒绝：
+  - `singleFile == true` 且 `splitByEntity == true`
+  - `storageMethod: "transformed"` 但缺少 `transformerType`
+  - `decodeFailurePolicy` 用在 `default` 或 `composition`
+  - 非法或空的 `swiftType` / `swiftName` / `transformerType`
+  - `typeMappings` 中未知的 Core Data primitive key
+- 当配置已经结合真实模型做校验时，还会进一步拒绝：
+  - `attributeRules` 指向不存在的 entity / attribute
+  - 默认存储无法从 Core Data primitive 推导出映射 key
+  - `raw` / `codable` / `composition` / `transformed` 缺少 `swiftType`
+
+### 5.6 全局退出码约定（建议统一）
 
 - `0`: 命令执行成功（包括 `validate` 无错误）。
 - `1`: 业务层失败或用户输入错误（可通过修改参数/输入修复）。

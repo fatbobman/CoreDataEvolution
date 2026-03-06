@@ -48,6 +48,43 @@ struct ToolingModelLoaderTests {
     #expect(resolved.selectedVersionName == "V1.xcdatamodel")
   }
 
+  @Test("xcdatamodeld rejects malformed xccurrentversion")
+  func malformedCurrentVersionThrows() throws {
+    let packageURL = try makeVersionedModelPackage(
+      versions: ["V1.xcdatamodel"],
+      currentVersion: nil
+    )
+    try Data("not-a-plist".utf8).write(to: packageURL.appendingPathComponent(".xccurrentversion"))
+
+    do {
+      _ = try ToolingModelLoader.resolveModelInput(
+        modelPath: packageURL.path,
+        modelVersion: nil
+      )
+      Issue.record("Expected malformed current version to fail.")
+    } catch let error as ToolingFailure {
+      #expect(error.code == .modelCurrentVersionInvalid)
+    }
+  }
+
+  @Test("xcdatamodeld rejects current version that points to missing model")
+  func missingCurrentVersionTargetThrows() throws {
+    let packageURL = try makeVersionedModelPackage(
+      versions: ["V1.xcdatamodel"],
+      currentVersion: "V2.xcdatamodel"
+    )
+
+    do {
+      _ = try ToolingModelLoader.resolveModelInput(
+        modelPath: packageURL.path,
+        modelVersion: nil
+      )
+      Issue.record("Expected invalid current version target to fail.")
+    } catch let error as ToolingFailure {
+      #expect(error.code == .modelCurrentVersionInvalid)
+    }
+  }
+
   @Test("xcdatamodeld falls back to latest version when xccurrentversion is missing")
   func latestVersionFallbackIsUsed() throws {
     let packageURL = try makeVersionedModelPackage(
@@ -141,6 +178,29 @@ struct ToolingModelLoaderTests {
       loaded.resolvedInput.selectedVersionName == "CoreDataEvolutionIntegrationModel.xcdatamodel")
     #expect(loaded.model.entitiesByName["CDEItem"] != nil)
     #expect(loaded.model.entitiesByName["CDETag"] != nil)
+  }
+
+  @Test("temporary compiled artifacts are cleaned up with loaded model lifetime")
+  func temporaryCompiledArtifactsAreCleanedUp() throws {
+    let repositoryRoot = try findRepositoryRoot()
+    let modelPath =
+      repositoryRoot
+      .appendingPathComponent("Models")
+      .appendingPathComponent("Integration")
+      .appendingPathComponent("CoreDataEvolutionIntegrationModel.xcdatamodeld")
+
+    var loaded: ToolingLoadedModel? = try ToolingModelLoader.loadModel(
+      modelPath: modelPath.path,
+      modelVersion: nil
+    )
+    let compileRootURL = try #require(
+      loaded?.resolvedInput.compiledModelURL.deletingLastPathComponent())
+
+    #expect(FileManager.default.fileExists(atPath: compileRootURL.path))
+
+    loaded = nil
+
+    #expect(FileManager.default.fileExists(atPath: compileRootURL.path) == false)
   }
 
   private func makeVersionedModelPackage(

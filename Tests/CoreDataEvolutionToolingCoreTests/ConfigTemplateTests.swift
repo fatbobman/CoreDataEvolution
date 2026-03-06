@@ -47,12 +47,11 @@ struct ConfigTemplateTests {
     #expect(template.generate?.overwrite == ToolingOverwriteMode.none)
     #expect(template.generate?.format == ToolingFormatMode.none)
     #expect(template.generate?.relationshipSetterPolicy == .warning)
-    #expect(
-      template.generate?.relationshipCountPolicy == ToolingRelationshipGenerationPolicy.none
-    )
+    #expect(template.generate?.relationshipCountPolicy == ToolingRelationshipCountPolicy.none)
     #expect(template.generate?.defaultDecodeFailurePolicy == .fallbackToDefaultValue)
     #expect(template.validate?.typeMappings == defaultTypeMappings)
     #expect(template.validate?.attributeRules == .init())
+    #expect(template.validate?.momcBin == nil)
     #expect(template.validate?.level == .quick)
     #expect(template.validate?.report == .text)
     #expect(template.validate?.maxIssues == 200)

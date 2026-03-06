@@ -19,7 +19,7 @@ struct GenerateCommand: ParsableCommand {
   )
 
   @Option(name: .long, help: "Path to model (.xcdatamodeld/.xcdatamodel/.momd).")
-  var modelPath: String
+  var modelPath: String?
 
   @Option(name: .long, help: "Specific model version name. Defaults to current/latest.")
   var modelVersion: String?
@@ -28,46 +28,47 @@ struct GenerateCommand: ParsableCommand {
   var momcBin: String?
 
   @Option(name: .long, help: "Output directory for generated files.")
-  var outputDir: String
+  var outputDir: String?
 
   @Option(name: .long, help: "Swift module name for generated code.")
-  var moduleName: String
+  var moduleName: String?
 
   @Option(name: .long, help: "Access level: internal/public.")
-  var accessLevel: ToolingAccessLevel = .internal
+  var accessLevel: ToolingAccessLevel?
 
-  @Flag(name: .long, help: "Generate a single output file.")
-  var singleFile = false
+  @Option(name: .long, help: "Whether to generate a single output file (true/false).")
+  var singleFile: Bool?
 
-  @Flag(name: .long, inversion: .prefixedNo, help: "Split outputs by entity.")
-  var splitByEntity = true
+  @Option(name: .long, help: "Whether to split outputs by entity (true/false).")
+  var splitByEntity: Bool?
 
   @Option(name: .long, help: "Overwrite mode: none/changed/all.")
-  var overwrite: ToolingOverwriteMode = .none
+  var overwrite: ToolingOverwriteMode?
 
-  @Flag(name: .long, help: "Clean stale generated files in output directory.")
-  var cleanStale = false
+  @Option(
+    name: .long, help: "Whether to clean stale generated files in output directory (true/false).")
+  var cleanStale: Bool?
 
-  @Flag(name: .long, help: "Preview changes without writing files.")
-  var dryRun = false
+  @Option(name: .long, help: "Whether to preview changes without writing files (true/false).")
+  var dryRun: Bool?
 
   @Option(name: .long, help: "Format mode: none/swift-format/swiftformat.")
-  var format: ToolingFormatMode = .none
+  var format: ToolingFormatMode?
 
   @Option(name: .long, help: "Header template path.")
   var headerTemplate: String?
 
-  @Flag(name: .long, help: "Generate convenience init.")
-  var generateInit = false
+  @Option(name: .long, help: "Whether to generate a convenience init (true/false).")
+  var generateInit: Bool?
 
   @Option(name: .long, help: "Relationship setter policy: none/warning/plain.")
-  var relationshipSetterPolicy: ToolingRelationshipGenerationPolicy = .warning
+  var relationshipSetterPolicy: ToolingRelationshipSetterPolicy?
 
   @Option(name: .long, help: "Relationship count policy: none/warning/plain.")
-  var relationshipCountPolicy: ToolingRelationshipGenerationPolicy = .none
+  var relationshipCountPolicy: ToolingRelationshipCountPolicy?
 
   @Option(name: .long, help: "Decode failure policy: fallbackToDefaultValue/debugAssertNil.")
-  var defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy = .fallbackToDefaultValue
+  var defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy?
 
   @Option(name: .long, help: "Path to JSON config file.")
   var config: String?

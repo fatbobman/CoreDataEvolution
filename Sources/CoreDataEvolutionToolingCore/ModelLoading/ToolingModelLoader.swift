@@ -16,13 +16,16 @@ import Foundation
 public struct ToolingLoadedModel {
   public let model: NSManagedObjectModel
   public let resolvedInput: ToolingResolvedModelInput
+  let temporaryArtifactToken: ToolingTemporaryArtifactToken?
 
   public init(
     model: NSManagedObjectModel,
-    resolvedInput: ToolingResolvedModelInput
+    resolvedInput: ToolingResolvedModelInput,
+    temporaryArtifactToken: ToolingTemporaryArtifactToken? = nil
   ) {
     self.model = model
     self.resolvedInput = resolvedInput
+    self.temporaryArtifactToken = temporaryArtifactToken
   }
 }
 
@@ -136,19 +139,29 @@ public enum ToolingModelLoader {
       return try loadCompiledModel(from: resolvedInput)
     case .xcdatamodeld, .xcdatamodel:
       let momcURL = try discoverMomcBinary(preferredPath: momcBin)
-      try compileModel(
-        sourceURL: resolvedInput.selectedSourceURL,
-        outputURL: resolvedInput.compiledModelURL,
-        momcURL: momcURL
-      )
-      return try loadCompiledModel(from: resolvedInput)
+      let temporaryArtifactsRootURL = resolvedInput.compiledModelURL.deletingLastPathComponent()
+      do {
+        try compileModel(
+          sourceURL: resolvedInput.selectedSourceURL,
+          outputURL: resolvedInput.compiledModelURL,
+          momcURL: momcURL
+        )
+        return try loadCompiledModel(
+          from: resolvedInput,
+          temporaryArtifactToken: .init(rootURL: temporaryArtifactsRootURL)
+        )
+      } catch {
+        try? FileManager.default.removeItem(at: temporaryArtifactsRootURL)
+        throw error
+      }
     }
   }
 
   // Loading is split from path resolution so tests can validate version-selection behavior
   // without requiring a working Core Data toolchain.
   private static func loadCompiledModel(
-    from resolvedInput: ToolingResolvedModelInput
+    from resolvedInput: ToolingResolvedModelInput,
+    temporaryArtifactToken: ToolingTemporaryArtifactToken? = nil
   ) throws -> ToolingLoadedModel {
     guard let model = NSManagedObjectModel(contentsOf: resolvedInput.compiledModelURL) else {
       throw ToolingFailure.runtime(
@@ -159,7 +172,8 @@ public enum ToolingModelLoader {
 
     return .init(
       model: model,
-      resolvedInput: resolvedInput
+      resolvedInput: resolvedInput,
+      temporaryArtifactToken: temporaryArtifactToken
     )
   }
 
@@ -236,15 +250,36 @@ public enum ToolingModelLoader {
       return nil
     }
 
-    let data = try Data(contentsOf: currentVersionFile)
-    let plist = try PropertyListSerialization.propertyList(from: data, format: nil)
+    let data: Data
+    let plist: Any
+    do {
+      data = try Data(contentsOf: currentVersionFile)
+      plist = try PropertyListSerialization.propertyList(from: data, format: nil)
+    } catch {
+      throw ToolingFailure.user(
+        .modelCurrentVersionInvalid,
+        "failed to read '.xccurrentversion' in '\(packageURL.lastPathComponent)' (\(error.localizedDescription))."
+      )
+    }
+
     guard let dictionary = plist as? [String: Any],
       let currentName = dictionary["_XCCurrentVersionName"] as? String
     else {
-      return nil
+      throw ToolingFailure.user(
+        .modelCurrentVersionInvalid,
+        "'.xccurrentversion' in '\(packageURL.lastPathComponent)' is malformed."
+      )
     }
 
-    return availableVersions.first { $0.lastPathComponent == currentName }
+    guard let versionURL = availableVersions.first(where: { $0.lastPathComponent == currentName })
+    else {
+      throw ToolingFailure.user(
+        .modelCurrentVersionInvalid,
+        "'.xccurrentversion' in '\(packageURL.lastPathComponent)' points to missing version '\(currentName)'."
+      )
+    }
+
+    return versionURL
   }
 
   private static func makeCompiledOutputURL(

@@ -35,7 +35,7 @@ public enum BootstrapConfigService {
       schemaVersion: toolingSupportedSchemaVersion,
       generate: .init(
         modelPath: request.modelPath,
-        modelVersion: request.modelVersion,
+        modelVersion: loadedModel.resolvedInput.selectedVersionName ?? request.modelVersion,
         momcBin: request.momcBin,
         outputDir: request.outputDir,
         moduleName: request.moduleName,
@@ -51,12 +51,13 @@ public enum BootstrapConfigService {
         headerTemplate: nil,
         generateInit: false,
         relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: ToolingRelationshipGenerationPolicy.none,
+        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       validate: .init(
         modelPath: request.modelPath,
-        modelVersion: request.modelVersion,
+        modelVersion: loadedModel.resolvedInput.selectedVersionName ?? request.modelVersion,
+        momcBin: request.momcBin,
         sourceDir: request.sourceDir,
         moduleName: request.moduleName,
         typeMappings: typeMappings,
@@ -73,12 +74,15 @@ public enum BootstrapConfigService {
     let diagnostics = makeDiagnostics(from: loadedModel.model)
 
     do {
+      try validateToolingConfigTemplate(template)
       let jsonData = try encodeToolingJSON(template)
       return .init(
         template: template,
         jsonData: jsonData,
         diagnostics: diagnostics
       )
+    } catch let failure as ToolingFailure {
+      throw failure
     } catch {
       throw ToolingFailure.runtime(
         .jsonEncodeFailed,
@@ -129,6 +133,19 @@ public enum BootstrapConfigService {
     for entity in model.entities.sorted(by: { ($0.name ?? "") < ($1.name ?? "") }) {
       guard let entityName = entity.name else { continue }
       for attribute in entity.attributesByName.values.sorted(by: { $0.name < $1.name }) {
+        if attribute.attributeType == .binaryDataAttributeType {
+          diagnostics.append(
+            .init(
+              severity: .note,
+              code: nil,
+              message:
+                "bootstrap-config kept '\(entityName).\(attribute.name)' on the default Binary -> Data mapping.",
+              hint:
+                "If this field should decode a Codable payload, set attributeRules.\(entityName).\(attribute.name).swiftType and storageMethod 'codable'."
+            )
+          )
+        }
+
         if attribute.attributeType == .transformableAttributeType {
           diagnostics.append(
             .init(
@@ -142,6 +159,7 @@ public enum BootstrapConfigService {
             )
           )
         }
+
       }
     }
 
