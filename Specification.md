@@ -42,6 +42,7 @@ Runtime schema / runtime model builder 的 v1 边界：
 9. 关系属性名必须与 xcdatamodeld 中的关系名保持一致，不支持重命名映射。
 10. 模型层 attribute 必须满足“可选或有默认值”：若 `Optional=false`，则必须在 xcdatamodeld 中提供默认值。
 11. 代码层持久化属性必须满足同构规则：若为非可选必须显式默认值；若为可选可省略初始化器（视为默认 `nil`，无需写 `= nil`）。
+12. 不支持 Derived Attribute（派生属性）；模型检查发现 derived attribute 时，`validate` 直接报错，`generate` 直接拒绝。
 
 ## 3. Macro Behavior
 
@@ -128,6 +129,10 @@ enum RelationshipGenerationPolicy { case none, warning, plain }
   - v1 仅允许与 `.default` 存储配合使用
   - v1 禁止与 `.raw` / `.codable` / `.transformed` / `.composition` 混用
   - tooling 的 `generate` / `validate` 需要识别并校验该 trait
+- 不支持派生属性（Derived Attribute）：
+  - v1 不为 derived attribute 生成代码
+  - v1 不提供与派生表达式对齐的 DSL 或 metadata
+  - 模型检查发现 derived attribute 时，`validate` 直接报错，`generate` 直接拒绝
 
 ### `@Ignore`
 
@@ -326,6 +331,7 @@ let model = NSManagedObjectModel.makeRuntimeModel([
 必须检查：
 
 - Codegen = `Manual/None`
+- Derived Attribute = unsupported（发现即 error）
 - Attribute 映射/类型/optional/default/storageMethod
 - 持久化属性默认值约束（非可选必须显式默认值；可选省略初始化器按 `nil` 处理）
 - 模型层默认值约束（`Optional=false` 的 attribute 必须有默认值；`Optional=true` 可无默认值）
@@ -347,6 +353,7 @@ let model = NSManagedObjectModel.makeRuntimeModel([
 生成前必须拒绝以下情况：
 
 - Codegen 非 `Manual/None`
+- 存在 Derived Attribute
 - 任一 relationship 缺 inverse
 - 任一 to-many relationship `Optional=false`
 

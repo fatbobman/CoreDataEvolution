@@ -489,6 +489,7 @@ v1 约束：
 - `transient` 仅允许与 `.default` 存储配合使用
 - 暂不支持与 `.raw` / `.codable` / `.transformed` / `.composition` 混用
 - tooling 的 `generate` / `validate` 需要识别并校验该 trait
+- 不支持 Derived Attribute（派生属性）；若模型中存在派生属性，`validate` 必须报错，`generate` 必须拒绝继续
 
 ---
 

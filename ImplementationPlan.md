@@ -112,6 +112,9 @@
   - 表示 transient Core Data attribute
   - v1 仅允许与 `.default` 存储配合使用
   - v1 禁止与 `.raw` / `.codable` / `.transformed` / `.composition` 混用
+- 明确不支持 Derived Attribute（派生属性）：
+  - `validate` 发现即报错
+  - `generate` 发现即拒绝
 - 复用缓存后的 `NSManagedObjectModel`，避免同一组测试 schema 在一轮测试中重复创建多个 model 实例
 - 明确非目标：
   - 不保证与 `xcdatamodeld` 的 hash/version/migration 一致
@@ -126,6 +129,7 @@
 - relationship/inverse 可在输入类型集合中正确解析
 - `@Attribute(.unique)` 能转化为单字段唯一约束 metadata
 - `@Attribute(.transient)` 的 generate / validate 规则与 runtime schema 行为一致
+- Derived Attribute 会被 generate / validate 一致拒绝
 - builder 对不受支持的 primitive 默认值表达式直接报错，不静默丢失默认值
 - `unique` / `transient` 完成后，tooling 的 `generate` / `validate` 需补充对应测试，覆盖生成与校验两条路径
 
