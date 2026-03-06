@@ -257,6 +257,15 @@ public enum ToolingValidateComparator {
       )
     }
 
+    let actualUnique = sourceProperty.attribute?.isUnique ?? false
+    if actualUnique != attribute.isUnique {
+      diagnostics.append(
+        error(
+          "validate found unique mismatch for '\(entityName).\(expectedPropertyName)'. Expected '\(attribute.isUnique)', found '\(actualUnique)'."
+        )
+      )
+    }
+
     if attribute.storage.method == .transformed,
       sourceProperty.attribute?.transformerType != attribute.storage.transformerType
     {

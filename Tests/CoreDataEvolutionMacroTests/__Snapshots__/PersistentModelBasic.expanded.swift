@@ -211,6 +211,59 @@ final class Item: NSManagedObject {
     return table
   }()
 
+  static var __cdRuntimeEntitySchema: CoreDataEvolution.CDRuntimeEntitySchema {
+    .init(
+      entityName: "Item",
+      managedObjectClassName: NSStringFromClass(Self.self),
+      attributes: [
+        CoreDataEvolution.CDRuntimeAttributeSchema(
+          swiftName: "date",
+          persistentName: "timestamp",
+          swiftTypeName: "Date?",
+          isOptional: true,
+          defaultValueExpression: "nil",
+          storage: .primitive(.date),
+          isUnique: false
+        ),
+        CoreDataEvolution.CDRuntimeAttributeSchema(
+          swiftName: "title",
+          persistentName: "title",
+          swiftTypeName: "String",
+          isOptional: false,
+          defaultValueExpression: "\"\"",
+          storage: .primitive(.string),
+          isUnique: false
+        ),
+      ],
+      relationships: [
+        CoreDataEvolution.CDRuntimeRelationshipSchema(
+          swiftName: "tags",
+          persistentName: "tags",
+          targetTypeName: "Tag",
+          kind: .toManySet,
+          isOptional: true
+        ),
+        CoreDataEvolution.CDRuntimeRelationshipSchema(
+          swiftName: "orderedTags",
+          persistentName: "orderedTags",
+          targetTypeName: "Tag",
+          kind: .toManyArray,
+          isOptional: true
+        ),
+        CoreDataEvolution.CDRuntimeRelationshipSchema(
+          swiftName: "category",
+          persistentName: "category",
+          targetTypeName: "Category",
+          kind: .toOne,
+          isOptional: true
+        ),
+      ],
+      uniquenessConstraints: [
+
+      ]
+    )
+  }
+
   convenience init(
     date: Date?,
     title: String,
@@ -243,5 +296,5 @@ final class Item: NSManagedObject {
   }
 }
 
-extension Item: CoreDataEvolution.PersistentEntity {
+extension Item: CoreDataEvolution.PersistentEntity, CoreDataEvolution.CDRuntimeSchemaProviding {
 }

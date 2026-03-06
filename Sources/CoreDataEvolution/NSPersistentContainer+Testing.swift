@@ -119,6 +119,25 @@ extension NSPersistentContainer {
     return container
   }
 
+  /// Convenience overload for test/debug workflows that build the model from macro-emitted runtime
+  /// schema instead of `.xcdatamodeld`.
+  public static func makeRuntimeTest(
+    modelTypes: [any CDRuntimeSchemaProviding.Type],
+    testName: String = "",
+    fileID: String = #fileID,
+    function: String = #function,
+    subDirectory: String = "CoreDataEvolutionTestTemp"
+  ) throws -> NSPersistentContainer {
+    let model = try NSManagedObjectModel.makeRuntimeModel(modelTypes)
+    return makeTest(
+      model: model,
+      testName: testName,
+      fileID: fileID,
+      function: function,
+      subDirectory: subDirectory
+    )
+  }
+
   private static func sanitizeStoreFileName(_ rawName: String) -> String {
     let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "._-"))
     let sanitized = rawName.unicodeScalars.map { scalar in

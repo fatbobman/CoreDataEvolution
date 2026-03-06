@@ -127,6 +127,35 @@ struct ValidateServiceTests {
     )
   }
 
+  @Test("validate rejects unique trait drift")
+  func validateRejectsUniqueTraitDrift() throws {
+    let fixture = try makeValidationFixture()
+    defer { fixture.cleanUp() }
+
+    try rewriteEntityFile(
+      named: "CDEItem+CoreDataEvolution.swift",
+      in: fixture.sourceDirectory
+    ) { contents in
+      contents.replacingOccurrences(
+        of: #"@Attribute(.unique, originalName: "name")"#,
+        with: #"@Attribute(originalName: "name")"#
+      )
+    }
+
+    let result = try ValidateService.run(
+      makeValidateRequest(
+        sourceDirectory: fixture.sourceDirectory.path,
+        modelPath: fixture.modelPath)
+    )
+
+    #expect(result.errorCount == 1)
+    #expect(
+      result.diagnostics.contains {
+        $0.message.contains("unique mismatch for 'CDEItem.title'")
+      }
+    )
+  }
+
   @Test("validate emits note for custom members inside persistent model class")
   func validateEmitsNoteForCustomMembersInsideClass() throws {
     let fixture = try makeValidationFixture()

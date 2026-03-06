@@ -177,6 +177,7 @@
 - `[x]` CLI `init-config` 集成测试
 - `[x]` CLI 参数解析测试
 - `[x]` CLI exit code 测试（`init-config` / `bootstrap-config` / `generate` / `inspect` / `validate`）
+- `[ ]` `unique` 落地后，补充 tooling generate/validate 对 uniqueness 的生成与校验测试
 
 ## 11. Immediate Next Steps
 

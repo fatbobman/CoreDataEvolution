@@ -23,6 +23,7 @@ struct AttributeInfo {
   let defaultValueExpression: String?
   let storageMethod: ParsedAttributeStorageMethod
   let decodeFailurePolicy: ParsedAttributeDecodeFailurePolicy?
+  let isUnique: Bool
 }
 
 enum ParsedAttributeStorageMethod: Equatable {
@@ -34,6 +35,7 @@ enum ParsedAttributeStorageMethod: Equatable {
 }
 
 struct ParsedAttributeArguments {
+  let traits: [ParsedAttributeTrait]
   let originalName: String?
   let storageMethod: ParsedAttributeStorageMethod?
   let decodeFailurePolicy: ParsedAttributeDecodeFailurePolicy?
@@ -42,4 +44,8 @@ struct ParsedAttributeArguments {
 enum ParsedAttributeDecodeFailurePolicy: Equatable {
   case fallbackToDefaultValue
   case debugAssertNil
+}
+
+enum ParsedAttributeTrait: Equatable {
+  case unique
 }

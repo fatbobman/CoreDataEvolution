@@ -81,7 +81,7 @@ struct GenerateServiceTests {
     #expect(itemSource.contents.contains("// GENERATED"))
     #expect(itemSource.contents.contains("@objc(CDEItem)"))
     #expect(itemSource.contents.contains("@PersistentModel(relationshipSetterPolicy: .warning)"))
-    #expect(itemSource.contents.contains(#"@Attribute(originalName: "name")"#))
+    #expect(itemSource.contents.contains(#"@Attribute(.unique, originalName: "name")"#))
     #expect(itemSource.contents.contains(#"var title: String = """#))
     #expect(
       itemSource.contents.contains(

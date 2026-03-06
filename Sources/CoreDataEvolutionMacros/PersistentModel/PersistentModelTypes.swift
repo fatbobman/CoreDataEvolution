@@ -51,8 +51,10 @@ struct PersistentAttributeProperty {
   let typeName: String
   let nonOptionalTypeName: String
   let persistentName: String
+  let isOptional: Bool
   let storageMethod: ParsedAttributeStorageMethod
   let defaultValueExpression: String?
+  let isUnique: Bool
 }
 
 struct PersistentRelationshipProperty {

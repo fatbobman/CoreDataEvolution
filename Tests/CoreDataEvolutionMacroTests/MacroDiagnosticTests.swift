@@ -228,6 +228,44 @@ struct MacroDiagnosticTests {
     #expect(result.expandedSource.contains("setValue(newValue, forKey: \"title\")"))
   }
 
+  @Test("Attribute unique trait is accepted and feeds runtime schema")
+  func attributeUniqueTraitFeedsRuntimeSchema() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        @objc(Item)
+        @PersistentModel
+        final class Item: NSManagedObject {
+          @Attribute(.unique)
+          var title: String = ""
+        }
+        """
+    )
+    #expect(result.diagnostics.isEmpty)
+    #expect(result.expandedSource.contains("isUnique: true"))
+    #expect(
+      result.expandedSource.contains(
+        "persistentPropertyNames: [\"title\"]"))
+  }
+
+  @Test("Attribute rejects unsupported unlabeled traits")
+  func attributeRejectsUnsupportedUnlabeledTraits() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreDataEvolution
+        struct Item {
+          @Attribute(.indexed)
+          var title: String = ""
+        }
+        """
+    )
+    #expect(
+      result.diagnostics.contains {
+        $0.contains("only supports the `.unique` trait")
+      })
+  }
+
   @Test("PersistentModel default does not generate init")
   func persistentModelDefaultDoesNotGenerateInit() throws {
     let result = try MacroTestSupport.expand(

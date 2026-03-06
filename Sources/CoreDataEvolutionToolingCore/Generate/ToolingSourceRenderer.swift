@@ -262,6 +262,7 @@ public enum ToolingSourceRenderer {
       backingAttribute.persistentName == composition.swiftName
       ? nil : backingAttribute.persistentName
     let macro = renderAttributeMacro(
+      isUnique: backingAttribute.isUnique,
       originalName: originalName,
       storageMethod: .composition,
       transformerType: nil,
@@ -370,6 +371,7 @@ public enum ToolingSourceRenderer {
     let originalName =
       attribute.persistentName == attribute.swiftName ? nil : attribute.persistentName
     return renderAttributeMacro(
+      isUnique: attribute.isUnique,
       originalName: originalName,
       storageMethod: attribute.storage.method,
       transformerType: attribute.storage.transformerType,
@@ -378,12 +380,17 @@ public enum ToolingSourceRenderer {
   }
 
   private static func renderAttributeMacro(
+    isUnique: Bool,
     originalName: String?,
     storageMethod: ToolingAttributeStorageRule,
     transformerType: String?,
     decodeFailurePolicy: ToolingDecodeFailurePolicy?
   ) -> String? {
     var arguments: [String] = []
+
+    if isUnique {
+      arguments.append(".unique")
+    }
 
     if let originalName {
       arguments.append(#"originalName: "\#(originalName)""#)

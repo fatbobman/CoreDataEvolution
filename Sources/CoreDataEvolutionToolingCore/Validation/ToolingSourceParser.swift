@@ -244,16 +244,31 @@ private func parseAttributeAnnotation(
 ) -> ToolingSourceAttributeAnnotationIR {
   guard let list = attribute.arguments?.as(LabeledExprListSyntax.self) else {
     return .init(
-      originalName: nil, storageMethod: nil, transformerType: nil, decodeFailurePolicy: nil)
+      isUnique: false,
+      originalName: nil,
+      storageMethod: nil,
+      transformerType: nil,
+      decodeFailurePolicy: nil
+    )
   }
 
+  var isUnique = false
   var originalName: String?
   var storageMethod: ToolingAttributeStorageRule?
   var transformerType: String?
   var decodeFailurePolicy: ToolingDecodeFailurePolicy?
 
   for argument in list {
-    guard let label = argument.label?.text else { continue }
+    guard let label = argument.label?.text else {
+      let raw = normalizedExpression(argument.expression)
+      if raw == ".unique"
+        || raw == "AttributeTrait.unique"
+        || raw == "CoreDataEvolution.AttributeTrait.unique"
+      {
+        isUnique = true
+      }
+      continue
+    }
     let raw = normalizedExpression(argument.expression)
 
     switch label {
@@ -271,6 +286,7 @@ private func parseAttributeAnnotation(
   }
 
   return .init(
+    isUnique: isUnique,
     originalName: originalName,
     storageMethod: storageMethod,
     transformerType: transformerType,

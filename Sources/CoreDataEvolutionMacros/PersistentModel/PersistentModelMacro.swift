@@ -31,7 +31,7 @@ extension PersistentModelMacro: ExtensionMacro {
 
     let decl: DeclSyntax =
       """
-      extension \(type.trimmed): CoreDataEvolution.PersistentEntity {}
+      extension \(type.trimmed): CoreDataEvolution.PersistentEntity, CoreDataEvolution.CDRuntimeSchemaProviding {}
       """
     guard let ext = decl.as(ExtensionDeclSyntax.self) else {
       MacroDiagnosticReporter.error(
@@ -136,6 +136,7 @@ extension PersistentModelMacro: MemberMacro {
 
     let accessModifier = witnessAccessModifierText(from: declaration)
     let modelTypeName = classDecl.name.text
+    let objcClassName = explicitObjCClassName(on: classDecl) ?? modelTypeName
     let model = analyzePersistentModelProperties(in: classDecl)
     let initProperties = analyzePersistentModelInitProperties(in: classDecl)
 
@@ -160,6 +161,14 @@ extension PersistentModelMacro: MemberMacro {
       makeFieldTableDecl(
         accessModifier: accessModifier,
         modelTypeName: modelTypeName,
+        model: model
+      )
+    )
+    members.append(
+      makeRuntimeEntitySchemaDecl(
+        accessModifier: accessModifier,
+        modelTypeName: modelTypeName,
+        objcClassName: objcClassName,
         model: model
       )
     )

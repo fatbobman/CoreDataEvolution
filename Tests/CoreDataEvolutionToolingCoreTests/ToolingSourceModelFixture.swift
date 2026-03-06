@@ -46,6 +46,17 @@ func makeToolingSourceModelFixture(filePath: String = #filePath) throws -> URL {
     with: "",
     options: .regularExpression
   )
+  contents = contents.replacingOccurrences(
+    of: #"<attribute name="name" attributeType="String" defaultValueString=""/>"#,
+    with: """
+      <attribute name="name" attributeType="String" defaultValueString=""/>
+            <uniquenessConstraints>
+                <uniquenessConstraint>
+                    <constraint value="name"/>
+                </uniquenessConstraint>
+            </uniquenessConstraints>
+      """
+  )
   try contents.write(to: contentsURL, atomically: true, encoding: .utf8)
 
   return temporaryPackageURL

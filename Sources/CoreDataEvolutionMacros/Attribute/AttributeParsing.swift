@@ -135,6 +135,7 @@ func buildAttributeInfo(
   let defaultValueExpression = explicitDefaultValueExpression ?? (isOptional ? "nil" : nil)
   let storageMethod = arguments.storageMethod ?? .default
   let decodeFailurePolicy = arguments.decodeFailurePolicy
+  let isUnique = arguments.traits.contains(.unique)
 
   if defaultValueExpression == nil {
     if emitDiagnostics {
@@ -215,7 +216,8 @@ func buildAttributeInfo(
     isOptional: isOptional,
     defaultValueExpression: defaultValueExpression,
     storageMethod: storageMethod,
-    decodeFailurePolicy: decodeFailurePolicy
+    decodeFailurePolicy: decodeFailurePolicy,
+    isUnique: isUnique
   )
 }
 
@@ -225,15 +227,33 @@ private func parseAttributeArguments(
   context: some MacroExpansionContext
 ) -> ParsedAttributeArguments? {
   guard let argumentList = attribute.arguments?.as(LabeledExprListSyntax.self) else {
-    return ParsedAttributeArguments(originalName: nil, storageMethod: nil, decodeFailurePolicy: nil)
+    return ParsedAttributeArguments(
+      traits: [],
+      originalName: nil,
+      storageMethod: nil,
+      decodeFailurePolicy: nil
+    )
   }
 
+  var traits: [ParsedAttributeTrait] = []
   var originalName: String?
   var storageMethod: ParsedAttributeStorageMethod?
   var decodeFailurePolicy: ParsedAttributeDecodeFailurePolicy?
 
   for argument in argumentList {
     guard let label = argument.label?.text else {
+      guard
+        let trait = parseAttributeTrait(
+          from: argument.expression,
+          emitDiagnostics: emitDiagnostics,
+          context: context
+        )
+      else {
+        return nil
+      }
+      if traits.contains(trait) == false {
+        traits.append(trait)
+      }
       continue
     }
     switch label {
@@ -306,10 +326,36 @@ private func parseAttributeArguments(
   }
 
   return ParsedAttributeArguments(
+    traits: traits,
     originalName: originalName,
     storageMethod: storageMethod,
     decodeFailurePolicy: decodeFailurePolicy
   )
+}
+
+private func parseAttributeTrait(
+  from expression: ExprSyntax,
+  emitDiagnostics: Bool,
+  context: some MacroExpansionContext
+) -> ParsedAttributeTrait? {
+  let raw = expression.trimmedDescription.replacingOccurrences(of: " ", with: "")
+  if raw == ".unique"
+    || raw == "AttributeTrait.unique"
+    || raw == "CoreDataEvolution.AttributeTrait.unique"
+  {
+    return .unique
+  }
+
+  if emitDiagnostics {
+    MacroDiagnosticReporter.error(
+      "@Attribute only supports the `.unique` trait in unlabeled arguments.",
+      domain: attributeMacroDomain,
+      id: "unsupported-trait",
+      in: context,
+      node: expression
+    )
+  }
+  return nil
 }
 
 private func isTransformedStorageMethod(_ storageMethod: ParsedAttributeStorageMethod) -> Bool {

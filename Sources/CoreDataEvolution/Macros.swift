@@ -22,6 +22,10 @@ public enum AttributeDecodeFailurePolicy {
   case debugAssertNil
 }
 
+public enum AttributeTrait {
+  case unique
+}
+
 public enum RelationshipGenerationPolicy {
   case none
   case warning
@@ -41,9 +45,13 @@ public macro NSMainModelActor(disableGenerateInit: Bool = false) =
 @attached(
   member,
   names: named(__cdCompositionFieldTable), named(__cdDecodeComposition),
-  named(__cdEncodeComposition)
+  named(__cdEncodeComposition), named(__cdRuntimeCompositionFields)
 )
-@attached(extension, conformances: CDCompositionPathProviding, CDCompositionValueCodable)
+@attached(
+  extension,
+  conformances: CDCompositionPathProviding, CDCompositionValueCodable,
+  CDRuntimeCompositionSchemaProviding
+)
 public macro Composition() =
   #externalMacro(module: "CoreDataEvolutionMacros", type: "CompositionMacro")
 
@@ -59,8 +67,8 @@ public macro _CDRelationship(
 ) = #externalMacro(module: "CoreDataEvolutionMacros", type: "RelationshipMacro")
 
 @attached(memberAttribute)
-@attached(member, names: arbitrary)
-@attached(extension, conformances: PersistentEntity)
+@attached(member, names: arbitrary, named(__cdRuntimeEntitySchema))
+@attached(extension, conformances: PersistentEntity, CDRuntimeSchemaProviding)
 public macro PersistentModel(
   generateInit: Bool = false,
   relationshipSetterPolicy: RelationshipGenerationPolicy = .none,
@@ -70,6 +78,7 @@ public macro PersistentModel(
 @attached(accessor)
 @attached(peer, names: arbitrary)
 public macro Attribute(
+  _ traits: AttributeTrait...,
   originalName: String? = nil,
   storageMethod: AttributeStorageMethod? = nil,
   decodeFailurePolicy: AttributeDecodeFailurePolicy? = nil

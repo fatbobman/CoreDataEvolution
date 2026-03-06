@@ -119,6 +119,7 @@
 - 同一组模型类型可创建测试 container 并完成基础读写
 - relationship/inverse 可在输入类型集合中正确解析
 - `@Attribute(.unique)` 能转化为单字段唯一约束 metadata
+- `unique` 完成后，tooling 的 `generate` / `validate` 需补充对应测试，覆盖生成与校验两条路径
 
 ## 4. Technical Validations (Mandatory)
 

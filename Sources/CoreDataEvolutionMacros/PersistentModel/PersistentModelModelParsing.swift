@@ -46,6 +46,7 @@ func analyzePersistentModelProperties(in classDecl: ClassDeclSyntax)
       let propertyName = identifier.identifier.text
       let typeName = typeAnnotation.type.trimmedDescription
       let nonOptionalTypeName = attributeOptionalWrappedTypeName(typeAnnotation.type) ?? typeName
+      let isOptional = attributeOptionalWrappedTypeName(typeAnnotation.type) != nil
       let defaultValueExpression = binding.initializer?.value.trimmedDescription
 
       if isOptionalToManyRelationshipType(typeAnnotation.type) {
@@ -63,9 +64,11 @@ func analyzePersistentModelProperties(in classDecl: ClassDeclSyntax)
               typeName: typeName,
               nonOptionalTypeName: nonOptionalTypeName,
               persistentName: parsed.originalName ?? propertyName,
+              isOptional: isOptional,
               storageMethod: parsed.storageMethod ?? .default,
               defaultValueExpression: defaultValueExpression
-                ?? optionalFallbackDefault(type: typeAnnotation.type)
+                ?? optionalFallbackDefault(type: typeAnnotation.type),
+              isUnique: parsed.traits.contains(.unique)
             )
           )
         )
@@ -87,9 +90,11 @@ func analyzePersistentModelProperties(in classDecl: ClassDeclSyntax)
             typeName: typeName,
             nonOptionalTypeName: nonOptionalTypeName,
             persistentName: propertyName,
+            isOptional: isOptional,
             storageMethod: .default,
             defaultValueExpression: defaultValueExpression
-              ?? optionalFallbackDefault(type: typeAnnotation.type)
+              ?? optionalFallbackDefault(type: typeAnnotation.type),
+            isUnique: false
           )
         )
       )
@@ -281,6 +286,7 @@ private func isLikelyMissingOptionalToOneRelationship(_ type: TypeSyntax) -> Boo
 }
 
 private struct ParsedAttributeDeclArguments {
+  let traits: [ParsedAttributeTrait]
   let originalName: String?
   let storageMethod: ParsedAttributeStorageMethod?
 }
@@ -289,13 +295,21 @@ private func parseAttributeDeclArguments(_ attribute: AttributeSyntax)
   -> ParsedAttributeDeclArguments
 {
   guard let list = attribute.arguments?.as(LabeledExprListSyntax.self) else {
-    return ParsedAttributeDeclArguments(originalName: nil, storageMethod: nil)
+    return ParsedAttributeDeclArguments(traits: [], originalName: nil, storageMethod: nil)
   }
+  var traits: [ParsedAttributeTrait] = []
   var originalName: String?
   var storageMethod: ParsedAttributeStorageMethod?
 
   for argument in list {
-    guard let label = argument.label?.text else { continue }
+    guard let label = argument.label?.text else {
+      if let trait = parseAttributeTraitShallow(argument.expression.trimmedDescription) {
+        if traits.contains(trait) == false {
+          traits.append(trait)
+        }
+      }
+      continue
+    }
     switch label {
     case "originalName":
       if let literal = argument.expression.as(StringLiteralExprSyntax.self),
@@ -314,9 +328,21 @@ private func parseAttributeDeclArguments(_ attribute: AttributeSyntax)
   }
 
   return ParsedAttributeDeclArguments(
+    traits: traits,
     originalName: originalName,
     storageMethod: storageMethod
   )
+}
+
+private func parseAttributeTraitShallow(_ rawText: String) -> ParsedAttributeTrait? {
+  let raw = rawText.replacingOccurrences(of: " ", with: "")
+  if raw == ".unique"
+    || raw == "AttributeTrait.unique"
+    || raw == "CoreDataEvolution.AttributeTrait.unique"
+  {
+    return .unique
+  }
+  return nil
 }
 
 private func parseAttributeStorageMethod(from raw: String) -> ParsedAttributeStorageMethod? {

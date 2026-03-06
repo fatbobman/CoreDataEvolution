@@ -128,6 +128,7 @@ public struct ToolingAttributeIR: Codable, Sendable, Equatable {
   public let swiftName: String
   public let coreDataAttributeType: String
   public let coreDataPrimitiveType: String?
+  public let isUnique: Bool
   public let isOptional: Bool
   public let hasModelDefaultValue: Bool
   public let modelDefaultValueLiteral: String?
@@ -138,6 +139,7 @@ public struct ToolingAttributeIR: Codable, Sendable, Equatable {
     swiftName: String,
     coreDataAttributeType: String,
     coreDataPrimitiveType: String?,
+    isUnique: Bool = false,
     isOptional: Bool,
     hasModelDefaultValue: Bool,
     modelDefaultValueLiteral: String?,
@@ -147,6 +149,7 @@ public struct ToolingAttributeIR: Codable, Sendable, Equatable {
     self.swiftName = swiftName
     self.coreDataAttributeType = coreDataAttributeType
     self.coreDataPrimitiveType = coreDataPrimitiveType
+    self.isUnique = isUnique
     self.isOptional = isOptional
     self.hasModelDefaultValue = hasModelDefaultValue
     self.modelDefaultValueLiteral = modelDefaultValueLiteral

@@ -1,0 +1,96 @@
+//
+//  ------------------------------------------------
+//  Original project: CoreDataEvolution
+//  Created on 2026/3/6 by Fatbobman(东坡肘子)
+//  X: @fatbobman
+//  Mastodon: @fatbobman@mastodon.social
+//  GitHub: @fatbobman
+//  Blog: https://fatbobman.com
+//  ------------------------------------------------
+//  Copyright © 2024-present Fatbobman. All rights reserved.
+
+@preconcurrency import CoreData
+import CoreDataEvolution
+import Foundation
+import Testing
+
+@Composition
+struct RuntimePoint {
+  var x: Double = 0
+  var y: Double? = nil
+}
+
+@objc(RuntimeSchemaItem)
+@PersistentModel
+final class RuntimeSchemaItem: NSManagedObject {
+  @Attribute(.unique)
+  var title: String = ""
+
+  @Attribute(storageMethod: .composition)
+  var point: RuntimePoint? = nil
+
+  var tags: Set<RuntimeSchemaTag>
+}
+
+@objc(RuntimeSchemaTag)
+@PersistentModel
+final class RuntimeSchemaTag: NSManagedObject {
+  var name: String = ""
+  var items: Set<RuntimeSchemaItem>
+}
+
+struct RuntimeModelBuilderTests {
+  @Test("runtime model builder assembles uniqueness and inferred inverses")
+  func buildModelFromMacroGeneratedSchemas() throws {
+    let model = try NSManagedObjectModel.makeRuntimeModel([
+      RuntimeSchemaItem.self,
+      RuntimeSchemaTag.self,
+    ])
+
+    let item = try #require(model.entitiesByName["RuntimeSchemaItem"])
+    #expect(item.uniquenessConstraints as? [[String]] == [["title"]])
+
+    let title = try #require(item.attributesByName["title"])
+    #expect(title.attributeType == .stringAttributeType)
+    #expect(title.isOptional == false)
+
+    let point = try #require(item.attributesByName["point"])
+    #expect(point.attributeType == .transformableAttributeType)
+
+    let tags = try #require(item.relationshipsByName["tags"])
+    #expect(tags.isToMany)
+    #expect(tags.isOrdered == false)
+    #expect(tags.destinationEntity?.name == "RuntimeSchemaTag")
+    #expect(tags.inverseRelationship?.name == "items")
+  }
+
+  @MainActor
+  @Test("runtime model builder supports sqlite-backed test containers")
+  func runtimeModelBackedContainerRoundTrip() throws {
+    let container = try NSPersistentContainer.makeRuntimeTest(
+      modelTypes: [
+        RuntimeSchemaItem.self,
+        RuntimeSchemaTag.self,
+      ],
+      testName: "RuntimeModelBuilderRoundTrip"
+    )
+
+    let context = container.viewContext
+    let tag = RuntimeSchemaTag(entity: RuntimeSchemaTag.entity(), insertInto: context)
+    tag.name = "swift"
+
+    let item = RuntimeSchemaItem(entity: RuntimeSchemaItem.entity(), insertInto: context)
+    item.title = "article"
+    item.point = .init(x: 4.5, y: 12)
+    item.addToTags(tag)
+
+    try context.save()
+    context.reset()
+
+    let request = NSFetchRequest<RuntimeSchemaItem>(entityName: "RuntimeSchemaItem")
+    let fetched = try #require(context.fetch(request).first)
+    #expect(fetched.title == "article")
+    #expect(fetched.point?.x == 4.5)
+    #expect(fetched.tags.count == 1)
+  }
+}

@@ -142,17 +142,20 @@ public struct ToolingSourcePropertyIR: Codable, Sendable, Equatable {
 
 /// Parsed `@Attribute(...)` arguments from source.
 public struct ToolingSourceAttributeAnnotationIR: Codable, Sendable, Equatable {
+  public let isUnique: Bool
   public let originalName: String?
   public let storageMethod: ToolingAttributeStorageRule?
   public let transformerType: String?
   public let decodeFailurePolicy: ToolingDecodeFailurePolicy?
 
   public init(
+    isUnique: Bool = false,
     originalName: String?,
     storageMethod: ToolingAttributeStorageRule?,
     transformerType: String?,
     decodeFailurePolicy: ToolingDecodeFailurePolicy?
   ) {
+    self.isUnique = isUnique
     self.originalName = originalName
     self.storageMethod = storageMethod
     self.transformerType = transformerType

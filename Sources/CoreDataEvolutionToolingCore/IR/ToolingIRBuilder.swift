@@ -140,11 +140,17 @@ public enum ToolingIRBuilder {
       diagnostics: &diagnostics
     )
 
+    let isUnique = isSingleFieldUnique(
+      attributePersistentName: persistentName,
+      in: attribute.entity
+    )
+
     return .init(
       persistentName: persistentName,
       swiftName: swiftName,
       coreDataAttributeType: toolingCoreDataAttributeTypeName(for: attribute.attributeType),
       coreDataPrimitiveType: toolingTypeMappingKey(for: attribute.attributeType),
+      isUnique: isUnique,
       isOptional: attribute.isOptional,
       hasModelDefaultValue: attribute.defaultValue != nil,
       modelDefaultValueLiteral: modelDefaultValueLiteral,
@@ -179,6 +185,17 @@ public enum ToolingIRBuilder {
       maxCount: relationship.maxCount,
       deleteRule: toolingDeleteRuleName(for: relationship.deleteRule)
     )
+  }
+
+  private static func isSingleFieldUnique(
+    attributePersistentName: String,
+    in entity: NSEntityDescription?
+  ) -> Bool {
+    guard let entity else { return false }
+    return entity.uniquenessConstraints.contains { constraint in
+      let names = constraint.compactMap { $0 as? String }
+      return names == [attributePersistentName]
+    }
   }
 
   private static func buildCompositionPlaceholder(

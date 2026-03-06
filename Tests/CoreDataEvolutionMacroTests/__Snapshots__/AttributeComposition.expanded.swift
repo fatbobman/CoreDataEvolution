@@ -7,6 +7,16 @@ struct Magnitude {
     "richter": .init(swiftPath: ["richter"], persistentPath: ["richter"])
   ]
 
+  static let __cdRuntimeCompositionFields: [CoreDataEvolution.CDRuntimeCompositionFieldSchema] = [
+    .init(
+      persistentName: "richter",
+      swiftTypeName: "Double",
+      primitiveType: .double,
+      isOptional: false,
+      defaultValueExpression: nil
+    )
+  ]
+
   static func __cdDecodeComposition(from dictionary: [String: Any]) -> Self? {
     guard let richter = dictionary["richter"] as? Double else { return nil }
     return .init(richter: richter)

@@ -170,12 +170,16 @@ extension CompositionMacro: MemberMacro {
         let typeText = typeAnnotation.type.trimmedDescription
         let isOptional = isOptionalType(typeAnnotation.type)
         let decodeCastType = optionalWrappedTypeName(typeAnnotation.type) ?? typeText
+        let defaultValueExpression =
+          binding.initializer?.value.trimmedDescription
+          ?? (isOptional ? "nil" : nil)
         fields.append(
           CompositionField(
             name: fieldName,
             typeName: typeText,
             decodeCastTypeName: decodeCastType,
-            isOptional: isOptional
+            isOptional: isOptional,
+            defaultValueExpression: defaultValueExpression
           )
         )
         fieldEntries.append(
@@ -191,12 +195,17 @@ extension CompositionMacro: MemberMacro {
     }
 
     let tableBody = fieldEntries.joined(separator: ",\n")
+    let runtimeFieldBody = makeRuntimeFieldBody(fields: fields)
     let encodeBody = makeEncodeBody(fields: fields)
     let decodeBody = makeDecodeBody(fields: fields)
     let generated: DeclSyntax =
       """
       \(raw: accessModifier)static let __cdCompositionFieldTable: [String: CoreDataEvolution.CDCompositionFieldMeta] = [
       \(raw: tableBody)
+      ]
+
+      \(raw: accessModifier)static let __cdRuntimeCompositionFields: [CoreDataEvolution.CDRuntimeCompositionFieldSchema] = [
+      \(raw: runtimeFieldBody)
       ]
 
       \(raw: accessModifier)static func __cdDecodeComposition(from dictionary: [String: Any]) -> Self? {
@@ -217,6 +226,7 @@ private struct CompositionField {
   let typeName: String
   let decodeCastTypeName: String
   let isOptional: Bool
+  let defaultValueExpression: String?
 }
 
 private func makeDecodeBody(fields: [CompositionField]) -> String {
@@ -255,11 +265,69 @@ private func makeEncodeBody(fields: [CompositionField]) -> String {
   return lines.joined(separator: "\n")
 }
 
+private func makeRuntimeFieldBody(fields: [CompositionField]) -> String {
+  fields.map { field in
+    """
+    .init(
+      persistentName: "\(field.name)",
+      swiftTypeName: "\(field.typeName)",
+      primitiveType: \(runtimePrimitiveTypeExpression(typeName: field.decodeCastTypeName)),
+      isOptional: \(field.isOptional),
+      defaultValueExpression: \(runtimeDefaultValueExpression(field.defaultValueExpression))
+    )
+    """
+  }.joined(separator: ",\n")
+}
+
 private func isAllowedFieldType(_ type: TypeSyntax) -> Bool {
   guard let base = normalizedBaseTypeName(type) else {
     return false
   }
   return coreDataPrimitiveTypeNames.contains(base)
+}
+
+private func runtimePrimitiveTypeExpression(typeName: String) -> String {
+  switch typeName {
+  case "String":
+    return ".string"
+  case "Bool":
+    return ".bool"
+  case "Int16":
+    return ".int16"
+  case "Int32":
+    return ".int32"
+  case "Int", "Int64":
+    return ".int64"
+  case "Float":
+    return ".float"
+  case "Double":
+    return ".double"
+  case "Decimal":
+    return ".decimal"
+  case "Date":
+    return ".date"
+  case "Data":
+    return ".data"
+  case "UUID":
+    return ".uuid"
+  case "URL":
+    return ".url"
+  default:
+    return ".string"
+  }
+}
+
+private func runtimeDefaultValueExpression(_ expression: String?) -> String {
+  if let expression {
+    return "\"\(escapeRuntimeLiteral(expression))\""
+  }
+  return "nil"
+}
+
+private func escapeRuntimeLiteral(_ text: String) -> String {
+  text
+    .replacingOccurrences(of: "\\", with: "\\\\")
+    .replacingOccurrences(of: "\"", with: "\\\"")
 }
 
 private func isOptionalType(_ type: TypeSyntax) -> Bool {

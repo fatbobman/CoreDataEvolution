@@ -9,6 +9,7 @@
 //  ------------------------------------------------
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
+import Foundation
 import SwiftSyntax
 
 func firstAttribute(named name: String, in variable: VariableDeclSyntax) -> AttributeSyntax? {
@@ -29,19 +30,30 @@ func attributeName(of attribute: AttributeSyntax) -> String {
 }
 
 func hasExplicitObjCClassName(on classDecl: ClassDeclSyntax) -> Bool {
-  classDecl.attributes
+  explicitObjCClassName(on: classDecl) != nil
+}
+
+func explicitObjCClassName(on classDecl: ClassDeclSyntax) -> String? {
+  return classDecl.attributes
     .compactMap { $0.as(AttributeSyntax.self) }
-    .contains { attribute in
+    .compactMap { attribute -> String? in
       let name = attributeName(of: attribute)
       guard name == "objc" || name == "_objcRuntimeName" else {
-        return false
+        return nil
       }
       guard let arguments = attribute.arguments else {
-        return false
+        return nil
       }
       let text = arguments.trimmedDescription
-      return text != "()" && text.isEmpty == false
+      guard text != "()" && text.isEmpty == false else {
+        return nil
+      }
+      return
+        text
+        .trimmingCharacters(in: CharacterSet(charactersIn: "()"))
+        .trimmingCharacters(in: CharacterSet(charactersIn: "\""))
     }
+    .first
 }
 
 func optionalFallbackDefault(type: TypeSyntax) -> String? {

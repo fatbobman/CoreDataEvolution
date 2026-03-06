@@ -254,6 +254,69 @@ func makeFieldTableDecl(
     """
 }
 
+func makeRuntimeEntitySchemaDecl(
+  accessModifier: String,
+  modelTypeName: String,
+  objcClassName: String,
+  model: PersistentModelAnalysis
+) -> DeclSyntax {
+  let attributeRows = model.attributes.map { attribute in
+    """
+    CoreDataEvolution.CDRuntimeAttributeSchema(
+      swiftName: "\(attribute.propertyName)",
+      persistentName: "\(attribute.persistentName)",
+      swiftTypeName: "\(attribute.typeName)",
+      isOptional: \(attribute.isOptional),
+      defaultValueExpression: \(runtimeDefaultValueExpression(attribute.defaultValueExpression)),
+      storage: \(runtimeStorageExpression(attribute)),
+      isUnique: \(attribute.isUnique)
+    )
+    """
+  }.joined(separator: ",\n")
+
+  let relationshipRows = model.relationships.map { relationship in
+    """
+    CoreDataEvolution.CDRuntimeRelationshipSchema(
+      swiftName: "\(relationship.propertyName)",
+      persistentName: "\(relationship.propertyName)",
+      targetTypeName: "\(relationship.targetTypeName)",
+      kind: \(runtimeRelationshipKindExpression(relationship.kind)),
+      isOptional: true
+    )
+    """
+  }.joined(separator: ",\n")
+
+  let uniquenessRows = model.attributes
+    .filter(\.isUnique)
+    .map { attribute in
+      """
+      CoreDataEvolution.CDRuntimeUniquenessConstraint(
+        persistentPropertyNames: ["\(attribute.persistentName)"]
+      )
+      """
+    }
+    .joined(separator: ",\n")
+
+  return
+    """
+    \(raw: accessModifier)static var __cdRuntimeEntitySchema: CoreDataEvolution.CDRuntimeEntitySchema {
+      .init(
+        entityName: "\(raw: objcClassName)",
+        managedObjectClassName: NSStringFromClass(Self.self),
+        attributes: [
+          \(raw: attributeRows)
+        ],
+        relationships: [
+          \(raw: relationshipRows)
+        ],
+        uniquenessConstraints: [
+          \(raw: uniquenessRows)
+        ]
+      )
+    }
+    """
+}
+
 func makeInitDecl(
   accessModifier: String,
   properties: [PersistentModelInitProperty],
@@ -360,4 +423,78 @@ private func supportsStoreSort(_ method: ParsedAttributeStorageMethod) -> Bool {
   case .codable, .transformed, .composition:
     return false
   }
+}
+
+private func runtimeDefaultValueExpression(_ expression: String?) -> String {
+  if let expression {
+    return "\"\(escapeStringLiteral(expression))\""
+  }
+  return "nil"
+}
+
+private func runtimeStorageExpression(_ attribute: PersistentAttributeProperty) -> String {
+  switch attribute.storageMethod {
+  case .default:
+    return
+      ".primitive(\(runtimePrimitiveTypeExpression(typeName: attribute.nonOptionalTypeName)))"
+  case .raw:
+    return
+      ".raw(backingTypeName: String(describing: \(attribute.nonOptionalTypeName).RawValue.self))"
+  case .codable:
+    return ".codable"
+  case .transformed(let transformer):
+    return ".transformed(transformerTypeName: \"\(escapeStringLiteral(transformer))\")"
+  case .composition:
+    return ".composition(fields: \(attribute.nonOptionalTypeName).__cdRuntimeCompositionFields)"
+  }
+}
+
+private func runtimeRelationshipKindExpression(_ kind: PersistentRelationshipProperty.Kind)
+  -> String
+{
+  switch kind {
+  case .toOne:
+    return ".toOne"
+  case .toManySet:
+    return ".toManySet"
+  case .toManyArray:
+    return ".toManyArray"
+  }
+}
+
+private func runtimePrimitiveTypeExpression(typeName: String) -> String {
+  switch typeName {
+  case "String":
+    return ".string"
+  case "Bool":
+    return ".bool"
+  case "Int16":
+    return ".int16"
+  case "Int32":
+    return ".int32"
+  case "Int", "Int64":
+    return ".int64"
+  case "Float":
+    return ".float"
+  case "Double":
+    return ".double"
+  case "Decimal":
+    return ".decimal"
+  case "Date":
+    return ".date"
+  case "Data":
+    return ".data"
+  case "UUID":
+    return ".uuid"
+  case "URL":
+    return ".url"
+  default:
+    return ".string"
+  }
+}
+
+private func escapeStringLiteral(_ text: String) -> String {
+  text
+    .replacingOccurrences(of: "\\", with: "\\\\")
+    .replacingOccurrences(of: "\"", with: "\\\"")
 }
