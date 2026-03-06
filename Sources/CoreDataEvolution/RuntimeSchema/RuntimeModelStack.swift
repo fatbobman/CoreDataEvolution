@@ -15,7 +15,8 @@ import Foundation
 /// Test/debug-oriented runtime stack that mirrors the package's existing stack helpers.
 /// It keeps the participating model types, emitted runtime schema, assembled model, and
 /// SQLite-backed container together so tests can hand the container to actors without repeating
-/// setup code.
+/// setup code. The underlying runtime model comes from `makeRuntimeModel`, so repeated stacks for
+/// the same type list still reuse the cached `NSManagedObjectModel`.
 public final class CDRuntimeModelStack {
   public let modelTypes: [any CDRuntimeSchemaProviding.Type]
   public let schemas: [CDRuntimeEntitySchema]

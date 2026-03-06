@@ -260,6 +260,9 @@ func makeRuntimeEntitySchemaDecl(
   objcClassName: String,
   model: PersistentModelAnalysis
 ) -> DeclSyntax {
+  // Runtime schema only sees source declarations. Relationship inverse names are not modeled in
+  // the Swift source today, so runtime builders fall back to inference unless callers provide
+  // hand-written schema metadata instead of the macro-emitted defaults.
   let attributeRows = model.attributes.map { attribute in
     """
     CoreDataEvolution.CDRuntimeAttributeSchema(

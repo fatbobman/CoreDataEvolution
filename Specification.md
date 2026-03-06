@@ -21,6 +21,14 @@
 - Runtime Schema Metadata
 - 纯代码 `NSManagedObjectModel` 构建辅助
 
+Runtime schema / runtime model builder 的 v1 边界：
+
+- 仅用于测试/调试，不替代 `xcdatamodeld`
+- 假定宏生成的静态 metadata 为唯一输入，不做运行时反射
+- 同一组模型类型应复用缓存后的 `NSManagedObjectModel`
+- 若 relationship metadata 未显式给出 `inverseName`，仅支持唯一可推断 inverse
+- primitive 默认值仅支持可稳定翻译到 Core Data 默认值的表达式子集；不支持时直接报错
+
 ## 2. Hard Rules
 
 1. `xcdatamodeld` 每个 Entity 的 Codegen 必须为 `Manual/None`。

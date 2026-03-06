@@ -108,6 +108,10 @@ public enum CDRuntimeRelationshipKind: String, Codable, Sendable {
 /// Relationship metadata available from source declarations alone.
 /// Delete rules are intentionally not part of the first runtime-schema pass because current macros
 /// do not model them; test/debug builders will apply a stable default later.
+///
+/// When `inverseName` is `nil`, the runtime builder falls back to inverse inference. That keeps
+/// macro-emitted schema lightweight, but it also means runtime-only modeling currently requires a
+/// single unambiguous inverse relationship per source/target entity pair.
 public struct CDRuntimeRelationshipSchema: Sendable, Equatable {
   public let swiftName: String
   public let persistentName: String

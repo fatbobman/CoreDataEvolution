@@ -41,6 +41,11 @@ SwiftData 采用纯代码声明模型，看似更符合 Swift 习惯，但在模
 - 不处理历史模型版本
 - 不依赖运行时反射，只消费宏生成的静态 metadata
 
+当前 runtime schema v1 还包含两条明确边界：
+
+- 若关系 metadata 未显式提供 `inverseName`，builder 只支持“每个 source/target 实体对之间存在唯一可推断 inverse”的关系形态；同一目标实体的多条关系在纯代码建模下暂不支持。
+- primitive 默认值只支持一组可稳定翻译到 `NSAttributeDescription.defaultValue` 的表达式子集；无法稳定翻译时直接报错，不做静默降级。
+
 之所以可以这样设计，是因为当前范式已经主动收紧了模型表达范围：
 
 - 持久化 attribute 必须“可选或有默认值”

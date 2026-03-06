@@ -23,6 +23,12 @@ public enum CDRuntimeModelBuilderError: LocalizedError, Sendable, Equatable {
   case missingInverse(entityName: String, relationshipName: String, targetEntityName: String)
   case ambiguousInverse(entityName: String, relationshipName: String, targetEntityName: String)
   case unsupportedRawBackingType(entityName: String, attributeName: String, backingTypeName: String)
+  case unsupportedDefaultValueExpression(
+    entityName: String,
+    attributeName: String,
+    expression: String,
+    primitiveType: CDRuntimePrimitiveAttributeType
+  )
 
   public var errorDescription: String? {
     switch self {
@@ -41,10 +47,18 @@ public enum CDRuntimeModelBuilderError: LocalizedError, Sendable, Equatable {
         "runtime model builder could not infer an inverse for relationship '\(entityName).\(relationshipName)' targeting '\(targetEntityName)'."
     case .ambiguousInverse(let entityName, let relationshipName, let targetEntityName):
       return
-        "runtime model builder found multiple inverse candidates for relationship '\(entityName).\(relationshipName)' targeting '\(targetEntityName)'."
+        "runtime model builder found multiple inverse candidates for relationship '\(entityName).\(relationshipName)' targeting '\(targetEntityName)'. Runtime schema currently requires a single unambiguous inverse relationship per source/target pair."
     case .unsupportedRawBackingType(let entityName, let attributeName, let backingTypeName):
       return
         "runtime model builder does not support raw backing type '\(backingTypeName)' for '\(entityName).\(attributeName)'."
+    case .unsupportedDefaultValueExpression(
+      let entityName,
+      let attributeName,
+      let expression,
+      let primitiveType
+    ):
+      return
+        "runtime model builder does not support default expression '\(expression)' for '\(entityName).\(attributeName)' with primitive type '\(primitiveType.rawValue)'."
     }
   }
 }
@@ -52,7 +66,13 @@ public enum CDRuntimeModelBuilderError: LocalizedError, Sendable, Equatable {
 /// Assembles `NSManagedObjectModel` from macro-emitted runtime schema.
 /// The builder is intentionally scoped to test/debug workflows and uses pragmatic defaults where
 /// the source macros do not yet model the full Core Data surface area.
+///
+/// Built models are cached by participating type list so repeated test/debug setup reuses the
+/// same `NSManagedObjectModel` instance instead of rebuilding equivalent models over and over.
 public enum CDRuntimeModelBuilder {
+  private static let cacheLock = NSLock()
+  nonisolated(unsafe) private static var modelCache: [String: NSManagedObjectModel] = [:]
+
   /// Builds a Core Data model from macro-emitted runtime schema metadata.
   public static func makeModel(
     _ types: [any CDRuntimeSchemaProviding.Type]
@@ -60,6 +80,14 @@ public enum CDRuntimeModelBuilder {
     guard types.isEmpty == false else {
       throw CDRuntimeModelBuilderError.emptyInput
     }
+
+    let cacheKey = runtimeModelCacheKey(for: types)
+    cacheLock.lock()
+    if let cached = modelCache[cacheKey] {
+      cacheLock.unlock()
+      return cached
+    }
+    cacheLock.unlock()
 
     let schemas = CDRuntimeSchemaCollection.entitySchemas(types)
     let model = NSManagedObjectModel()
@@ -183,6 +211,10 @@ public enum CDRuntimeModelBuilder {
       description.inverseRelationship = inverse
     }
 
+    cacheLock.lock()
+    modelCache[cacheKey] = model
+    cacheLock.unlock()
+
     return model
   }
 
@@ -204,9 +236,11 @@ public enum CDRuntimeModelBuilder {
     switch attribute.storage {
     case .primitive(let primitive):
       description.attributeType = attributeType(for: primitive)
-      description.defaultValue = parsedDefaultValue(
+      description.defaultValue = try parsedDefaultValue(
         expression: attribute.defaultValueExpression,
-        primitiveType: primitive
+        primitiveType: primitive,
+        entityName: entityName,
+        attributeName: attribute.persistentName
       )
     case .raw(let backingTypeName):
       guard let primitive = primitiveType(forRawBackingTypeName: backingTypeName) else {
@@ -287,42 +321,205 @@ public enum CDRuntimeModelBuilder {
 
   private static func parsedDefaultValue(
     expression: String?,
-    primitiveType: CDRuntimePrimitiveAttributeType
-  ) -> Any? {
+    primitiveType: CDRuntimePrimitiveAttributeType,
+    entityName: String,
+    attributeName: String
+  ) throws -> Any? {
     guard let expression, expression != "nil" else {
       return nil
     }
 
     switch primitiveType {
     case .string:
-      guard expression.hasPrefix("\""), expression.hasSuffix("\"") else { return nil }
+      guard expression.hasPrefix("\""), expression.hasSuffix("\"") else {
+        throw unsupportedDefaultValue(
+          entityName: entityName,
+          attributeName: attributeName,
+          expression: expression,
+          primitiveType: primitiveType
+        )
+      }
       return String(expression.dropFirst().dropLast())
     case .bool:
-      return expression == "true" ? true : (expression == "false" ? false : nil)
+      if expression == "true" { return true }
+      if expression == "false" { return false }
+      throw unsupportedDefaultValue(
+        entityName: entityName,
+        attributeName: attributeName,
+        expression: expression,
+        primitiveType: primitiveType
+      )
     case .int16:
-      return Int16(expression)
+      guard let value = Int16(expression) else {
+        throw unsupportedDefaultValue(
+          entityName: entityName,
+          attributeName: attributeName,
+          expression: expression,
+          primitiveType: primitiveType
+        )
+      }
+      return value
     case .int32:
-      return Int32(expression)
+      guard let value = Int32(expression) else {
+        throw unsupportedDefaultValue(
+          entityName: entityName,
+          attributeName: attributeName,
+          expression: expression,
+          primitiveType: primitiveType
+        )
+      }
+      return value
     case .int64:
-      return Int64(expression)
+      guard let value = Int64(expression) else {
+        throw unsupportedDefaultValue(
+          entityName: entityName,
+          attributeName: attributeName,
+          expression: expression,
+          primitiveType: primitiveType
+        )
+      }
+      return value
     case .float:
-      return Float(expression)
+      guard let value = Float(expression) else {
+        throw unsupportedDefaultValue(
+          entityName: entityName,
+          attributeName: attributeName,
+          expression: expression,
+          primitiveType: primitiveType
+        )
+      }
+      return value
     case .double:
-      return Double(expression)
+      guard let value = Double(expression) else {
+        throw unsupportedDefaultValue(
+          entityName: entityName,
+          attributeName: attributeName,
+          expression: expression,
+          primitiveType: primitiveType
+        )
+      }
+      return value
     case .decimal:
-      return Decimal(string: expression)
+      guard let value = Decimal(string: expression) else {
+        throw unsupportedDefaultValue(
+          entityName: entityName,
+          attributeName: attributeName,
+          expression: expression,
+          primitiveType: primitiveType
+        )
+      }
+      return value
+    case .date:
+      if expression == ".distantPast" || expression == "Date.distantPast" {
+        return Date.distantPast
+      }
+      if expression == ".distantFuture" || expression == "Date.distantFuture" {
+        return Date.distantFuture
+      }
+      if let interval = singleDoubleArgument(
+        in: expression,
+        functionNames: [
+          "Date(timeIntervalSince1970:",
+          ".init(timeIntervalSince1970:",
+        ])
+      {
+        return Date(timeIntervalSince1970: interval)
+      }
+      if let interval = singleDoubleArgument(
+        in: expression,
+        functionNames: [
+          "Date(timeIntervalSinceReferenceDate:",
+          ".init(timeIntervalSinceReferenceDate:",
+        ])
+      {
+        return Date(timeIntervalSinceReferenceDate: interval)
+      }
+      throw unsupportedDefaultValue(
+        entityName: entityName,
+        attributeName: attributeName,
+        expression: expression,
+        primitiveType: primitiveType
+      )
+    case .data:
+      if expression == "Data()" || expression == ".init()" {
+        return Data()
+      }
+      if let base64 = singleQuotedStringArgument(
+        in: expression,
+        functionNames: ["Data(base64Encoded:", ".init(base64Encoded:"]
+      ) {
+        guard let value = Data(base64Encoded: base64) else {
+          throw unsupportedDefaultValue(
+            entityName: entityName,
+            attributeName: attributeName,
+            expression: expression,
+            primitiveType: primitiveType
+          )
+        }
+        return value
+      }
+      throw unsupportedDefaultValue(
+        entityName: entityName,
+        attributeName: attributeName,
+        expression: expression,
+        primitiveType: primitiveType
+      )
     case .uuid:
       if expression.hasPrefix("\""), expression.hasSuffix("\"") {
-        return UUID(uuidString: String(expression.dropFirst().dropLast()))
+        guard let value = UUID(uuidString: String(expression.dropFirst().dropLast())) else {
+          throw unsupportedDefaultValue(
+            entityName: entityName,
+            attributeName: attributeName,
+            expression: expression,
+            primitiveType: primitiveType
+          )
+        }
+        return value
       }
-      return nil
+      throw unsupportedDefaultValue(
+        entityName: entityName,
+        attributeName: attributeName,
+        expression: expression,
+        primitiveType: primitiveType
+      )
     case .url:
       if expression.hasPrefix("\""), expression.hasSuffix("\"") {
-        return URL(string: String(expression.dropFirst().dropLast()))
+        guard let value = URL(string: String(expression.dropFirst().dropLast())) else {
+          throw unsupportedDefaultValue(
+            entityName: entityName,
+            attributeName: attributeName,
+            expression: expression,
+            primitiveType: primitiveType
+          )
+        }
+        return value
       }
-      return nil
-    case .date, .data:
-      return nil
+      if let argument = singleQuotedStringArgument(
+        in: expression,
+        functionNames: ["URL(string:"]
+      ) {
+        guard let value = URL(string: argument) else {
+          throw unsupportedDefaultValue(
+            entityName: entityName,
+            attributeName: attributeName,
+            expression: expression,
+            primitiveType: primitiveType
+          )
+        }
+        return value
+      }
+      if let argument = singleQuotedStringArgument(
+        in: expression,
+        functionNames: ["URL(fileURLWithPath:"]
+      ) {
+        return URL(fileURLWithPath: argument)
+      }
+      throw unsupportedDefaultValue(
+        entityName: entityName,
+        attributeName: attributeName,
+        expression: expression,
+        primitiveType: primitiveType
+      )
     }
   }
 
@@ -333,6 +530,10 @@ public enum CDRuntimeModelBuilder {
     schemaByName: [String: CDRuntimeEntitySchema],
     typeKeyToEntityName: [String: String]
   ) throws -> String {
+    // Runtime schema emitted from source declarations does not always carry explicit inverse names.
+    // Inference keeps the happy path lightweight, but only supports a single candidate on the
+    // target entity. If multiple relationships point back to the source entity, callers must
+    // provide explicit `inverseName` metadata.
     guard let targetSchema = schemaByName[targetEntityName] else {
       throw CDRuntimeModelBuilderError.missingInverse(
         entityName: sourceEntityName,
@@ -408,6 +609,53 @@ public enum CDRuntimeModelBuilder {
       String(reflecting: type),
       schema.entityName,
     ]
+  }
+
+  private static func runtimeModelCacheKey(
+    for types: [any CDRuntimeSchemaProviding.Type]
+  ) -> String {
+    types.map { String(reflecting: $0) }.joined(separator: "|")
+  }
+
+  private static func unsupportedDefaultValue(
+    entityName: String,
+    attributeName: String,
+    expression: String,
+    primitiveType: CDRuntimePrimitiveAttributeType
+  ) -> CDRuntimeModelBuilderError {
+    .unsupportedDefaultValueExpression(
+      entityName: entityName,
+      attributeName: attributeName,
+      expression: expression,
+      primitiveType: primitiveType
+    )
+  }
+
+  private static func singleQuotedStringArgument(
+    in expression: String,
+    functionNames: [String]
+  ) -> String? {
+    for functionName in functionNames {
+      guard expression.hasPrefix(functionName), expression.hasSuffix(")") else { continue }
+      let content = String(expression.dropFirst(functionName.count).dropLast())
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+      guard content.hasPrefix("\""), content.hasSuffix("\"") else { return nil }
+      return String(content.dropFirst().dropLast())
+    }
+    return nil
+  }
+
+  private static func singleDoubleArgument(
+    in expression: String,
+    functionNames: [String]
+  ) -> Double? {
+    for functionName in functionNames {
+      guard expression.hasPrefix(functionName), expression.hasSuffix(")") else { continue }
+      let content = String(expression.dropFirst(functionName.count).dropLast())
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+      return Double(content)
+    }
+    return nil
   }
 }
 

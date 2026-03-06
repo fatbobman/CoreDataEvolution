@@ -108,10 +108,12 @@
 - 提供从 `[PersistentModel.Type]` 组装 `NSManagedObjectModel` 的 builder / helper
 - 支持普通 attribute、relationship、composition 展平
 - 支持 `@Attribute(.unique)` 产生单字段 uniqueness metadata
+- 复用缓存后的 `NSManagedObjectModel`，避免同一组测试 schema 在一轮测试中重复创建多个 model 实例
 - 明确非目标：
   - 不保证与 `xcdatamodeld` 的 hash/version/migration 一致
   - 不作为生产建模能力
   - 不处理历史版本模型
+  - 不保证支持“同一目标实体的多条关系且未显式给出 inverseName”的纯代码建模场景
 
 验收标准：
 
@@ -119,6 +121,7 @@
 - 同一组模型类型可创建测试 container 并完成基础读写
 - relationship/inverse 可在输入类型集合中正确解析
 - `@Attribute(.unique)` 能转化为单字段唯一约束 metadata
+- builder 对不受支持的 primitive 默认值表达式直接报错，不静默丢失默认值
 - `unique` 完成后，tooling 的 `generate` / `validate` 需补充对应测试，覆盖生成与校验两条路径
 
 ## 4. Technical Validations (Mandatory)
