@@ -25,4 +25,11 @@ public enum CDRuntimeSchemaCollection {
   ) -> [CDRuntimeEntitySchema] {
     types.map { $0.__cdRuntimeEntitySchema }
   }
+
+  /// Variadic convenience for ad-hoc test/debug setup where the entity list is known inline.
+  public static func entitySchemas(
+    _ types: any CDRuntimeSchemaProviding.Type...
+  ) -> [CDRuntimeEntitySchema] {
+    entitySchemas(types)
+  }
 }

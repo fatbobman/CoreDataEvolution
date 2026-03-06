@@ -53,6 +53,7 @@ public enum CDRuntimeModelBuilderError: LocalizedError, Sendable, Equatable {
 /// The builder is intentionally scoped to test/debug workflows and uses pragmatic defaults where
 /// the source macros do not yet model the full Core Data surface area.
 public enum CDRuntimeModelBuilder {
+  /// Builds a Core Data model from macro-emitted runtime schema metadata.
   public static func makeModel(
     _ types: [any CDRuntimeSchemaProviding.Type]
   ) throws -> NSManagedObjectModel {
@@ -183,6 +184,13 @@ public enum CDRuntimeModelBuilder {
     }
 
     return model
+  }
+
+  /// Variadic convenience for tests that keep the participating entity list inline.
+  public static func makeModel(
+    _ types: any CDRuntimeSchemaProviding.Type...
+  ) throws -> NSManagedObjectModel {
+    try makeModel(types)
   }
 
   private static func makeAttributeDescription(
@@ -410,5 +418,12 @@ extension NSManagedObjectModel {
     _ types: [any CDRuntimeSchemaProviding.Type]
   ) throws -> NSManagedObjectModel {
     try CDRuntimeModelBuilder.makeModel(types)
+  }
+
+  /// Variadic convenience overload for compact test/debug call sites.
+  public static func makeRuntimeModel(
+    _ types: any CDRuntimeSchemaProviding.Type...
+  ) throws -> NSManagedObjectModel {
+    try makeRuntimeModel(types)
   }
 }

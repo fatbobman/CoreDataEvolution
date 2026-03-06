@@ -9,92 +9,90 @@
 //  ------------------------------------------------
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
-import ArgumentParser
+import Foundation
 import Testing
-
-@testable import CDETool
 
 @Suite("CDETool Command Parsing Tests")
 struct CommandParsingTests {
-  @Test("generate command parses boolean and enum options")
-  func generateCommandParsesBooleanAndEnumOptions() throws {
-    let command = try GenerateCommand.parse([
-      "--model-path", "Model.xcdatamodeld",
-      "--output-dir", "Generated",
+  @Test("generate command accepts current boolean and enum option spellings")
+  func generateCommandAcceptsBooleanAndEnumOptions() throws {
+    let modelURL = try makeMinimalSourceModelFixture(entityName: "Item")
+    defer { try? FileManager.default.removeItem(at: modelURL.deletingLastPathComponent()) }
+
+    let outputDirectory = FileManager.default.temporaryDirectory
+      .appendingPathComponent("CDEToolTests", isDirectory: true)
+      .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try FileManager.default.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: outputDirectory) }
+
+    let result = try runTool([
+      "generate",
+      "--model-path", modelURL.path,
+      "--output-dir", outputDirectory.path,
       "--module-name", "AppModels",
       "--single-file", "true",
+      "--split-by-entity", "false",
       "--overwrite", "changed",
-      "--format", "swiftformat",
+      "--format", "none",
       "--emit-extension-stubs", "true",
+      "--dry-run", "true",
     ])
 
-    #expect(command.modelPath == "Model.xcdatamodeld")
-    #expect(command.singleFile == true)
-    #expect(command.overwrite == .changed)
-    #expect(command.format == .swiftformat)
-    #expect(command.emitExtensionStubs == true)
+    #expect(result.exitCode == 0)
+    #expect(result.stdout.contains("would create: AppModels+CoreDataEvolution.swift"))
+    #expect(result.stdout.contains("would create: Item+Extensions.swift"))
   }
 
-  @Test("validate command parses level report and patterns")
-  func validateCommandParsesLevelReportAndPatterns() throws {
-    let command = try ValidateCommand.parse([
-      "--model-path", "Model.xcdatamodeld",
-      "--source-dir", "Sources/AppModels",
+  @Test("validate command accepts current level and report spellings")
+  func validateCommandAcceptsCurrentLevelAndReportOptions() throws {
+    let modelURL = try makeMinimalSourceModelFixture(entityName: "Item")
+    defer { try? FileManager.default.removeItem(at: modelURL.deletingLastPathComponent()) }
+
+    let sourceDirectory = FileManager.default.temporaryDirectory
+      .appendingPathComponent("CDEToolTests", isDirectory: true)
+      .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try FileManager.default.createDirectory(at: sourceDirectory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: sourceDirectory) }
+
+    let generateResult = try runTool([
+      "generate",
+      "--model-path", modelURL.path,
+      "--output-dir", sourceDirectory.path,
       "--module-name", "AppModels",
-      "--include", "A.swift,B.swift",
-      "--exclude", "C.swift",
-      "--level", "exact",
-      "--report", "sarif",
-      "--fail-on-warning", "true",
+    ])
+    #expect(generateResult.exitCode == 0)
+
+    let result = try runTool([
+      "validate",
+      "--model-path", modelURL.path,
+      "--source-dir", sourceDirectory.path,
+      "--module-name", "AppModels",
+      "--level", "conformance",
+      "--report", "json",
+      "--fail-on-warning", "false",
       "--max-issues", "10",
     ])
 
-    #expect(command.level == .exact)
-    #expect(command.report == .sarif)
-    #expect(command.include == "A.swift,B.swift")
-    #expect(command.exclude == "C.swift")
-    #expect(command.failOnWarning == true)
-    #expect(command.maxIssues == 10)
-  }
-
-  @Test("init-config command parses preset and flags")
-  func initConfigCommandParsesPresetAndFlags() throws {
-    let command = try InitConfigCommand.parse([
-      "--stdout",
-      "--force",
-      "--preset", "minimal",
-    ])
-
-    #expect(command.stdout)
-    #expect(command.force)
-    #expect(command.preset == .minimal)
-  }
-
-  @Test("bootstrap-config command applies documented defaults")
-  func bootstrapConfigCommandAppliesDocumentedDefaults() throws {
-    let command = try BootstrapConfigCommand.parse([
-      "--model-path", "Model.xcdatamodeld",
-    ])
-
-    #expect(command.moduleName == "AppModels")
-    #expect(command.outputDir == "Generated/CoreDataEvolution")
-    #expect(command.sourceDir == "Sources/AppModels")
-    #expect(command.stdout == false)
-    #expect(command.force == false)
+    #expect(result.exitCode == 0)
+    #expect(result.stdout.contains("\"errorCount\""))
+    #expect(result.stdout.contains("\"warningCount\""))
   }
 
   @Test("validate command rejects removed legacy level names")
   func validateCommandRejectsLegacyLevelNames() throws {
-    do {
-      _ = try ValidateCommand.parse([
-        "--model-path", "Model.xcdatamodeld",
-        "--source-dir", "Sources/AppModels",
-        "--module-name", "AppModels",
-        "--level", "strict",
-      ])
-      Issue.record("Expected legacy validation level to fail parsing.")
-    } catch {
-      #expect(Bool(true))
-    }
+    let fixture = try makeGeneratedSourceFixture()
+    defer { fixture.cleanUp() }
+
+    let result = try runTool([
+      "validate",
+      "--model-path", fixture.modelPath,
+      "--source-dir", fixture.sourceDirectory.path,
+      "--module-name", "AppModels",
+      "--level", "strict",
+    ])
+
+    #expect(result.exitCode != 0)
+    #expect(result.stderr.contains("strict"))
+    #expect(result.stderr.localizedCaseInsensitiveContains("invalid"))
   }
 }

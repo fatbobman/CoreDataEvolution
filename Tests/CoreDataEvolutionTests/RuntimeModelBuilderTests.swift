@@ -76,10 +76,16 @@ struct RuntimeModelBuilderTests {
     )
 
     let context = container.viewContext
-    let tag = RuntimeSchemaTag(entity: RuntimeSchemaTag.entity(), insertInto: context)
+    let tagEntity = try #require(
+      NSEntityDescription.entity(forEntityName: "RuntimeSchemaTag", in: context)
+    )
+    let tag = RuntimeSchemaTag(entity: tagEntity, insertInto: context)
     tag.name = "swift"
 
-    let item = RuntimeSchemaItem(entity: RuntimeSchemaItem.entity(), insertInto: context)
+    let itemEntity = try #require(
+      NSEntityDescription.entity(forEntityName: "RuntimeSchemaItem", in: context)
+    )
+    let item = RuntimeSchemaItem(entity: itemEntity, insertInto: context)
     item.title = "article"
     item.point = .init(x: 4.5, y: 12)
     item.addToTags(tag)

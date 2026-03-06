@@ -34,7 +34,7 @@ struct RuntimeSchemaTests {
 private final class ManualRuntimeSchemaItem: NSManagedObject, CDRuntimeSchemaProviding {
   static let __cdRuntimeEntitySchema = CDRuntimeEntitySchema(
     entityName: "Item",
-    managedObjectClassName: "RuntimeSchemaItem",
+    managedObjectClassName: NSStringFromClass(ManualRuntimeSchemaItem.self),
     attributes: [
       CDRuntimeAttributeSchema(
         swiftName: "title",
@@ -65,7 +65,7 @@ private final class ManualRuntimeSchemaItem: NSManagedObject, CDRuntimeSchemaPro
 private final class ManualRuntimeSchemaTag: NSManagedObject, CDRuntimeSchemaProviding {
   static let __cdRuntimeEntitySchema = CDRuntimeEntitySchema(
     entityName: "Tag",
-    managedObjectClassName: "RuntimeSchemaTag",
+    managedObjectClassName: NSStringFromClass(ManualRuntimeSchemaTag.self),
     attributes: [],
     relationships: [
       CDRuntimeRelationshipSchema(

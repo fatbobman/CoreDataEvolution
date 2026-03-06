@@ -17,7 +17,6 @@ import Testing
 struct GenerateServiceTests {
   @Test("generate service renders integration model sources from rules")
   func generateServiceRendersIntegrationModelSources() throws {
-    let repositoryRoot = try findToolingRepositoryRoot()
     let modelPath = try makeToolingSourceModelFixture()
     defer { try? FileManager.default.removeItem(at: modelPath.deletingLastPathComponent()) }
 
