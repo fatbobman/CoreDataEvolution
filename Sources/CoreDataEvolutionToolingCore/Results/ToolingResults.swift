@@ -45,11 +45,19 @@ public struct BootstrapConfigResult: Sendable {
   }
 }
 
-/// Placeholder result model for future generate engine output.
+/// Result for the in-memory generate engine.
 public struct GenerateResult: Sendable, Equatable {
+  public let modelIR: ToolingModelIR
+  public let generatedSources: [ToolingGeneratedSource]
   public let diagnostics: [ToolingDiagnostic]
 
-  public init(diagnostics: [ToolingDiagnostic]) {
+  public init(
+    modelIR: ToolingModelIR,
+    generatedSources: [ToolingGeneratedSource],
+    diagnostics: [ToolingDiagnostic]
+  ) {
+    self.modelIR = modelIR
+    self.generatedSources = generatedSources
     self.diagnostics = diagnostics
   }
 }

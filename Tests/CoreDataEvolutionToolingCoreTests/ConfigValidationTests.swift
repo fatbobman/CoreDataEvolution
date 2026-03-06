@@ -279,6 +279,67 @@ struct ConfigValidationTests {
     }
   }
 
+  @Test("generate rejects Undefined attribute type")
+  func generateRejectsUndefinedAttributeType() throws {
+    let model = makeModelWithUndefinedAttribute()
+    let template = makeGenerateValidationTemplate()
+
+    try expectConfigFailure(template, code: .configInvalid) {
+      try validateToolingConfigTemplate(template, against: model)
+    }
+  }
+
+  @Test("generate rejects non-optional attribute without model default")
+  func generateRejectsNonOptionalAttributeWithoutDefault() throws {
+    let model = makeModelWithMissingNonOptionalDefault()
+    let template = makeGenerateValidationTemplate()
+
+    try expectConfigFailure(template, code: .configInvalid) {
+      try validateToolingConfigTemplate(template, against: model)
+    }
+  }
+
+  @Test("generate rejects non-optional custom storage even with model default")
+  func generateRejectsNonOptionalCustomStorage() throws {
+    let model = makeModelWithCustomStorageCandidate()
+    let template = makeGenerateValidationTemplate(
+      attributeRules: .init(
+        entities: [
+          "Item": [
+            "status_raw": .init(
+              swiftType: "ItemStatus",
+              storageMethod: .raw
+            )
+          ]
+        ]
+      )
+    )
+
+    try expectConfigFailure(template, code: .configInvalid) {
+      try validateToolingConfigTemplate(template, against: model)
+    }
+  }
+
+  @Test("generate rejects non-optional relationship")
+  func generateRejectsNonOptionalRelationship() throws {
+    let model = makeModelWithNonOptionalRelationship()
+    let template = makeGenerateValidationTemplate()
+
+    try expectConfigFailure(template, code: .configInvalid) {
+      try validateToolingConfigTemplate(template, against: model)
+    }
+  }
+
+  @Test("generate rejects relationship without inverse")
+  func generateRejectsRelationshipWithoutInverse() throws {
+    let model = makeModelWithRelationshipWithoutInverse()
+    let template = makeGenerateValidationTemplate()
+
+    try expectConfigFailure(template, code: .configInvalid) {
+      try validateToolingConfigTemplate(template, against: model)
+    }
+  }
+
   private func expectConfigFailure(
     _ template: ToolingConfigTemplate,
     code: ToolingErrorCode,
@@ -291,6 +352,36 @@ struct ConfigValidationTests {
       #expect(error.code == code)
       #expect(error.exitCode == 1)
     }
+  }
+
+  private func makeGenerateValidationTemplate(
+    attributeRules: ToolingAttributeRules? = nil
+  ) -> ToolingConfigTemplate {
+    ToolingConfigTemplate(
+      schemaVersion: toolingSupportedSchemaVersion,
+      generate: .init(
+        modelPath: "Models/AppModel.xcdatamodeld",
+        modelVersion: nil,
+        momcBin: nil,
+        outputDir: "Generated/CoreDataEvolution",
+        moduleName: "AppModels",
+        typeMappings: nil,
+        attributeRules: attributeRules,
+        accessLevel: .internal,
+        singleFile: false,
+        splitByEntity: true,
+        overwrite: ToolingOverwriteMode.none,
+        cleanStale: false,
+        dryRun: false,
+        format: ToolingFormatMode.none,
+        headerTemplate: nil,
+        generateInit: false,
+        relationshipSetterPolicy: .warning,
+        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
+        defaultDecodeFailurePolicy: .fallbackToDefaultValue
+      ),
+      validate: nil
+    )
   }
 
   private func makeModel() -> NSManagedObjectModel {
@@ -313,6 +404,113 @@ struct ConfigValidationTests {
 
     let model = NSManagedObjectModel()
     model.entities = [entity]
+    return model
+  }
+
+  private func makeModelWithUndefinedAttribute() -> NSManagedObjectModel {
+    let attribute = NSAttributeDescription()
+    attribute.name = "mystery"
+    attribute.attributeType = .undefinedAttributeType
+    attribute.isOptional = true
+
+    let entity = NSEntityDescription()
+    entity.name = "Item"
+    entity.managedObjectClassName = "NSManagedObject"
+    entity.properties = [attribute]
+
+    let model = NSManagedObjectModel()
+    model.entities = [entity]
+    return model
+  }
+
+  private func makeModelWithMissingNonOptionalDefault() -> NSManagedObjectModel {
+    let attribute = NSAttributeDescription()
+    attribute.name = "name"
+    attribute.attributeType = .stringAttributeType
+    attribute.isOptional = false
+
+    let entity = NSEntityDescription()
+    entity.name = "Item"
+    entity.managedObjectClassName = "NSManagedObject"
+    entity.properties = [attribute]
+
+    let model = NSManagedObjectModel()
+    model.entities = [entity]
+    return model
+  }
+
+  private func makeModelWithCustomStorageCandidate() -> NSManagedObjectModel {
+    let attribute = NSAttributeDescription()
+    attribute.name = "status_raw"
+    attribute.attributeType = .stringAttributeType
+    attribute.isOptional = false
+    attribute.defaultValue = "draft"
+
+    let entity = NSEntityDescription()
+    entity.name = "Item"
+    entity.managedObjectClassName = "NSManagedObject"
+    entity.properties = [attribute]
+
+    let model = NSManagedObjectModel()
+    model.entities = [entity]
+    return model
+  }
+
+  private func makeModelWithNonOptionalRelationship() -> NSManagedObjectModel {
+    let item = NSEntityDescription()
+    item.name = "Item"
+    item.managedObjectClassName = "NSManagedObject"
+
+    let owner = NSEntityDescription()
+    owner.name = "Owner"
+    owner.managedObjectClassName = "NSManagedObject"
+
+    let ownerRelationship = NSRelationshipDescription()
+    ownerRelationship.name = "owner"
+    ownerRelationship.destinationEntity = owner
+    ownerRelationship.minCount = 1
+    ownerRelationship.maxCount = 1
+    ownerRelationship.isOptional = false
+
+    let itemsRelationship = NSRelationshipDescription()
+    itemsRelationship.name = "items"
+    itemsRelationship.destinationEntity = item
+    itemsRelationship.minCount = 0
+    itemsRelationship.maxCount = 0
+    itemsRelationship.isOptional = true
+
+    ownerRelationship.inverseRelationship = itemsRelationship
+    itemsRelationship.inverseRelationship = ownerRelationship
+
+    item.properties = [ownerRelationship]
+    owner.properties = [itemsRelationship]
+
+    let model = NSManagedObjectModel()
+    model.entities = [item, owner]
+    return model
+  }
+
+  private func makeModelWithRelationshipWithoutInverse() -> NSManagedObjectModel {
+    let item = NSEntityDescription()
+    item.name = "Item"
+    item.managedObjectClassName = "NSManagedObject"
+
+    let owner = NSEntityDescription()
+    owner.name = "Owner"
+    owner.managedObjectClassName = "NSManagedObject"
+
+    let ownerRelationship = NSRelationshipDescription()
+    ownerRelationship.name = "owner"
+    ownerRelationship.destinationEntity = owner
+    ownerRelationship.minCount = 0
+    ownerRelationship.maxCount = 1
+    ownerRelationship.isOptional = true
+
+    item.properties = [ownerRelationship]
+    owner.properties = []
+
+    let model = NSManagedObjectModel()
+    model.entities = [item, owner]
     return model
   }
 }

@@ -15,6 +15,18 @@ CLI v1 先解决两件事：
 
 用途：从 `.xcdatamodeld`（或已编译 `.momd`）生成 Swift 文件。
 
+当前 `ToolingCore` 已完成：
+
+- model -> IR -> in-memory generated sources
+- `@objc` / `@PersistentModel` / `@Attribute` / relationship / composition 声明渲染
+- `typeMappings` 与 `attributeRules` 的生成侧解析
+
+当前仍未完成：
+
+- file plan / overwrite / clean-stale / 实际写盘
+- CLI `generate` 接线
+- `headerTemplate` 文件读取
+
 ### `cde-tool validate`
 
 用途：检查“模型文件 + 已有代码”是否一致，不写文件。
@@ -351,6 +363,31 @@ CLI v1 先解决两件事：
   - 删除旧的“已生成但本轮不存在”的文件（仅处理带生成标记的文件）。
 - `--dry-run`
   - 不写磁盘，打印变更摘要。
+
+当前生成边界：
+
+- 生成结果始终遵循模型中的 optionality；v1 不支持通过配置把 optional 字段提升为非 optional Swift 属性。
+- 对于 `storageMethod == default` 的非 optional 字段，tool 必须直接使用模型默认值；如果模型没有默认值，generate 会直接报错。
+- tool 当前直接遵循模型端“至少 optional 或有默认值”的规范，不额外替属性做语义转换。
+- `@Ignore` 不属于模型信息，无法从 `xcdatamodeld` 推断；因此 model-to-code 生成不会创建 `@Ignore` 属性。
+- 对于非 optional 的自定义 `raw` / `codable` / `composition` / `transformed` 类型，当前会直接报错；即使底层持久化字段在模型中有默认值，v1 也不会尝试把它转换成自定义 Swift 值。
+- relationship 生成当前要求模型中的关系同时满足：
+  - `optional == true`
+  - 存在 inverse relationship
+- 如果关系不满足上述约束，generate 会直接报错，而不是输出与当前宏契约不一致的代码。
+
+禁止生成的模型约束：
+
+- 不允许 `Undefined` attribute type。tool 不会为未定义的 Core Data 属性类型推断 Swift 类型。
+- 不允许非 optional 且没有模型默认值的持久化属性。
+- 不允许非 optional relationship。
+- 不允许没有 inverse relationship 的 relationship。
+- tool 当前不对上述模型做“自动转换后继续生成”。遇到这些情况时，generate 会直接失败，要求先修正模型或等待未来明确支持的配置能力。
+
+未来演进约定：
+
+- 如果后续宏语义允许“代码中的默认值覆盖模型默认值”，tool 才会增加默认值相关配置。
+- 届时会通过显式配置项提供默认值，并由该值参与代码生成；v1 不提前引入这套能力。
 - `--format <none|swift-format|swiftformat>`
   - 是否在写入前格式化。
   - `swift-format` 对应 Apple `swift-format`。

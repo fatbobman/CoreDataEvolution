@@ -64,21 +64,20 @@
 
 ## 4. Generate Engine
 
-- `[ ]` 根据模型生成实体代码计划
-- `[ ]` 生成 `@objc(...)`
-- `[ ]` 生成 `@PersistentModel(...)`
-- `[ ]` 生成属性声明
-- `[ ]` 生成关系声明
-- `[ ]` 生成 composition 对应代码
-- `[ ]` 生成 `@Attribute(...)` 参数
-- `[ ]` 根据 `typeMappings` 解析默认 Swift 类型
-- `[ ]` 根据 `attributeRules` 生成重命名属性
-- `[ ]` 根据 `attributeRules` 生成类型与 storage method 覆盖
-- `[ ]` 生成 `@Ignore` 对应保留逻辑
-- `[ ]` 支持 `generateInit`
-- `[ ]` 支持 `relationshipSetterPolicy`
-- `[ ]` 支持 `relationshipCountPolicy`
-- `[ ]` 支持默认文件头模板
+- `[x]` 根据模型生成实体代码计划（内存中的 generated sources）
+- `[x]` 生成 `@objc(...)`
+- `[x]` 生成 `@PersistentModel(...)`
+- `[x]` 生成属性声明
+- `[x]` 生成关系声明
+- `[x]` 生成 composition 对应代码
+- `[x]` 生成 `@Attribute(...)` 参数
+- `[x]` 根据 `typeMappings` 解析默认 Swift 类型
+- `[x]` 根据 `attributeRules` 生成重命名属性
+- `[x]` 根据 `attributeRules` 生成类型与 storage method 覆盖
+- `[x]` 支持 `generateInit`
+- `[x]` 支持 `relationshipSetterPolicy`
+- `[x]` 支持 `relationshipCountPolicy`
+- `[ ]` 接线 `headerTemplate` 文件解析与 CLI/config 输入
 
 ## 5. File Planning And Writing
 
@@ -156,6 +155,8 @@
 - `[x]` 模型版本选择测试
 - `[x]` IR 构建测试
 - `[x]` inspect service 测试
+- `[x]` generate source renderer 测试
+- `[x]` generate service 测试
 - `[ ]` generate file plan 测试
 - `[ ]` overwrite / clean-stale 测试
 - `[ ]` validate quick 测试
@@ -166,9 +167,9 @@
 
 ## 11. Immediate Next Steps
 
-- `1.` 为 `generate` / `validate` 建立 service 层入口
-- `2.` 将 CLI `--config` 接入 `ToolingCore`
-- `3.` 定义 file plan，并打通第一个 generate 最小闭环
+- `1.` 为 validate 建立 service 层入口
+- `2.` 定义 file plan，并把 generate sources 接入写盘策略
+- `3.` 将 CLI `generate --config` 接入 `ToolingCore`
 - `4.` 为 validate 设计 quick 模式入口
 
 ## 12. Deferred / Known Gaps
@@ -178,3 +179,9 @@
 - `[ ]` `generate.attributeRules` 与 `validate.attributeRules` 仍是两份独立配置，暂不提供引用/复用语法。
 - `[ ]` `generate` / `validate` service 接线后，仍需在“合并 CLI overrides 后”的 request 层再做一次最终校验。
 - `[ ]` 当前 inspect 对未解析字段只发出 diagnostics，不会像 generate/validate 那样直接失败。
+- `[ ]` generate 目前不会从模型外信息推断 `@Ignore` 字段。
+- `[ ]` tool 仍未提供描述 `@Ignore` / 纯内存属性的额外配置模型。
+- `[ ]` generate 当前只会直接使用模型默认值；对于非可选自定义 raw/codable/composition/transformed 类型，仍缺少未来的显式代码默认值规则。
+- `[ ]` `GenerateService.validateGenerateRequest` 仍通过 `GenerateRequest -> GenerateTemplate` 的中转来复用校验逻辑；后续可提取为直接接受已解析参数的共享验证入口，降低字段漂移风险。
+- `[ ]` `headerTemplate` 当前仅在直接调用 GenerateService 时作为原始文本前缀使用；CLI/config 的模板文件解析仍未接线。
+- `[ ]` 只有在未来宏语义允许“代码默认值覆盖模型默认值”时，tool 才会引入默认值配置，并用该值参与代码生成。

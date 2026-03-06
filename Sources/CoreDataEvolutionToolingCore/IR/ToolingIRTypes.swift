@@ -120,13 +120,17 @@ public struct ToolingEntityIR: Codable, Sendable, Equatable {
 }
 
 /// Attribute-level IR after applying `typeMappings`, `attributeRules`, and default policies.
+///
+/// Model defaults are preserved as pre-rendered Swift literals so generate can use the exact model
+/// value without re-deriving it from the resolved Swift type.
 public struct ToolingAttributeIR: Codable, Sendable, Equatable {
   public let persistentName: String
   public let swiftName: String
   public let coreDataAttributeType: String
   public let coreDataPrimitiveType: String?
   public let isOptional: Bool
-  public let defaultValueRequired: Bool
+  public let hasModelDefaultValue: Bool
+  public let modelDefaultValueLiteral: String?
   public let storage: ToolingStorageIR
 
   public init(
@@ -135,7 +139,8 @@ public struct ToolingAttributeIR: Codable, Sendable, Equatable {
     coreDataAttributeType: String,
     coreDataPrimitiveType: String?,
     isOptional: Bool,
-    defaultValueRequired: Bool,
+    hasModelDefaultValue: Bool,
+    modelDefaultValueLiteral: String?,
     storage: ToolingStorageIR
   ) {
     self.persistentName = persistentName
@@ -143,7 +148,8 @@ public struct ToolingAttributeIR: Codable, Sendable, Equatable {
     self.coreDataAttributeType = coreDataAttributeType
     self.coreDataPrimitiveType = coreDataPrimitiveType
     self.isOptional = isOptional
-    self.defaultValueRequired = defaultValueRequired
+    self.hasModelDefaultValue = hasModelDefaultValue
+    self.modelDefaultValueLiteral = modelDefaultValueLiteral
     self.storage = storage
   }
 }

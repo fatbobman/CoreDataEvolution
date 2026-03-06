@@ -110,3 +110,72 @@ public func toolingCoreDataAttributeTypeName(for attributeType: NSAttributeType)
     return "Unknown"
   }
 }
+
+/// Converts Core Data model defaults into stable Swift source literals.
+///
+/// The helper intentionally supports only direct, lossless mappings from the model default to the
+/// generated property declaration. It does not attempt to transform persistent defaults into custom
+/// `raw` / `codable` / `composition` / `transformed` Swift values.
+public func toolingModelDefaultValueLiteral(
+  for attribute: NSAttributeDescription
+) -> String? {
+  guard let value = attribute.defaultValue else {
+    return nil
+  }
+
+  switch attribute.attributeType {
+  case .stringAttributeType:
+    guard let stringValue = value as? String else { return nil }
+    return swiftStringLiteral(stringValue)
+  case .booleanAttributeType:
+    guard let numberValue = value as? NSNumber else { return nil }
+    return numberValue.boolValue ? "true" : "false"
+  case .integer16AttributeType, .integer32AttributeType, .integer64AttributeType:
+    guard let numberValue = value as? NSNumber else { return nil }
+    return numberValue.stringValue
+  case .decimalAttributeType:
+    if let decimalNumber = value as? NSDecimalNumber {
+      return decimalNumber.stringValue
+    }
+    if let decimalValue = value as? Decimal {
+      return NSDecimalNumber(decimal: decimalValue).stringValue
+    }
+    return nil
+  case .doubleAttributeType:
+    guard let numberValue = value as? NSNumber else { return nil }
+    let doubleValue = numberValue.doubleValue
+    guard doubleValue.isFinite else { return nil }
+    return String(reflecting: doubleValue)
+  case .floatAttributeType:
+    guard let numberValue = value as? NSNumber else { return nil }
+    let floatValue = numberValue.floatValue
+    guard floatValue.isFinite else { return nil }
+    return String(reflecting: floatValue)
+  case .dateAttributeType:
+    guard let dateValue = value as? Date else { return nil }
+    return
+      "Date(timeIntervalSinceReferenceDate: \(String(reflecting: dateValue.timeIntervalSinceReferenceDate)))"
+  case .binaryDataAttributeType:
+    guard let dataValue = value as? Data else { return nil }
+    return "Data(base64Encoded: \(swiftStringLiteral(dataValue.base64EncodedString())))!"
+  case .UUIDAttributeType:
+    guard let uuidValue = value as? UUID else { return nil }
+    return "UUID(uuidString: \(swiftStringLiteral(uuidValue.uuidString)))!"
+  case .URIAttributeType:
+    guard let urlValue = value as? URL else { return nil }
+    return "URL(string: \(swiftStringLiteral(urlValue.absoluteString)))!"
+  default:
+    return nil
+  }
+}
+
+private func swiftStringLiteral(_ string: String) -> String {
+  let escaped =
+    string
+    .replacingOccurrences(of: "\\", with: "\\\\")
+    .replacingOccurrences(of: "\"", with: "\\\"")
+    .replacingOccurrences(of: "\n", with: "\\n")
+    .replacingOccurrences(of: "\r", with: "\\r")
+    .replacingOccurrences(of: "\t", with: "\\t")
+  return "\"\(escaped)\""
+}

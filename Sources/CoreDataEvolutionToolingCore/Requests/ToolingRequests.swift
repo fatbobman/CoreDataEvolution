@@ -204,6 +204,26 @@ public struct InspectRequest: Sendable, Equatable {
   }
 }
 
+extension InspectRequest {
+  /// Reuses the inspect pipeline as the model-to-IR front-end for generate.
+  public init(generateRequest: GenerateRequest) {
+    self.init(
+      modelPath: generateRequest.modelPath,
+      modelVersion: generateRequest.modelVersion,
+      momcBin: generateRequest.momcBin,
+      typeMappings: generateRequest.typeMappings,
+      attributeRules: generateRequest.attributeRules,
+      accessLevel: generateRequest.accessLevel,
+      singleFile: generateRequest.singleFile,
+      splitByEntity: generateRequest.splitByEntity,
+      generateInit: generateRequest.generateInit,
+      relationshipSetterPolicy: generateRequest.relationshipSetterPolicy,
+      relationshipCountPolicy: generateRequest.relationshipCountPolicy,
+      defaultDecodeFailurePolicy: generateRequest.defaultDecodeFailurePolicy
+    )
+  }
+}
+
 /// CLI-only override carrier merged on top of `GenerateTemplate`.
 public struct GenerateRequestOverrides: Sendable, Equatable {
   public var modelPath: String?

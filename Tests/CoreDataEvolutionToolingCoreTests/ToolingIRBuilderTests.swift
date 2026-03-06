@@ -22,15 +22,15 @@ struct ToolingIRBuilderTests {
     let loadedModel = ToolingLoadedModel(
       model: model,
       resolvedInput: .init(
-        originalURL: URL(fileURLWithPath: "/tmp/AppModel.xcdatamodeld"),
-        selectedSourceURL: URL(fileURLWithPath: "/tmp/AppModel.xcdatamodeld/V2.xcdatamodel"),
-        compiledModelURL: URL(fileURLWithPath: "/tmp/AppModel.momd"),
+        originalURL: URL(fileURLWithPath: "/virtual/AppModel.xcdatamodeld"),
+        selectedSourceURL: URL(fileURLWithPath: "/virtual/AppModel.xcdatamodeld/V2.xcdatamodel"),
+        compiledModelURL: URL(fileURLWithPath: "/virtual/AppModel.momd"),
         kind: .xcdatamodeld,
         selectedVersionName: "V2.xcdatamodel"
       )
     )
     let request = InspectRequest(
-      modelPath: "/tmp/AppModel.xcdatamodeld",
+      modelPath: "/virtual/AppModel.xcdatamodeld",
       modelVersion: "V2",
       momcBin: nil,
       typeMappings: .init(
@@ -77,11 +77,14 @@ struct ToolingIRBuilderTests {
     #expect(title.storage.method == .default)
     #expect(title.storage.swiftType == "String")
     #expect(title.storage.isResolved)
+    #expect(title.hasModelDefaultValue)
+    #expect(title.modelDefaultValueLiteral == #""""#)
 
     let status = try #require(item.attributes.first(where: { $0.persistentName == "status_raw" }))
     #expect(status.storage.method == .raw)
     #expect(status.storage.nonOptionalSwiftType == "ItemStatus")
     #expect(status.storage.decodeFailurePolicy == .debugAssertNil)
+    #expect(status.hasModelDefaultValue == false)
 
     let payload = try #require(item.attributes.first(where: { $0.persistentName == "payload" }))
     #expect(payload.storage.method == .transformed)
@@ -108,15 +111,15 @@ struct ToolingIRBuilderTests {
     let loadedModel = ToolingLoadedModel(
       model: makeModel(),
       resolvedInput: .init(
-        originalURL: URL(fileURLWithPath: "/tmp/AppModel.xcdatamodeld"),
-        selectedSourceURL: URL(fileURLWithPath: "/tmp/AppModel.xcdatamodeld/V1.xcdatamodel"),
-        compiledModelURL: URL(fileURLWithPath: "/tmp/AppModel.momd"),
+        originalURL: URL(fileURLWithPath: "/virtual/AppModel.xcdatamodeld"),
+        selectedSourceURL: URL(fileURLWithPath: "/virtual/AppModel.xcdatamodeld/V1.xcdatamodel"),
+        compiledModelURL: URL(fileURLWithPath: "/virtual/AppModel.momd"),
         kind: .xcdatamodeld,
         selectedVersionName: "V1.xcdatamodel"
       )
     )
     let request = InspectRequest(
-      modelPath: "/tmp/AppModel.xcdatamodeld",
+      modelPath: "/virtual/AppModel.xcdatamodeld",
       modelVersion: nil,
       momcBin: nil,
       attributeRules: .init(
@@ -151,6 +154,7 @@ struct ToolingIRBuilderTests {
     name.name = "name"
     name.attributeType = .stringAttributeType
     name.isOptional = false
+    name.defaultValue = ""
 
     let statusRaw = NSAttributeDescription()
     statusRaw.name = "status_raw"

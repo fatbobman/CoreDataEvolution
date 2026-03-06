@@ -44,6 +44,11 @@ public func validateToolingConfigTemplate(
   )
 
   if let generate = template.generate {
+    try validateGenerateModelConstraints(
+      entitiesByName: entitiesByName,
+      attributeRules: generate.attributeRules ?? .init(),
+      context: "generate"
+    )
     try validateAttributeRules(
       generate.attributeRules ?? .init(),
       context: "generate.attributeRules",
@@ -71,6 +76,60 @@ public func validateToolingConfigTemplate(
       entitiesByName: entitiesByName,
       defaultDecodeFailurePolicy: .fallbackToDefaultValue
     )
+  }
+}
+
+/// Enforces model shapes that the current generation pipeline refuses to convert implicitly.
+///
+/// These are not generic Core Data errors; they are explicit v1 tooling constraints. Generate fails
+/// fast on these cases instead of attempting to coerce the model into macro-compatible code.
+private func validateGenerateModelConstraints(
+  entitiesByName: [String: NSEntityDescription],
+  attributeRules: ToolingAttributeRules,
+  context: String
+) throws {
+  for (entityName, entity) in entitiesByName {
+    let rules = attributeRules[entity: entityName]
+
+    for (fieldName, attribute) in entity.attributesByName {
+      if attribute.attributeType == .undefinedAttributeType {
+        throw configValidationFailure(
+          "\(context) does not support Undefined attribute type at '\(entityName).\(fieldName)'."
+        )
+      }
+
+      if attribute.isOptional == false, attribute.defaultValue == nil {
+        throw configValidationFailure(
+          "\(context) requires non-optional attribute '\(entityName).\(fieldName)' to declare a model default value."
+        )
+      }
+
+      let rule = rules[fieldName] ?? .init()
+      let storageMethod = resolveToolingAttributeStorageMethod(rule)
+      if storageMethod != .default, attribute.isOptional == false {
+        throw configValidationFailure(
+          """
+          \(context) does not support non-optional custom storage for '\(entityName).\(fieldName)'. \
+          Make the attribute optional or keep default storage until explicit code-default support \
+          exists.
+          """
+        )
+      }
+    }
+
+    for (fieldName, relationship) in entity.relationshipsByName {
+      if relationship.isOptional == false {
+        throw configValidationFailure(
+          "\(context) requires relationship '\(entityName).\(fieldName)' to be optional."
+        )
+      }
+
+      if relationship.inverseRelationship == nil {
+        throw configValidationFailure(
+          "\(context) requires relationship '\(entityName).\(fieldName)' to declare an inverse relationship."
+        )
+      }
+    }
   }
 }
 

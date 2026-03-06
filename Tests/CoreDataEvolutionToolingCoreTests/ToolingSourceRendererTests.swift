@@ -1,0 +1,361 @@
+//
+//  ------------------------------------------------
+//  Original project: CoreDataEvolution
+//  Created on 2026/3/6 by Fatbobman(东坡肘子)
+//  X: @fatbobman
+//  Mastodon: @fatbobman@mastodon.social
+//  GitHub: @fatbobman
+//  Blog: https://fatbobman.com
+//  ------------------------------------------------
+//  Copyright © 2024-present Fatbobman. All rights reserved.
+
+import CoreDataEvolutionToolingCore
+import Foundation
+import Testing
+
+@Suite("Tooling Core Source Renderer Tests")
+struct ToolingSourceRendererTests {
+  @Test("renderer emits macro style entity source")
+  func rendererEmitsMacroStyleEntitySource() throws {
+    let modelIR = ToolingModelIR(
+      source: .init(
+        originalPath: "/virtual/AppModel.xcdatamodeld",
+        selectedSourcePath: "/virtual/AppModel.xcdatamodeld/V1.xcdatamodel",
+        compiledModelPath: "/virtual/AppModel.momd",
+        inputKind: .xcdatamodeld,
+        selectedVersionName: "V1.xcdatamodel"
+      ),
+      generationPolicy: .init(
+        accessLevel: .internal,
+        singleFile: false,
+        splitByEntity: true,
+        generateInit: true,
+        relationshipSetterPolicy: .warning,
+        relationshipCountPolicy: .none,
+        defaultDecodeFailurePolicy: .fallbackToDefaultValue
+      ),
+      entities: [
+        .init(
+          name: "Item",
+          managedObjectClassName: "NSManagedObject",
+          representedClassName: "Item",
+          attributes: [
+            .init(
+              persistentName: "name",
+              swiftName: "title",
+              coreDataAttributeType: "String",
+              coreDataPrimitiveType: "String",
+              isOptional: false,
+              hasModelDefaultValue: true,
+              modelDefaultValueLiteral: #""""#,
+              storage: .init(
+                method: .default,
+                swiftType: "String",
+                nonOptionalSwiftType: "String",
+                transformerType: nil,
+                decodeFailurePolicy: nil,
+                isResolved: true
+              )
+            ),
+            .init(
+              persistentName: "status_raw",
+              swiftName: "status",
+              coreDataAttributeType: "Integer 64",
+              coreDataPrimitiveType: "Integer 64",
+              isOptional: true,
+              hasModelDefaultValue: false,
+              modelDefaultValueLiteral: nil,
+              storage: .init(
+                method: .raw,
+                swiftType: "ItemStatus?",
+                nonOptionalSwiftType: "ItemStatus",
+                transformerType: nil,
+                decodeFailurePolicy: .debugAssertNil,
+                isResolved: true
+              )
+            ),
+            .init(
+              persistentName: "location_blob",
+              swiftName: "location_blob",
+              coreDataAttributeType: "Binary",
+              coreDataPrimitiveType: "Binary",
+              isOptional: true,
+              hasModelDefaultValue: false,
+              modelDefaultValueLiteral: nil,
+              storage: .init(
+                method: .composition,
+                swiftType: "ItemLocation?",
+                nonOptionalSwiftType: "ItemLocation",
+                transformerType: nil,
+                decodeFailurePolicy: nil,
+                isResolved: true
+              )
+            ),
+          ],
+          relationships: [
+            .init(
+              persistentName: "tags",
+              swiftName: "tags",
+              destinationEntityName: "Tag",
+              inverseRelationshipName: "item",
+              cardinality: .toManyUnordered,
+              isOptional: true,
+              minCount: 0,
+              maxCount: 0,
+              deleteRule: "nullify"
+            )
+          ],
+          compositions: [
+            .init(
+              swiftName: "location",
+              swiftType: "ItemLocation",
+              persistentFields: ["location_blob"]
+            )
+          ]
+        )
+      ]
+    )
+
+    let source = try ToolingSourceRenderer.renderSources(
+      from: modelIR,
+      header: "// GENERATED"
+    ).first?.contents
+    let rendered = try #require(source)
+
+    #expect(rendered.contains("// GENERATED"))
+    #expect(rendered.contains("@objc(Item)"))
+    #expect(rendered.contains("@PersistentModel("))
+    #expect(rendered.contains("relationshipSetterPolicy: .warning"))
+    #expect(rendered.contains(#"@Attribute(originalName: "name")"#))
+    #expect(
+      rendered.contains(
+        #"@Attribute(originalName: "status_raw", storageMethod: .raw, decodeFailurePolicy: .debugAssertNil)"#
+      ))
+    #expect(
+      rendered.contains(#"@Attribute(originalName: "location_blob", storageMethod: .composition)"#))
+    #expect(rendered.contains("var title: String = \"\""))
+    #expect(rendered.contains("var status: ItemStatus? = nil"))
+    #expect(rendered.contains("var location: ItemLocation? = nil"))
+    #expect(rendered.contains("var tags: Set<Tag>"))
+    #expect(rendered.contains("convenience init("))
+    #expect(rendered.contains("extension Item: PersistentEntity {}"))
+  }
+
+  @Test("renderer rejects non-optional custom storage without a synthesizeable default")
+  func rendererRejectsUnsupportedNonOptionalDefault() throws {
+    let modelIR = ToolingModelIR(
+      source: .init(
+        originalPath: "/virtual/AppModel.xcdatamodeld",
+        selectedSourcePath: "/virtual/AppModel.xcdatamodeld/V1.xcdatamodel",
+        compiledModelPath: "/virtual/AppModel.momd",
+        inputKind: .xcdatamodeld,
+        selectedVersionName: "V1.xcdatamodel"
+      ),
+      generationPolicy: .init(
+        accessLevel: .internal,
+        singleFile: false,
+        splitByEntity: true,
+        generateInit: false,
+        relationshipSetterPolicy: .warning,
+        relationshipCountPolicy: .none,
+        defaultDecodeFailurePolicy: .fallbackToDefaultValue
+      ),
+      entities: [
+        .init(
+          name: "Item",
+          managedObjectClassName: "NSManagedObject",
+          representedClassName: "Item",
+          attributes: [
+            .init(
+              persistentName: "config_blob",
+              swiftName: "config",
+              coreDataAttributeType: "Binary",
+              coreDataPrimitiveType: "Binary",
+              isOptional: false,
+              hasModelDefaultValue: true,
+              modelDefaultValueLiteral: "Data(base64Encoded: \"AA==\")!",
+              storage: .init(
+                method: .codable,
+                swiftType: "ItemConfig",
+                nonOptionalSwiftType: "ItemConfig",
+                transformerType: nil,
+                decodeFailurePolicy: .fallbackToDefaultValue,
+                isResolved: true
+              )
+            )
+          ],
+          relationships: [],
+          compositions: []
+        )
+      ]
+    )
+
+    do {
+      _ = try ToolingSourceRenderer.renderSources(from: modelIR)
+      Issue.record("Expected renderer to reject unsupported non-optional custom default.")
+    } catch let error as ToolingFailure {
+      #expect(error.code == .configInvalid)
+    }
+  }
+
+  @Test("renderer rejects non-optional default storage without a model default")
+  func rendererRejectsMissingModelDefault() throws {
+    let modelIR = ToolingModelIR(
+      source: .init(
+        originalPath: "/virtual/AppModel.xcdatamodeld",
+        selectedSourcePath: "/virtual/AppModel.xcdatamodeld/V1.xcdatamodel",
+        compiledModelPath: "/virtual/AppModel.momd",
+        inputKind: .xcdatamodeld,
+        selectedVersionName: "V1.xcdatamodel"
+      ),
+      generationPolicy: .init(
+        accessLevel: .internal,
+        singleFile: false,
+        splitByEntity: true,
+        generateInit: false,
+        relationshipSetterPolicy: .warning,
+        relationshipCountPolicy: .none,
+        defaultDecodeFailurePolicy: .fallbackToDefaultValue
+      ),
+      entities: [
+        .init(
+          name: "Item",
+          managedObjectClassName: "NSManagedObject",
+          representedClassName: "Item",
+          attributes: [
+            .init(
+              persistentName: "name",
+              swiftName: "name",
+              coreDataAttributeType: "String",
+              coreDataPrimitiveType: "String",
+              isOptional: false,
+              hasModelDefaultValue: false,
+              modelDefaultValueLiteral: nil,
+              storage: .init(
+                method: .default,
+                swiftType: "String",
+                nonOptionalSwiftType: "String",
+                transformerType: nil,
+                decodeFailurePolicy: nil,
+                isResolved: true
+              )
+            )
+          ],
+          relationships: [],
+          compositions: []
+        )
+      ]
+    )
+
+    do {
+      _ = try ToolingSourceRenderer.renderSources(from: modelIR)
+      Issue.record("Expected renderer to reject missing model defaults.")
+    } catch let error as ToolingFailure {
+      #expect(error.code == .configInvalid)
+    }
+  }
+
+  @Test("renderer rejects non-optional relationships")
+  func rendererRejectsNonOptionalRelationship() throws {
+    let modelIR = ToolingModelIR(
+      source: .init(
+        originalPath: "/virtual/AppModel.xcdatamodeld",
+        selectedSourcePath: "/virtual/AppModel.xcdatamodeld/V1.xcdatamodel",
+        compiledModelPath: "/virtual/AppModel.momd",
+        inputKind: .xcdatamodeld,
+        selectedVersionName: "V1.xcdatamodel"
+      ),
+      generationPolicy: .init(
+        accessLevel: .internal,
+        singleFile: false,
+        splitByEntity: true,
+        generateInit: false,
+        relationshipSetterPolicy: .warning,
+        relationshipCountPolicy: .none,
+        defaultDecodeFailurePolicy: .fallbackToDefaultValue
+      ),
+      entities: [
+        .init(
+          name: "Item",
+          managedObjectClassName: "NSManagedObject",
+          representedClassName: "Item",
+          attributes: [],
+          relationships: [
+            .init(
+              persistentName: "tags",
+              swiftName: "tags",
+              destinationEntityName: "Tag",
+              inverseRelationshipName: "item",
+              cardinality: .toManyUnordered,
+              isOptional: false,
+              minCount: 1,
+              maxCount: 0,
+              deleteRule: "nullify"
+            )
+          ],
+          compositions: []
+        )
+      ]
+    )
+
+    do {
+      _ = try ToolingSourceRenderer.renderSources(from: modelIR)
+      Issue.record("Expected renderer to reject non-optional relationship.")
+    } catch let error as ToolingFailure {
+      #expect(error.code == .configInvalid)
+      #expect(error.message.contains("to be optional"))
+    }
+  }
+
+  @Test("renderer rejects relationships without inverse")
+  func rendererRejectsRelationshipWithoutInverse() throws {
+    let modelIR = ToolingModelIR(
+      source: .init(
+        originalPath: "/virtual/AppModel.xcdatamodeld",
+        selectedSourcePath: "/virtual/AppModel.xcdatamodeld/V1.xcdatamodel",
+        compiledModelPath: "/virtual/AppModel.momd",
+        inputKind: .xcdatamodeld,
+        selectedVersionName: "V1.xcdatamodel"
+      ),
+      generationPolicy: .init(
+        accessLevel: .internal,
+        singleFile: false,
+        splitByEntity: true,
+        generateInit: false,
+        relationshipSetterPolicy: .warning,
+        relationshipCountPolicy: .none,
+        defaultDecodeFailurePolicy: .fallbackToDefaultValue
+      ),
+      entities: [
+        .init(
+          name: "Item",
+          managedObjectClassName: "NSManagedObject",
+          representedClassName: "Item",
+          attributes: [],
+          relationships: [
+            .init(
+              persistentName: "owner",
+              swiftName: "owner",
+              destinationEntityName: "Owner",
+              inverseRelationshipName: nil,
+              cardinality: .toOne,
+              isOptional: true,
+              minCount: 0,
+              maxCount: 1,
+              deleteRule: "nullify"
+            )
+          ],
+          compositions: []
+        )
+      ]
+    )
+
+    do {
+      _ = try ToolingSourceRenderer.renderSources(from: modelIR)
+      Issue.record("Expected renderer to reject relationship without inverse.")
+    } catch let error as ToolingFailure {
+      #expect(error.code == .configInvalid)
+      #expect(error.message.contains("inverse relationship"))
+    }
+  }
+}

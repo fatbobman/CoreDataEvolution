@@ -117,6 +117,7 @@ public enum ToolingIRBuilder {
   ) -> ToolingAttributeIR {
     let rule = request.attributeRules[entity: entityName][persistentName] ?? .init()
     let storageMethod = resolveToolingAttributeStorageMethod(rule)
+    let modelDefaultValueLiteral = toolingModelDefaultValueLiteral(for: attribute)
     let swiftName = resolveToolingSwiftName(
       persistentName: persistentName,
       rule: rule
@@ -145,7 +146,8 @@ public enum ToolingIRBuilder {
       coreDataAttributeType: toolingCoreDataAttributeTypeName(for: attribute.attributeType),
       coreDataPrimitiveType: toolingTypeMappingKey(for: attribute.attributeType),
       isOptional: attribute.isOptional,
-      defaultValueRequired: attribute.isOptional == false,
+      hasModelDefaultValue: attribute.defaultValue != nil,
+      modelDefaultValueLiteral: modelDefaultValueLiteral,
       storage: .init(
         method: storageMethod,
         swiftType: makeOptionalAwareSwiftType(
