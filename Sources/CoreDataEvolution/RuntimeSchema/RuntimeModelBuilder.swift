@@ -69,6 +69,8 @@ public enum CDRuntimeModelBuilderError: LocalizedError, Sendable, Equatable {
 ///
 /// Built models are cached by participating type list so repeated test/debug setup reuses the
 /// same `NSManagedObjectModel` instance instead of rebuilding equivalent models over and over.
+/// Model construction stays inside the cache lock on purpose so a single type list cannot race and
+/// build the same schema multiple times under concurrent test setup.
 public enum CDRuntimeModelBuilder {
   private static let cacheLock = NSLock()
   nonisolated(unsafe) private static var modelCache: [String: NSManagedObjectModel] = [:]
@@ -83,11 +85,10 @@ public enum CDRuntimeModelBuilder {
 
     let cacheKey = runtimeModelCacheKey(for: types)
     cacheLock.lock()
+    defer { cacheLock.unlock() }
     if let cached = modelCache[cacheKey] {
-      cacheLock.unlock()
       return cached
     }
-    cacheLock.unlock()
 
     let schemas = CDRuntimeSchemaCollection.entitySchemas(types)
     let model = NSManagedObjectModel()
@@ -211,10 +212,7 @@ public enum CDRuntimeModelBuilder {
       description.inverseRelationship = inverse
     }
 
-    cacheLock.lock()
     modelCache[cacheKey] = model
-    cacheLock.unlock()
-
     return model
   }
 
@@ -260,8 +258,9 @@ public enum CDRuntimeModelBuilder {
         with: ""
       )
     case .composition:
-      // Test/debug runtime schema intentionally models composition as a transformable dictionary.
-      // This preserves the macro-generated KVC accessor contract without requiring Xcode model files.
+      // Runtime schema models composition as one transformable dictionary payload. That matches the
+      // macro-generated `@Attribute(storageMethod: .composition)` accessor contract, but it is not
+      // equivalent to xcdatamodeld-side flattened fields and should remain test/debug-only.
       description.attributeType = .transformableAttributeType
       description.attributeValueClassName = NSStringFromClass(NSDictionary.self)
       description.valueTransformerName =

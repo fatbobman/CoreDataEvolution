@@ -313,7 +313,12 @@ private func runtimePrimitiveTypeExpression(typeName: String) -> String {
   case "URL":
     return ".url"
   default:
-    return ".string"
+    return """
+      ({
+        #warning("Unsupported composition runtime primitive type '\(typeName)'. Falling back to .string.")
+        return CoreDataEvolution.CDRuntimePrimitiveAttributeType.string
+      }())
+      """
   }
 }
 

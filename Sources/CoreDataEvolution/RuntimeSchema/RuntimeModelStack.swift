@@ -17,6 +17,10 @@ import Foundation
 /// SQLite-backed container together so tests can hand the container to actors without repeating
 /// setup code. The underlying runtime model comes from `makeRuntimeModel`, so repeated stacks for
 /// the same type list still reuse the cached `NSManagedObjectModel`.
+///
+/// Composition attributes in this runtime path are represented as one transformable dictionary
+/// payload, matching the macro-generated composition accessor contract rather than xcdatamodeld's
+/// flattened field layout.
 public final class CDRuntimeModelStack {
   public let modelTypes: [any CDRuntimeSchemaProviding.Type]
   public let schemas: [CDRuntimeEntitySchema]

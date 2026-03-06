@@ -14,6 +14,9 @@ import CoreData
 /// Runtime-schema entry point emitted by `@PersistentModel`.
 /// The upcoming test/debug model builder consumes only this static metadata and does not perform
 /// reflection over Swift properties.
+///
+/// Current macro-emitted relationship schema does not carry explicit inverse names, so runtime
+/// builder falls back to inverse inference unless callers provide hand-written schema metadata.
 public protocol CDRuntimeSchemaProviding: NSManagedObject {
   static var __cdRuntimeEntitySchema: CDRuntimeEntitySchema { get }
 }

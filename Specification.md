@@ -28,6 +28,7 @@ Runtime schema / runtime model builder 的 v1 边界：
 - 同一组模型类型应复用缓存后的 `NSManagedObjectModel`
 - 若 relationship metadata 未显式给出 `inverseName`，仅支持唯一可推断 inverse
 - primitive 默认值仅支持可稳定翻译到 Core Data 默认值的表达式子集；不支持时直接报错
+- composition 在 runtime 路径中按单个 transformable dictionary payload 建模，不追求与 xcdatamodeld 的展平字段布局一致
 
 ## 2. Hard Rules
 
