@@ -46,7 +46,7 @@ public func validateToolingConfigTemplate(
   )
 
   if let generate = template.generate {
-    try validateGenerateModelConstraints(
+    try validateToolingModelConstraints(
       entitiesByName: entitiesByName,
       attributeRules: generate.attributeRules ?? .init(),
       context: "generate"
@@ -84,22 +84,6 @@ public func validateToolingConfigTemplate(
       defaultDecodeFailurePolicy: validate.defaultDecodeFailurePolicy ?? .fallbackToDefaultValue
     )
   }
-}
-
-/// Enforces model shapes that the current generation pipeline refuses to convert implicitly.
-///
-/// These are not generic Core Data errors; they are explicit v1 tooling constraints. Generate fails
-/// fast on these cases instead of attempting to coerce the model into macro-compatible code.
-private func validateGenerateModelConstraints(
-  entitiesByName: [String: NSEntityDescription],
-  attributeRules: ToolingAttributeRules,
-  context: String
-) throws {
-  try validateToolingModelConstraints(
-    entitiesByName: entitiesByName,
-    attributeRules: attributeRules,
-    context: context
-  )
 }
 
 /// Applies model-aware v1 tooling constraints that must hold for both generate and validate.
@@ -161,7 +145,6 @@ private func validateToolingModelConstraints(
   }
 }
 
-/// Rejects Core Data features that the current generate/validate/runtime-schema pipeline does not model.
 /// Rejects Core Data features that the current tooling pipeline does not model at all.
 ///
 /// Services that work directly from `NSManagedObjectModel` can call this even when they are not

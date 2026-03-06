@@ -268,9 +268,11 @@ public enum ToolingValidateComparator {
 
     let actualTransient = sourceProperty.attribute?.isTransient ?? false
     if actualTransient != attribute.isTransient {
+      let expectedState = attribute.isTransient ? "transient" : "non-transient"
+      let actualState = actualTransient ? "transient" : "non-transient"
       diagnostics.append(
         error(
-          "validate found transient mismatch for '\(entityName).\(expectedPropertyName)'. Expected '\(attribute.isTransient)', found '\(actualTransient)'."
+          "validate found transient mismatch for '\(entityName).\(expectedPropertyName)'. Expected \(expectedState) source annotation, found \(actualState)."
         )
       )
     }

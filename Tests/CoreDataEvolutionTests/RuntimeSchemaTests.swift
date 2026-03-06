@@ -67,6 +67,7 @@ struct RuntimeSchemaTests {
 
     #expect(cachedSummary.isTransient)
     #expect(cachedSummary.attributeType == .stringAttributeType)
+    #expect(cachedSummary.defaultValue == nil)
   }
 
   @Test("runtime model builder rejects unsupported primitive default expressions")

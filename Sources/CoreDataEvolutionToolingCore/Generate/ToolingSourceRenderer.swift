@@ -389,6 +389,11 @@ public enum ToolingSourceRenderer {
     transformerType: String?,
     decodeFailurePolicy: ToolingDecodeFailurePolicy?
   ) -> String? {
+    assert(
+      isTransient == false || storageMethod == .default,
+      "transient attributes must use default storage in source generation"
+    )
+
     var arguments: [String] = []
 
     if isUnique {

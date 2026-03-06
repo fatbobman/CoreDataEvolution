@@ -235,12 +235,14 @@ public enum CDRuntimeModelBuilder {
     switch attribute.storage {
     case .primitive(let primitive):
       description.attributeType = attributeType(for: primitive)
-      description.defaultValue = try parsedDefaultValue(
-        expression: attribute.defaultValueExpression,
-        primitiveType: primitive,
-        entityName: entityName,
-        attributeName: attribute.persistentName
-      )
+      if attribute.isTransient == false {
+        description.defaultValue = try parsedDefaultValue(
+          expression: attribute.defaultValueExpression,
+          primitiveType: primitive,
+          entityName: entityName,
+          attributeName: attribute.persistentName
+        )
+      }
     case .raw(let backingTypeName):
       guard let primitive = primitiveType(forRawBackingTypeName: backingTypeName) else {
         throw CDRuntimeModelBuilderError.unsupportedRawBackingType(
