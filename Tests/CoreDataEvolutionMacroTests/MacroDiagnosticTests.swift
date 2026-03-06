@@ -366,6 +366,26 @@ struct MacroDiagnosticTests {
       })
   }
 
+  @Test("PersistentModel rejects multi-binding stored properties")
+  func persistentModelRejectsMultiBindingStoredProperties() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        @objc(Item)
+        @PersistentModel
+        final class Item: NSManagedObject {
+          var title: String = "", subtitle: String = ""
+        }
+        """
+    )
+    #expect(
+      result.diagnostics.contains {
+        $0.contains(
+          "does not support declaring multiple stored properties in one `var` declaration")
+      })
+  }
+
   @Test("PersistentModel rejects non-optional to-one relationship declaration")
   func persistentModelRejectsNonOptionalToOneRelationshipDeclaration() throws {
     let result = try MacroTestSupport.expand(

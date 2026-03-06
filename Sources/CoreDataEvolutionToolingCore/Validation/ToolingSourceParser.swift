@@ -70,6 +70,9 @@ public enum ToolingSourceParser {
     let fileSyntax = Parser.parse(source: source)
     let collector = ToolingSourceEntityCollector(filePath: fileURL.path)
     collector.walk(fileSyntax)
+    if let failure = collector.failures.first {
+      throw failure
+    }
     return collector.entities
   }
 
@@ -112,6 +115,7 @@ public enum ToolingSourceParser {
 private final class ToolingSourceEntityCollector: SyntaxVisitor {
   private let filePath: String
   private(set) var entities: [ToolingSourceEntityIR] = []
+  private(set) var failures: [ToolingFailure] = []
 
   init(filePath: String) {
     self.filePath = filePath
@@ -127,6 +131,7 @@ private final class ToolingSourceEntityCollector: SyntaxVisitor {
 
     let properties = node.memberBlock.members.compactMap { member -> ToolingSourcePropertyIR? in
       guard let variable = member.decl.as(VariableDeclSyntax.self) else { return nil }
+      recordUnsupportedMultiBinding(variable, className: node.name.text)
       return makeProperty(from: variable)
     }
     let customMembers = node.memberBlock.members.compactMap {
@@ -201,6 +206,38 @@ private final class ToolingSourceEntityCollector: SyntaxVisitor {
       kind: .computedProperty
     )
   }
+
+  private func recordUnsupportedMultiBinding(_ variable: VariableDeclSyntax, className: String) {
+    guard isPersistentModelStoredVariable(variable) else {
+      return
+    }
+    guard variable.bindings.count > 1 else {
+      return
+    }
+    failures.append(
+      ToolingFailure.user(
+        .validationFailed,
+        """
+        validate does not support declaring multiple stored properties in one `var` declaration inside @PersistentModel class '\(className)'. Split them into separate declarations.
+        """
+      )
+    )
+  }
+}
+
+private func isPersistentModelStoredVariable(_ variable: VariableDeclSyntax) -> Bool {
+  // Validate mirrors the macro-side restriction here so drift checks never silently skip a
+  // persisted declaration shape that the macro pipeline rejects.
+  guard variable.bindingSpecifier.tokenKind == .keyword(.var) else {
+    return false
+  }
+  if variable.modifiers.contains(where: { ["static", "class"].contains($0.name.text) }) {
+    return false
+  }
+  if variable.modifiers.contains(where: { $0.name.text == "lazy" }) {
+    return false
+  }
+  return true
 }
 
 private func parsePersistentModelArguments(

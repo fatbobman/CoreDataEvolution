@@ -94,7 +94,7 @@ public enum CDRuntimeModelBuilder {
     let model = NSManagedObjectModel()
     var entitiesByName: [String: NSEntityDescription] = [:]
     var schemaByName: [String: CDRuntimeEntitySchema] = [:]
-    var typeKeyToEntityName: [String: String] = [:]
+    var typeKeyToEntityNames: [String: Set<String>] = [:]
 
     for (index, schema) in schemas.enumerated() {
       guard entitiesByName[schema.entityName] == nil else {
@@ -109,7 +109,7 @@ public enum CDRuntimeModelBuilder {
 
       let type = types[index]
       for key in typeLookupKeys(for: type, schema: schema) {
-        typeKeyToEntityName[key] = schema.entityName
+        typeKeyToEntityNames[key, default: []].insert(schema.entityName)
       }
     }
 
@@ -157,12 +157,12 @@ public enum CDRuntimeModelBuilder {
       guard
         let targetEntityName = resolveTargetEntityName(
           for: relationship,
-          typeKeyToEntityName: typeKeyToEntityName
+          typeKeyToEntityNames: typeKeyToEntityNames
         )
       else {
         let candidates = candidateEntityNames(
           for: relationship.targetTypeName,
-          typeKeyToEntityName: typeKeyToEntityName
+          typeKeyToEntityNames: typeKeyToEntityNames
         )
         if candidates.isEmpty {
           throw CDRuntimeModelBuilderError.unknownRelationshipTarget(
@@ -196,7 +196,7 @@ public enum CDRuntimeModelBuilder {
           relationship: relationship,
           targetEntityName: targetEntityName,
           schemaByName: schemaByName,
-          typeKeyToEntityName: typeKeyToEntityName
+          typeKeyToEntityNames: typeKeyToEntityNames
         )
       }
 
@@ -530,7 +530,7 @@ public enum CDRuntimeModelBuilder {
     relationship: CDRuntimeRelationshipSchema,
     targetEntityName: String,
     schemaByName: [String: CDRuntimeEntitySchema],
-    typeKeyToEntityName: [String: String]
+    typeKeyToEntityNames: [String: Set<String>]
   ) throws -> String {
     // Runtime schema emitted from source declarations does not always carry explicit inverse names.
     // Inference keeps the happy path lightweight, but only supports a single candidate on the
@@ -548,7 +548,7 @@ public enum CDRuntimeModelBuilder {
       guard
         let resolvedTarget = resolveTargetEntityName(
           for: targetRelationship,
-          typeKeyToEntityName: typeKeyToEntityName
+          typeKeyToEntityNames: typeKeyToEntityNames
         )
       else {
         return false
@@ -575,31 +575,34 @@ public enum CDRuntimeModelBuilder {
 
   private static func resolveTargetEntityName(
     for relationship: CDRuntimeRelationshipSchema,
-    typeKeyToEntityName: [String: String]
+    typeKeyToEntityNames: [String: Set<String>]
   ) -> String? {
     let candidates = candidateEntityNames(
       for: relationship.targetTypeName,
-      typeKeyToEntityName: typeKeyToEntityName
+      typeKeyToEntityNames: typeKeyToEntityNames
     )
     return candidates.count == 1 ? candidates[0] : nil
   }
 
   private static func candidateEntityNames(
     for targetTypeName: String,
-    typeKeyToEntityName: [String: String]
+    typeKeyToEntityNames: [String: Set<String>]
   ) -> [String] {
-    let direct = typeKeyToEntityName[targetTypeName].map { [$0] } ?? []
+    // Multiple runtime types may share the same short name across modules. Keep every candidate so
+    // runtime-only model assembly fails with an explicit ambiguity instead of wiring to the last
+    // inserted entity.
+    let direct = Array(typeKeyToEntityNames[targetTypeName] ?? []).sorted()
     if direct.isEmpty == false {
       return direct
     }
     let suffix = ".\(targetTypeName)"
     return Array(
       Set(
-        typeKeyToEntityName.compactMap { key, value in
-          key.hasSuffix(suffix) ? value : nil
-        }
+        typeKeyToEntityNames.compactMap { key, values in
+          key.hasSuffix(suffix) ? values : nil
+        }.flatMap { $0 }
       )
-    )
+    ).sorted()
   }
 
   private static func typeLookupKeys(

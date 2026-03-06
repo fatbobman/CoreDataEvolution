@@ -127,6 +127,38 @@ struct ValidateServiceTests {
     )
   }
 
+  @Test("validate rejects multi-binding stored properties")
+  func validateRejectsMultiBindingStoredProperties() throws {
+    let fixture = try makeValidationFixture()
+    defer { fixture.cleanUp() }
+
+    try rewriteEntityFile(
+      named: "CDEItem+CoreDataEvolution.swift",
+      in: fixture.sourceDirectory
+    ) { contents in
+      contents.replacingOccurrences(
+        of: #"var title: String = """#,
+        with: #"var title: String = "", subtitle: String = """#
+      )
+    }
+
+    do {
+      _ = try ValidateService.run(
+        makeValidateRequest(
+          sourceDirectory: fixture.sourceDirectory.path,
+          modelPath: fixture.modelPath)
+      )
+      Issue.record("Expected validate to reject multi-binding stored properties.")
+    } catch let failure as ToolingFailure {
+      #expect(failure.code == .validationFailed)
+      #expect(
+        failure.message.contains(
+          "multiple stored properties in one `var` declaration inside @PersistentModel class 'CDEItem'"
+        )
+      )
+    }
+  }
+
   @Test("validate rejects unique trait drift")
   func validateRejectsUniqueTraitDrift() throws {
     let fixture = try makeValidationFixture()

@@ -22,6 +22,14 @@ func hasMarkerAttribute(_ name: String, in variable: VariableDeclSyntax) -> Bool
   firstAttribute(named: name, in: variable) != nil
 }
 
+func preferredAttributeForParsing(named name: String, in variable: VariableDeclSyntax)
+  -> AttributeSyntax?
+{
+  let attributes = variable.attributes.compactMap { $0.as(AttributeSyntax.self) }
+    .filter { attributeName(of: $0) == name }
+  return attributes.first(where: { $0.arguments != nil }) ?? attributes.first
+}
+
 struct ParsedInverseDeclArguments: Equatable {
   let targetTypeName: String
   let inversePropertyName: String

@@ -62,6 +62,9 @@ extension PersistentModelMacro: MemberAttributeMacro {
     guard let variable = member.as(VariableDeclSyntax.self) else {
       return []
     }
+    guard variable.bindings.count == 1 else {
+      return []
+    }
 
     for binding in variable.bindings {
       guard let typeAnnotation = binding.typeAnnotation else { continue }
@@ -150,6 +153,9 @@ extension PersistentModelMacro: MemberMacro {
     let accessModifier = witnessAccessModifierText(from: declaration)
     let modelTypeName = classDecl.name.text
     let objcClassName = explicitObjCClassName(on: classDecl) ?? modelTypeName
+    guard validatePersistentModelStoredDeclarations(in: classDecl, context: context) else {
+      return []
+    }
     let model = analyzePersistentModelProperties(in: classDecl)
     guard validateInverseHints(in: classDecl, model: model, context: context) else {
       return []

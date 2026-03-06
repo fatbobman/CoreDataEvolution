@@ -63,6 +63,55 @@ final class RuntimeUser: NSManagedObject {
   var name: String = ""
 }
 
+enum RuntimeModuleA {
+  final class User: NSManagedObject, CDRuntimeSchemaProviding {
+    static var __cdRuntimeEntitySchema: CDRuntimeEntitySchema {
+      .init(
+        entityName: "RuntimeModuleAUser",
+        managedObjectClassName: NSStringFromClass(self),
+        attributes: [],
+        relationships: [],
+        uniquenessConstraints: []
+      )
+    }
+  }
+}
+
+enum RuntimeModuleB {
+  final class User: NSManagedObject, CDRuntimeSchemaProviding {
+    static var __cdRuntimeEntitySchema: CDRuntimeEntitySchema {
+      .init(
+        entityName: "RuntimeModuleBUser",
+        managedObjectClassName: NSStringFromClass(self),
+        attributes: [],
+        relationships: [],
+        uniquenessConstraints: []
+      )
+    }
+  }
+}
+
+final class RuntimeAmbiguousTargetItem: NSManagedObject, CDRuntimeSchemaProviding {
+  static var __cdRuntimeEntitySchema: CDRuntimeEntitySchema {
+    .init(
+      entityName: "RuntimeAmbiguousTargetItem",
+      managedObjectClassName: NSStringFromClass(self),
+      attributes: [],
+      relationships: [
+        .init(
+          swiftName: "owner",
+          persistentName: "owner",
+          targetTypeName: "User",
+          inverseName: nil,
+          kind: .toOne,
+          isOptional: true
+        )
+      ],
+      uniquenessConstraints: []
+    )
+  }
+}
+
 struct RuntimeModelBuilderTests {
   @Test("runtime model builder assembles uniqueness and inferred inverses")
   func buildModelFromMacroGeneratedSchemas() throws {
@@ -101,6 +150,23 @@ struct RuntimeModelBuilderTests {
 
     #expect(author.inverseRelationship?.name == "authoredDocuments")
     #expect(editor.inverseRelationship?.name == "editedDocuments")
+  }
+
+  @Test("runtime model builder rejects ambiguous short type-name targets")
+  func runtimeModelBuilderRejectsAmbiguousShortTypeNameTargets() throws {
+    #expect(
+      throws: CDRuntimeModelBuilderError.ambiguousRelationshipTarget(
+        entityName: "RuntimeAmbiguousTargetItem",
+        relationshipName: "owner",
+        targetTypeName: "User"
+      )
+    ) {
+      _ = try NSManagedObjectModel.makeRuntimeModel([
+        RuntimeAmbiguousTargetItem.self,
+        RuntimeModuleA.User.self,
+        RuntimeModuleB.User.self,
+      ])
+    }
   }
 
   @MainActor

@@ -12,99 +12,106 @@
 import SwiftSyntax
 import SwiftSyntaxMacros
 
-func analyzePersistentModelProperties(in classDecl: ClassDeclSyntax)
-  -> PersistentModelAnalysis
-{
-  var properties: [PersistentModelPropertyKind] = []
+func validatePersistentModelStoredDeclarations(
+  in classDecl: ClassDeclSyntax,
+  context: some MacroExpansionContext
+) -> Bool {
+  var isValid = true
+
   for member in classDecl.memberBlock.members {
     guard let variable = member.decl.as(VariableDeclSyntax.self) else {
       continue
     }
-    if variable.bindingSpecifier.tokenKind != .keyword(.var) {
-      continue
-    }
-    if variable.modifiers.contains(where: { $0.name.text == "static" || $0.name.text == "class" }) {
-      continue
-    }
-    if variable.modifiers.contains(where: { $0.name.text == "lazy" }) {
-      continue
-    }
-    if hasMarkerAttribute("Ignore", in: variable) {
+    guard isPersistentModelInstanceStoredVariable(variable) else {
       continue
     }
 
-    for binding in variable.bindings {
-      guard binding.accessorBlock == nil else {
-        continue
-      }
-      guard let identifier = binding.pattern.as(IdentifierPatternSyntax.self) else {
-        continue
-      }
-      guard let typeAnnotation = binding.typeAnnotation else {
-        continue
-      }
+    if variable.bindings.count > 1 {
+      MacroDiagnosticReporter.error(
+        "@PersistentModel does not support declaring multiple stored properties in one `var` declaration. Split them into separate declarations.",
+        domain: persistentModelMacroDomain,
+        in: context,
+        node: variable
+      )
+      isValid = false
+    }
+  }
 
-      let propertyName = identifier.identifier.text
-      let typeName = typeAnnotation.type.trimmedDescription
-      let nonOptionalTypeName = attributeOptionalWrappedTypeName(typeAnnotation.type) ?? typeName
-      let isOptional = attributeOptionalWrappedTypeName(typeAnnotation.type) != nil
-      let defaultValueExpression = binding.initializer?.value.trimmedDescription
-      let inverseArguments = firstAttribute(named: "Inverse", in: variable).flatMap(
-        parseInverseDeclArguments)
+  return isValid
+}
 
-      if isOptionalToManyRelationshipType(typeAnnotation.type) {
-        continue
-      }
+func analyzePersistentModelProperties(in classDecl: ClassDeclSyntax)
+  -> PersistentModelAnalysis
+{
+  var properties: [PersistentModelPropertyKind] = []
+  for storedBinding in persistentModelStoredBindings(in: classDecl) {
+    if storedBinding.isIgnore {
+      continue
+    }
 
-      if hasMarkerAttribute("Attribute", in: variable),
-        let attribute = firstAttribute(named: "Attribute", in: variable)
-      {
-        let parsed = parseAttributeDeclArguments(attribute)
-        properties.append(
-          .attribute(
-            PersistentAttributeProperty(
-              propertyName: propertyName,
-              typeName: typeName,
-              nonOptionalTypeName: nonOptionalTypeName,
-              persistentName: parsed.originalName ?? propertyName,
-              isOptional: isOptional,
-              storageMethod: parsed.storageMethod ?? .default,
-              defaultValueExpression: defaultValueExpression
-                ?? optionalFallbackDefault(type: typeAnnotation.type),
-              isUnique: parsed.traits.contains(.unique),
-              isTransient: parsed.traits.contains(.transient)
-            )
-          )
-        )
-        continue
-      }
+    let variable = storedBinding.variable
+    let binding = storedBinding.binding
+    let propertyName = storedBinding.propertyName
+    let typeAnnotation = storedBinding.typeAnnotation
+    let typeName = typeAnnotation.type.trimmedDescription
+    let nonOptionalTypeName = attributeOptionalWrappedTypeName(typeAnnotation.type) ?? typeName
+    let isOptional = attributeOptionalWrappedTypeName(typeAnnotation.type) != nil
+    let defaultValueExpression = binding.initializer?.value.trimmedDescription
+    let inverseArguments = firstAttribute(named: "Inverse", in: variable).flatMap(
+      parseInverseDeclArguments)
 
-      if let relationship = parseRelationshipProperty(
-        propertyName: propertyName,
-        type: typeAnnotation.type,
-        inverseArguments: inverseArguments
-      ) {
-        properties.append(.relationship(relationship))
-        continue
-      }
+    if isOptionalToManyRelationshipType(typeAnnotation.type) {
+      continue
+    }
 
+    if hasMarkerAttribute("Attribute", in: variable),
+      let attribute = preferredAttributeForParsing(named: "Attribute", in: variable)
+    {
+      let parsed = parseAttributeDeclArguments(attribute)
       properties.append(
         .attribute(
           PersistentAttributeProperty(
             propertyName: propertyName,
             typeName: typeName,
             nonOptionalTypeName: nonOptionalTypeName,
-            persistentName: propertyName,
+            persistentName: parsed.originalName ?? propertyName,
             isOptional: isOptional,
-            storageMethod: .default,
+            storageMethod: parsed.storageMethod ?? .default,
             defaultValueExpression: defaultValueExpression
               ?? optionalFallbackDefault(type: typeAnnotation.type),
-            isUnique: false,
-            isTransient: false
+            isUnique: parsed.traits.contains(.unique),
+            isTransient: parsed.traits.contains(.transient)
           )
         )
       )
+      continue
     }
+
+    if let relationship = parseRelationshipProperty(
+      propertyName: propertyName,
+      type: typeAnnotation.type,
+      inverseArguments: inverseArguments
+    ) {
+      properties.append(.relationship(relationship))
+      continue
+    }
+
+    properties.append(
+      .attribute(
+        PersistentAttributeProperty(
+          propertyName: propertyName,
+          typeName: typeName,
+          nonOptionalTypeName: nonOptionalTypeName,
+          persistentName: propertyName,
+          isOptional: isOptional,
+          storageMethod: .default,
+          defaultValueExpression: defaultValueExpression
+            ?? optionalFallbackDefault(type: typeAnnotation.type),
+          isUnique: false,
+          isTransient: false
+        )
+      )
+    )
   }
   return PersistentModelAnalysis(properties: properties)
 }
@@ -113,66 +120,41 @@ func analyzePersistentModelInitProperties(in classDecl: ClassDeclSyntax)
   -> [PersistentModelInitProperty]
 {
   var properties: [PersistentModelInitProperty] = []
-  for member in classDecl.memberBlock.members {
-    guard let variable = member.decl.as(VariableDeclSyntax.self) else {
-      continue
-    }
-    let isIgnoreProperty = hasMarkerAttribute("Ignore", in: variable)
-    if variable.bindingSpecifier.tokenKind != .keyword(.var) {
-      continue
-    }
-    if variable.modifiers.contains(where: { $0.name.text == "static" || $0.name.text == "class" }) {
-      continue
-    }
-    if variable.modifiers.contains(where: { $0.name.text == "lazy" }) {
-      continue
-    }
+  for storedBinding in persistentModelStoredBindings(in: classDecl) {
+    let propertyName = storedBinding.propertyName
+    let typeAnnotation = storedBinding.typeAnnotation
+    let typeName = typeAnnotation.type.trimmedDescription
 
-    for binding in variable.bindings {
-      guard binding.accessorBlock == nil else {
-        continue
-      }
-      guard let identifier = binding.pattern.as(IdentifierPatternSyntax.self) else {
-        continue
-      }
-      guard let typeAnnotation = binding.typeAnnotation else {
-        continue
-      }
-
-      let propertyName = identifier.identifier.text
-      let typeName = typeAnnotation.type.trimmedDescription
-
-      if isIgnoreProperty {
-        properties.append(
-          PersistentModelInitProperty(
-            propertyName: propertyName,
-            typeName: typeName
-          )
-        )
-        continue
-      }
-
-      if isOptionalToManyRelationshipType(typeAnnotation.type) {
-        continue
-      }
-      if parseRelationshipProperty(
-        propertyName: propertyName,
-        type: typeAnnotation.type,
-        inverseArguments: nil
-      ) != nil {
-        continue
-      }
-      if isLikelyMissingOptionalToOneRelationship(typeAnnotation.type) {
-        continue
-      }
-
+    if storedBinding.isIgnore {
       properties.append(
         PersistentModelInitProperty(
           propertyName: propertyName,
           typeName: typeName
         )
       )
+      continue
     }
+
+    if isOptionalToManyRelationshipType(typeAnnotation.type) {
+      continue
+    }
+    if parseRelationshipProperty(
+      propertyName: propertyName,
+      type: typeAnnotation.type,
+      inverseArguments: nil
+    ) != nil {
+      continue
+    }
+    if isLikelyMissingOptionalToOneRelationship(typeAnnotation.type) {
+      continue
+    }
+
+    properties.append(
+      PersistentModelInitProperty(
+        propertyName: propertyName,
+        typeName: typeName
+      )
+    )
   }
   return properties
 }
@@ -184,18 +166,10 @@ func validateInverseHints(
 ) -> Bool {
   let relationshipsByName = Dictionary(
     uniqueKeysWithValues: model.relationships.map { ($0.propertyName, $0) })
-  var propertyNodes: [String: VariableDeclSyntax] = [:]
-
-  for member in classDecl.memberBlock.members {
-    guard let variable = member.decl.as(VariableDeclSyntax.self),
-      variable.bindings.count == 1,
-      let binding = variable.bindings.first,
-      let identifier = binding.pattern.as(IdentifierPatternSyntax.self)
-    else {
-      continue
-    }
-    propertyNodes[identifier.identifier.text] = variable
-  }
+  let propertyNodes = Dictionary(
+    uniqueKeysWithValues: persistentModelStoredBindings(in: classDecl).map {
+      ($0.propertyName, $0.variable)
+    })
 
   var isValid = true
 
@@ -283,6 +257,9 @@ func autoAttachedAttribute(
   relationshipSetterPolicy: ParsedRelationshipGenerationPolicy
 ) -> AttributeSyntax? {
   guard variable.bindingSpecifier.tokenKind == .keyword(.var) else {
+    return nil
+  }
+  guard variable.bindings.count == 1 else {
     return nil
   }
   if hasMarkerAttribute("Ignore", in: variable)
@@ -399,6 +376,54 @@ private func isLikelyMissingOptionalToOneRelationship(_ type: TypeSyntax) -> Boo
   }
   let base = normalizedBaseTypeName(type) ?? type.trimmedDescription
   return coreDataPrimitiveTypeNames.contains(base) == false
+}
+
+private func persistentModelStoredBindings(
+  in classDecl: ClassDeclSyntax
+) -> [PersistentModelStoredBinding] {
+  // Keep one canonical stored-property view for all parsing passes so generated members, init
+  // synthesis, and inverse validation cannot drift on filtering rules.
+  classDecl.memberBlock.members.compactMap { member in
+    guard let variable = member.decl.as(VariableDeclSyntax.self) else {
+      return nil
+    }
+    guard isPersistentModelInstanceStoredVariable(variable) else {
+      return nil
+    }
+    guard variable.bindings.count == 1, let binding = variable.bindings.first else {
+      return nil
+    }
+    guard let pattern = binding.pattern.as(IdentifierPatternSyntax.self) else {
+      return nil
+    }
+    guard let typeAnnotation = binding.typeAnnotation else {
+      return nil
+    }
+    guard binding.accessorBlock == nil else {
+      return nil
+    }
+
+    return PersistentModelStoredBinding(
+      variable: variable,
+      binding: binding,
+      propertyName: pattern.identifier.text,
+      typeAnnotation: typeAnnotation,
+      isIgnore: hasMarkerAttribute("Ignore", in: variable)
+    )
+  }
+}
+
+private func isPersistentModelInstanceStoredVariable(_ variable: VariableDeclSyntax) -> Bool {
+  guard variable.bindingSpecifier.tokenKind == .keyword(.var) else {
+    return false
+  }
+  if variable.modifiers.contains(where: { $0.name.text == "static" || $0.name.text == "class" }) {
+    return false
+  }
+  if variable.modifiers.contains(where: { $0.name.text == "lazy" }) {
+    return false
+  }
+  return true
 }
 
 private struct ParsedAttributeDeclArguments {

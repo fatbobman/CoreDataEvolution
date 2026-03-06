@@ -9,6 +9,8 @@
 //  ------------------------------------------------
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
+import SwiftSyntax
+
 let persistentModelMacroDomain = "CoreDataEvolution.PersistentModelMacro"
 
 struct PersistentModelArguments {
@@ -74,4 +76,12 @@ struct PersistentRelationshipProperty {
 struct PersistentModelInitProperty {
   let propertyName: String
   let typeName: String
+}
+
+struct PersistentModelStoredBinding {
+  let variable: VariableDeclSyntax
+  let binding: PatternBindingSyntax
+  let propertyName: String
+  let typeAnnotation: TypeAnnotationSyntax
+  let isIgnore: Bool
 }
