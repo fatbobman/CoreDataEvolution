@@ -17,11 +17,13 @@ import Testing
 struct ValidateServiceTests {
   @Test("validate conformance accepts generated sources")
   func validateConformanceAcceptsGeneratedSources() throws {
-    let sourceDirectory = try makeGeneratedSourceDirectory()
-    defer { try? FileManager.default.removeItem(at: sourceDirectory) }
+    let fixture = try makeValidationFixture()
+    defer { fixture.cleanUp() }
 
     let result = try ValidateService.run(
-      makeValidateRequest(sourceDirectory: sourceDirectory.path)
+      makeValidateRequest(
+        sourceDirectory: fixture.sourceDirectory.path,
+        modelPath: fixture.modelPath)
     )
 
     #expect(result.errorCount == 0)
@@ -32,12 +34,12 @@ struct ValidateServiceTests {
 
   @Test("validate allows extra ignore property")
   func validateAllowsExtraIgnoreProperty() throws {
-    let sourceDirectory = try makeGeneratedSourceDirectory()
-    defer { try? FileManager.default.removeItem(at: sourceDirectory) }
+    let fixture = try makeValidationFixture()
+    defer { fixture.cleanUp() }
 
     try rewriteEntityFile(
       named: "CDEItem+CoreDataEvolution.swift",
-      in: sourceDirectory
+      in: fixture.sourceDirectory
     ) { contents in
       contents.replacingOccurrences(
         of: "\n}\n\nextension CDEItem: PersistentEntity {}",
@@ -53,7 +55,9 @@ struct ValidateServiceTests {
     }
 
     let result = try ValidateService.run(
-      makeValidateRequest(sourceDirectory: sourceDirectory.path)
+      makeValidateRequest(
+        sourceDirectory: fixture.sourceDirectory.path,
+        modelPath: fixture.modelPath)
     )
 
     #expect(result.errorCount == 0)
@@ -61,12 +65,12 @@ struct ValidateServiceTests {
 
   @Test("validate rejects extra stored property without ignore")
   func validateRejectsExtraStoredPropertyWithoutIgnore() throws {
-    let sourceDirectory = try makeGeneratedSourceDirectory()
-    defer { try? FileManager.default.removeItem(at: sourceDirectory) }
+    let fixture = try makeValidationFixture()
+    defer { fixture.cleanUp() }
 
     try rewriteEntityFile(
       named: "CDEItem+CoreDataEvolution.swift",
-      in: sourceDirectory
+      in: fixture.sourceDirectory
     ) { contents in
       contents.replacingOccurrences(
         of: "\n}\n\nextension CDEItem: PersistentEntity {}",
@@ -81,7 +85,9 @@ struct ValidateServiceTests {
     }
 
     let result = try ValidateService.run(
-      makeValidateRequest(sourceDirectory: sourceDirectory.path)
+      makeValidateRequest(
+        sourceDirectory: fixture.sourceDirectory.path,
+        modelPath: fixture.modelPath)
     )
 
     #expect(result.errorCount == 1)
@@ -94,12 +100,12 @@ struct ValidateServiceTests {
 
   @Test("validate rejects default value drift")
   func validateRejectsDefaultValueDrift() throws {
-    let sourceDirectory = try makeGeneratedSourceDirectory()
-    defer { try? FileManager.default.removeItem(at: sourceDirectory) }
+    let fixture = try makeValidationFixture()
+    defer { fixture.cleanUp() }
 
     try rewriteEntityFile(
       named: "CDEItem+CoreDataEvolution.swift",
-      in: sourceDirectory
+      in: fixture.sourceDirectory
     ) { contents in
       contents.replacingOccurrences(
         of: #"var title: String = """#,
@@ -108,7 +114,9 @@ struct ValidateServiceTests {
     }
 
     let result = try ValidateService.run(
-      makeValidateRequest(sourceDirectory: sourceDirectory.path)
+      makeValidateRequest(
+        sourceDirectory: fixture.sourceDirectory.path,
+        modelPath: fixture.modelPath)
     )
 
     #expect(result.errorCount == 1)
@@ -121,12 +129,12 @@ struct ValidateServiceTests {
 
   @Test("validate emits note for custom members inside persistent model class")
   func validateEmitsNoteForCustomMembersInsideClass() throws {
-    let sourceDirectory = try makeGeneratedSourceDirectory()
-    defer { try? FileManager.default.removeItem(at: sourceDirectory) }
+    let fixture = try makeValidationFixture()
+    defer { fixture.cleanUp() }
 
     try rewriteEntityFile(
       named: "CDEItem+CoreDataEvolution.swift",
-      in: sourceDirectory
+      in: fixture.sourceDirectory
     ) { contents in
       contents.replacingOccurrences(
         of: "\n}\n\nextension CDEItem: PersistentEntity {}",
@@ -143,7 +151,9 @@ struct ValidateServiceTests {
     }
 
     let result = try ValidateService.run(
-      makeValidateRequest(sourceDirectory: sourceDirectory.path)
+      makeValidateRequest(
+        sourceDirectory: fixture.sourceDirectory.path,
+        modelPath: fixture.modelPath)
     )
 
     #expect(result.errorCount == 0)
@@ -156,12 +166,13 @@ struct ValidateServiceTests {
 
   @Test("validate exact accepts generated managed files")
   func validateExactAcceptsGeneratedManagedFiles() throws {
-    let sourceDirectory = try makeGeneratedSourceDirectory()
-    defer { try? FileManager.default.removeItem(at: sourceDirectory) }
+    let fixture = try makeValidationFixture()
+    defer { fixture.cleanUp() }
 
     let result = try ValidateService.run(
       makeValidateRequest(
-        sourceDirectory: sourceDirectory.path,
+        sourceDirectory: fixture.sourceDirectory.path,
+        modelPath: fixture.modelPath,
         level: .exact
       )
     )
@@ -171,12 +182,12 @@ struct ValidateServiceTests {
 
   @Test("validate exact rejects managed file drift")
   func validateExactRejectsManagedFileDrift() throws {
-    let sourceDirectory = try makeGeneratedSourceDirectory()
-    defer { try? FileManager.default.removeItem(at: sourceDirectory) }
+    let fixture = try makeValidationFixture()
+    defer { fixture.cleanUp() }
 
     try rewriteEntityFile(
       named: "CDEItem+CoreDataEvolution.swift",
-      in: sourceDirectory
+      in: fixture.sourceDirectory
     ) { contents in
       contents.replacingOccurrences(
         of: "var title: String = \"\"", with: "var title: String = \"drift\"")
@@ -184,7 +195,8 @@ struct ValidateServiceTests {
 
     let result = try ValidateService.run(
       makeValidateRequest(
-        sourceDirectory: sourceDirectory.path,
+        sourceDirectory: fixture.sourceDirectory.path,
+        modelPath: fixture.modelPath,
         level: .exact
       )
     )
@@ -197,7 +209,10 @@ struct ValidateServiceTests {
     )
   }
 
-  private func makeGeneratedSourceDirectory() throws -> URL {
+  private func makeValidationFixture() throws -> (
+    modelPath: String, sourceDirectory: URL, cleanUp: () -> Void
+  ) {
+    let modelPath = try makeToolingSourceModelFixture().path
     let temporaryDirectory = FileManager.default.temporaryDirectory
       .appendingPathComponent("CoreDataEvolutionToolingCoreTests", isDirectory: true)
       .appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -207,7 +222,7 @@ struct ValidateServiceTests {
     )
 
     let generateResult = try GenerateService.run(
-      makeGenerateRequest(outputDirectory: temporaryDirectory.path))
+      makeGenerateRequest(outputDirectory: temporaryDirectory.path, modelPath: modelPath))
     for file in generateResult.filePlan {
       let outputURL = temporaryDirectory.appendingPathComponent(file.relativePath)
       try FileManager.default.createDirectory(
@@ -216,11 +231,20 @@ struct ValidateServiceTests {
       )
       try file.contents.write(to: outputURL, atomically: true, encoding: .utf8)
     }
-    return temporaryDirectory
+    return (
+      modelPath,
+      temporaryDirectory,
+      {
+        try? FileManager.default.removeItem(at: temporaryDirectory)
+        try? FileManager.default.removeItem(
+          at: URL(fileURLWithPath: modelPath).deletingLastPathComponent())
+      }
+    )
   }
 
-  private func makeGenerateRequest(outputDirectory: String) throws -> GenerateRequest {
-    let modelPath = try integrationModelPath()
+  private func makeGenerateRequest(outputDirectory: String, modelPath: String) throws
+    -> GenerateRequest
+  {
     return .init(
       modelPath: modelPath,
       modelVersion: nil,
@@ -269,9 +293,9 @@ struct ValidateServiceTests {
 
   private func makeValidateRequest(
     sourceDirectory: String,
+    modelPath: String,
     level: ToolingValidationLevel = .conformance
-  ) throws -> ValidateRequest {
-    let modelPath = try integrationModelPath()
+  ) -> ValidateRequest {
     return .init(
       modelPath: modelPath,
       modelVersion: nil,
@@ -320,31 +344,8 @@ struct ValidateServiceTests {
     )
   }
 
-  private func integrationModelPath(filePath: String = #filePath) throws -> String {
-    let repositoryRoot = try findRepositoryRoot(filePath: filePath)
-    return
-      repositoryRoot
-      .appendingPathComponent("Models")
-      .appendingPathComponent("Integration")
-      .appendingPathComponent("CoreDataEvolutionIntegrationModel.xcdatamodeld")
-      .path
-  }
-
   private func findRepositoryRoot(filePath: String = #filePath) throws -> URL {
-    var currentURL = URL(fileURLWithPath: filePath).deletingLastPathComponent()
-    while currentURL.path != "/" {
-      if FileManager.default.fileExists(
-        atPath: currentURL.appendingPathComponent("Package.swift").path)
-      {
-        return currentURL
-      }
-      currentURL = currentURL.deletingLastPathComponent()
-    }
-
-    throw ToolingFailure.runtime(
-      .internalError,
-      "failed to locate repository root from '\(filePath)'."
-    )
+    try findToolingRepositoryRoot(filePath: filePath)
   }
 
   private func rewriteEntityFile(

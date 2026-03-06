@@ -18,7 +18,7 @@ struct GenerateCommand: ParsableCommand {
     abstract: "Generate Swift model code from Core Data models."
   )
 
-  @Option(name: .long, help: "Path to model (.xcdatamodeld/.xcdatamodel/.momd).")
+  @Option(name: .long, help: "Path to source model (.xcdatamodeld/.xcdatamodel).")
   var modelPath: String?
 
   @Option(name: .long, help: "Specific model version name. Defaults to current/latest.")

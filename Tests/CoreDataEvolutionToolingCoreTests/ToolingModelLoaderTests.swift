@@ -180,6 +180,57 @@ struct ToolingModelLoaderTests {
     #expect(loaded.model.entitiesByName["CDETag"] != nil)
   }
 
+  @Test("source layout validation rejects Xcode code generation modes")
+  func sourceLayoutValidationRejectsNonManualCodeGeneration() throws {
+    let modelURL = try makeStandaloneModel(
+      versionName: "Sample.xcdatamodel",
+      codeGenerationType: "class"
+    )
+
+    do {
+      try ToolingModelLoader.validateSourceModelLayout(
+        modelPath: modelURL.path,
+        modelVersion: nil
+      )
+      Issue.record("Expected non-manual code generation to fail validation.")
+    } catch let error as ToolingFailure {
+      #expect(error.code == .configInvalid)
+      #expect(error.message.contains("must not use Xcode code generation mode"))
+    }
+  }
+
+  @Test("source layout validation accepts omitted code generation type")
+  func sourceLayoutValidationAcceptsOmittedCodeGenerationType() throws {
+    let modelURL = try makeStandaloneModel(
+      versionName: "Sample.xcdatamodel",
+      codeGenerationType: nil
+    )
+
+    try ToolingModelLoader.validateSourceModelLayout(
+      modelPath: modelURL.path,
+      modelVersion: nil
+    )
+  }
+
+  @Test("source layout validation rejects compiled model inputs")
+  func sourceLayoutValidationRejectsCompiledInputs() throws {
+    let directoryURL = FileManager.default.temporaryDirectory
+      .appendingPathComponent(UUID().uuidString)
+      .appendingPathComponent("Sample.momd")
+    try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+
+    do {
+      try ToolingModelLoader.validateSourceModelLayout(
+        modelPath: directoryURL.path,
+        modelVersion: nil
+      )
+      Issue.record("Expected compiled model input to fail source layout validation.")
+    } catch let error as ToolingFailure {
+      #expect(error.code == .modelUnsupported)
+      #expect(error.message.contains(".xcdatamodeld or .xcdatamodel"))
+    }
+  }
+
   @Test("temporary compiled artifacts are cleaned up with loaded model lifetime")
   func temporaryCompiledArtifactsAreCleanedUp() throws {
     let repositoryRoot = try findRepositoryRoot()
@@ -221,6 +272,11 @@ struct ToolingModelLoaderTests {
         at: versionURL,
         withIntermediateDirectories: true
       )
+      try makeModelContents(codeGenerationType: nil).write(
+        to: versionURL.appendingPathComponent("contents"),
+        atomically: true,
+        encoding: .utf8
+      )
     }
 
     if let currentVersion {
@@ -236,6 +292,37 @@ struct ToolingModelLoaderTests {
     }
 
     return packageURL
+  }
+
+  private func makeStandaloneModel(
+    versionName: String,
+    codeGenerationType: String?
+  ) throws -> URL {
+    let modelURL = FileManager.default.temporaryDirectory
+      .appendingPathComponent(UUID().uuidString)
+      .appendingPathComponent(versionName)
+    try FileManager.default.createDirectory(
+      at: modelURL,
+      withIntermediateDirectories: true
+    )
+    try makeModelContents(codeGenerationType: codeGenerationType).write(
+      to: modelURL.appendingPathComponent("contents"),
+      atomically: true,
+      encoding: .utf8
+    )
+    return modelURL
+  }
+
+  private func makeModelContents(codeGenerationType: String?) -> String {
+    let codeGenerationAttribute = codeGenerationType.map { #" codeGenerationType="\#($0)""# } ?? ""
+    return """
+      <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+      <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="1" systemVersion="1" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+          <entity name="Item" representedClassName="Item" syncable="YES"\(codeGenerationAttribute)>
+              <attribute name="name" optional="YES" attributeType="String"/>
+          </entity>
+      </model>
+      """
   }
 
   private func findRepositoryRoot(filePath: String = #filePath) throws -> URL {

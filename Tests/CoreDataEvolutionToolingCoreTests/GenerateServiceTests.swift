@@ -17,12 +17,9 @@ import Testing
 struct GenerateServiceTests {
   @Test("generate service renders integration model sources from rules")
   func generateServiceRendersIntegrationModelSources() throws {
-    let repositoryRoot = try findRepositoryRoot()
-    let modelPath =
-      repositoryRoot
-      .appendingPathComponent("Models")
-      .appendingPathComponent("Integration")
-      .appendingPathComponent("CoreDataEvolutionIntegrationModel.xcdatamodeld")
+    let repositoryRoot = try findToolingRepositoryRoot()
+    let modelPath = try makeToolingSourceModelFixture()
+    defer { try? FileManager.default.removeItem(at: modelPath.deletingLastPathComponent()) }
 
     let result = try GenerateService.run(
       .init(
@@ -120,11 +117,8 @@ struct GenerateServiceTests {
   @Test("generate service supports single-file output")
   func generateServiceSupportsSingleFileOutput() throws {
     let repositoryRoot = try findRepositoryRoot()
-    let modelPath =
-      repositoryRoot
-      .appendingPathComponent("Models")
-      .appendingPathComponent("Integration")
-      .appendingPathComponent("CoreDataEvolutionIntegrationModel.xcdatamodeld")
+    let modelPath = try makeToolingSourceModelFixture()
+    defer { try? FileManager.default.removeItem(at: modelPath.deletingLastPathComponent()) }
 
     let result = try GenerateService.run(
       .init(
@@ -170,11 +164,8 @@ struct GenerateServiceTests {
       ".build/ToolingStubTests", isDirectory: true)
     defer { try? FileManager.default.removeItem(at: outputDirectory) }
 
-    let modelPath =
-      repositoryRoot
-      .appendingPathComponent("Models")
-      .appendingPathComponent("Integration")
-      .appendingPathComponent("CoreDataEvolutionIntegrationModel.xcdatamodeld")
+    let modelPath = try makeToolingSourceModelFixture()
+    defer { try? FileManager.default.removeItem(at: modelPath.deletingLastPathComponent()) }
 
     let result = try GenerateService.run(
       .init(
@@ -224,19 +215,6 @@ struct GenerateServiceTests {
   }
 
   private func findRepositoryRoot(filePath: String = #filePath) throws -> URL {
-    var currentURL = URL(fileURLWithPath: filePath).deletingLastPathComponent()
-    while currentURL.path != "/" {
-      if FileManager.default.fileExists(
-        atPath: currentURL.appendingPathComponent("Package.swift").path)
-      {
-        return currentURL
-      }
-      currentURL = currentURL.deletingLastPathComponent()
-    }
-
-    throw ToolingFailure.runtime(
-      .internalError,
-      "failed to locate repository root from '\(filePath)'."
-    )
+    try findToolingRepositoryRoot(filePath: filePath)
   }
 }

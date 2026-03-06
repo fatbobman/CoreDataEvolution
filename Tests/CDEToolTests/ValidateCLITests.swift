@@ -17,11 +17,12 @@ import Testing
 struct ValidateCLITests {
   @Test("validate CLI emits JSON report for clean conformance validation")
   func validateCLIEmitsJSONReport() throws {
-    let sourceDirectory = try makeGeneratedSourceDirectory()
-    defer { try? FileManager.default.removeItem(at: sourceDirectory) }
+    let fixture = try makeValidationFixture()
+    defer { fixture.cleanUp() }
 
     let configURL = try writeValidateConfig(
-      sourceDirectory: sourceDirectory.path,
+      sourceDirectory: fixture.sourceDirectory.path,
+      modelPath: fixture.modelPath,
       level: .conformance
     )
     defer { try? FileManager.default.removeItem(at: configURL) }
@@ -42,19 +43,20 @@ struct ValidateCLITests {
 
   @Test("validate CLI emits SARIF and non-zero exit code for exact drift")
   func validateCLIEmitsSARIFForExactDrift() throws {
-    let sourceDirectory = try makeGeneratedSourceDirectory()
-    defer { try? FileManager.default.removeItem(at: sourceDirectory) }
+    let fixture = try makeValidationFixture()
+    defer { fixture.cleanUp() }
 
     try rewriteEntityFile(
       named: "CDEItem+CoreDataEvolution.swift",
-      in: sourceDirectory
+      in: fixture.sourceDirectory
     ) { contents in
       contents.replacingOccurrences(
         of: "var title: String = \"\"", with: "var title: String = \"drift\"")
     }
 
     let configURL = try writeValidateConfig(
-      sourceDirectory: sourceDirectory.path,
+      sourceDirectory: fixture.sourceDirectory.path,
+      modelPath: fixture.modelPath,
       level: .exact
     )
     defer { try? FileManager.default.removeItem(at: configURL) }
@@ -70,7 +72,10 @@ struct ValidateCLITests {
     #expect(result.stdout.contains("\"ruleId\" : \"TOOL-VALIDATION-FAILED\""))
   }
 
-  private func makeGeneratedSourceDirectory() throws -> URL {
+  private func makeValidationFixture() throws -> (
+    modelPath: String, sourceDirectory: URL, cleanUp: () -> Void
+  ) {
+    let modelPath = try makeToolingSourceModelFixture().path
     let temporaryDirectory = FileManager.default.temporaryDirectory
       .appendingPathComponent("CDEToolTests", isDirectory: true)
       .appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -80,7 +85,7 @@ struct ValidateCLITests {
     )
 
     let generateResult = try GenerateService.run(
-      makeGenerateRequest(outputDirectory: temporaryDirectory.path))
+      makeGenerateRequest(outputDirectory: temporaryDirectory.path, modelPath: modelPath))
     for file in generateResult.filePlan {
       let outputURL = temporaryDirectory.appendingPathComponent(file.relativePath)
       try FileManager.default.createDirectory(
@@ -89,11 +94,18 @@ struct ValidateCLITests {
       )
       try file.contents.write(to: outputURL, atomically: true, encoding: .utf8)
     }
-    return temporaryDirectory
+    return (
+      modelPath,
+      temporaryDirectory,
+      {
+        try? FileManager.default.removeItem(at: temporaryDirectory)
+        try? FileManager.default.removeItem(
+          at: URL(fileURLWithPath: modelPath).deletingLastPathComponent())
+      }
+    )
   }
 
-  private func makeGenerateRequest(outputDirectory: String) throws -> GenerateRequest {
-    let modelPath = try integrationModelPath()
+  private func makeGenerateRequest(outputDirectory: String, modelPath: String) -> GenerateRequest {
     return .init(
       modelPath: modelPath,
       modelVersion: nil,
@@ -119,6 +131,7 @@ struct ValidateCLITests {
 
   private func writeValidateConfig(
     sourceDirectory: String,
+    modelPath: String,
     level: ToolingValidationLevel
   ) throws -> URL {
     let temporaryDirectory = FileManager.default.temporaryDirectory
@@ -133,7 +146,7 @@ struct ValidateCLITests {
       schemaVersion: toolingSupportedSchemaVersion,
       generate: nil,
       validate: .init(
-        modelPath: try integrationModelPath(),
+        modelPath: modelPath,
         modelVersion: nil,
         momcBin: nil,
         sourceDir: sourceDirectory,
@@ -215,16 +228,6 @@ struct ValidateCLITests {
     throw ToolingFailure.runtime(.internalError, "failed to locate built cde-tool executable.")
   }
 
-  private func integrationModelPath(filePath: String = #filePath) throws -> String {
-    let root = try repositoryRoot(filePath: filePath)
-    return
-      root
-      .appendingPathComponent("Models")
-      .appendingPathComponent("Integration")
-      .appendingPathComponent("CoreDataEvolutionIntegrationModel.xcdatamodeld")
-      .path
-  }
-
   private func repositoryRoot(filePath: String = #filePath) throws -> URL {
     var currentURL = URL(fileURLWithPath: filePath).deletingLastPathComponent()
     while currentURL.path != "/" {
@@ -277,5 +280,38 @@ struct ValidateCLITests {
         ]
       ]
     )
+  }
+
+  private func makeToolingSourceModelFixture(filePath: String = #filePath) throws -> URL {
+    let sourcePackageURL =
+      try repositoryRoot(filePath: filePath)
+      .appendingPathComponent("Models")
+      .appendingPathComponent("Integration")
+      .appendingPathComponent("CoreDataEvolutionIntegrationModel.xcdatamodeld")
+
+    let temporaryPackageURL = FileManager.default.temporaryDirectory
+      .appendingPathComponent("CDEToolTests", isDirectory: true)
+      .appendingPathComponent(UUID().uuidString, isDirectory: true)
+      .appendingPathComponent("CoreDataEvolutionIntegrationModel.xcdatamodeld", isDirectory: true)
+
+    try FileManager.default.createDirectory(
+      at: temporaryPackageURL.deletingLastPathComponent(),
+      withIntermediateDirectories: true
+    )
+    try FileManager.default.copyItem(at: sourcePackageURL, to: temporaryPackageURL)
+
+    let contentsURL =
+      temporaryPackageURL
+      .appendingPathComponent("CoreDataEvolutionIntegrationModel.xcdatamodel")
+      .appendingPathComponent("contents")
+    var contents = try String(contentsOf: contentsURL, encoding: .utf8)
+    contents = contents.replacingOccurrences(
+      of: #"\s*codeGenerationType="[^"]+""#,
+      with: "",
+      options: .regularExpression
+    )
+    try contents.write(to: contentsURL, atomically: true, encoding: .utf8)
+
+    return temporaryPackageURL
   }
 }

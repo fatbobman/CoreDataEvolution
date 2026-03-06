@@ -18,7 +18,7 @@ struct ValidateCommand: ParsableCommand {
     abstract: "Validate model/code mapping drift."
   )
 
-  @Option(name: .long, help: "Path to model (.xcdatamodeld/.xcdatamodel/.momd).")
+  @Option(name: .long, help: "Path to source model (.xcdatamodeld/.xcdatamodel).")
   var modelPath: String?
 
   @Option(name: .long, help: "Specific model version name. Defaults to current/latest.")
@@ -70,7 +70,11 @@ struct ValidateCommand: ParsableCommand {
   @Option(name: .long, help: "Comma-separated exclude glob patterns.")
   var exclude: String?
 
-  @Option(name: .long, help: "Validation level: conformance/exact.")
+  @Option(
+    name: .long,
+    help:
+      "Validation level: conformance/exact. Default: conformance; exact expects unchanged managed files."
+  )
   var level: ToolingValidationLevel?
 
   @Option(name: .long, help: "Report format: text/json/sarif.")

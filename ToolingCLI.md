@@ -13,7 +13,7 @@ CLI v1 先解决两件事：
 
 ### `cde-tool generate`
 
-用途：从 `.xcdatamodeld`（或已编译 `.momd`）生成 Swift 文件。
+用途：从 source model（`.xcdatamodeld` / `.xcdatamodel`）生成 Swift 文件。
 
 当前 `ToolingCore` 已完成：
 
@@ -268,7 +268,7 @@ CLI v1 先解决两件事：
 参数草案：
 
 - `--model-path <path>`
-  - required。支持 `.xcdatamodeld`、`.xcdatamodel`、`.momd`。
+  - required。仅支持 source model：`.xcdatamodeld`、`.xcdatamodel`。
 - `--model-version <name>`
   - optional。显式指定模型版本。
 - `--momc-bin <path>`
@@ -314,7 +314,7 @@ CLI v1 先解决两件事：
 ### 4.1 模型输入参数
 
 - `--model-path <path>`
-  - 支持：`.xcdatamodeld`、`.xcdatamodel`、`.momd`。
+  - 仅支持 source model：`.xcdatamodeld`、`.xcdatamodel`。
   - v1 推荐主输入：`.xcdatamodeld`。
 - `--model-version <name>`
   - 可选。用于显式指定 `.xcdatamodeld` 版本。
@@ -371,6 +371,11 @@ CLI v1 先解决两件事：
 当前生成边界：
 
 - 生成结果始终遵循模型中的 optionality；v1 不支持通过配置把 optional 字段提升为非 optional Swift 属性。
+- tooling v1 只接受 source model：`.xcdatamodeld`、`.xcdatamodel`。
+- 已编译的 `.mom` / `.momd` 不作为 generate / bootstrap-config / inspect / validate 的正式输入。
+- source model 中的 entity 不得启用 Xcode code generation 模式，例如 `class`、`module`、`category`。
+- Xcode 的 Manual/None 通常表现为不写 `codeGenerationType`；tool 将“缺省值”视为合法输入。
+- 如果 source model 仍显式使用 `class` / `module` / `category`，tool 会在加载前直接失败，避免与 tooling-generated macro code 冲突。
 - 对于 `storageMethod == default` 的非 optional 字段，tool 必须直接使用模型默认值；如果模型没有默认值，generate 会直接报错。
 - tool 当前直接遵循模型端“至少 optional 或有默认值”的规范，不额外替属性做语义转换。
 - `@Ignore` 不属于模型信息，无法从 `xcdatamodeld` 推断；因此 model-to-code 生成不会创建 `@Ignore` 属性。
@@ -468,8 +473,10 @@ CLI v1 先解决两件事：
 ### 5.2 校验级别
 
 - `--level <conformance|exact>`
+  - 默认值：`conformance`。
   - `conformance`: 规则符合模式。只做结构级 source/model/config 对比，不要求 tool-managed 文件与当前生成结果逐字一致。
   - `exact`: 精确一致模式。在 `conformance` 之上，对带 managed marker 的生成文件做精确漂移比对。
+  - `exact` 不是默认推荐模式。它更适合 CI / 防漂移场景，而不是会对 generated file 继续运行 formatter/linter rewrite 的日常工作流。
 
 ### 5.3 输出与退出码
 
@@ -547,6 +554,9 @@ CLI v1 先解决两件事：
 - 报告缺失文件、多余 managed file、内容漂移
 - v1 的 `exact` 仍是静态验证，不自动执行真实 SQLite / Core Data fetch 级运行时检查
 - 当前已实现并接入 `cde-tool validate`
+- `exact` 当前比较的是最终文本内容，而不是 AST / 语义等价
+- 因此如果 formatter、linter 或其他工具会改写 tool-managed 文件，即使语义不变，也会被判定为 drift
+- 使用 `exact` 时，必须让 tool-managed 文件跳过格式化与自动修复，或确保 generate 与 validate 看到的最终文本完全一致
 
 `@Ignore` 规则：
 
@@ -584,6 +594,7 @@ composition 边界：
 - 长期使用 `exact` 时，更推荐：
   - `splitByEntity = true`
   - `emitExtensionStubs = true`
+  - 并让 formatter/linter 忽略这些 tool-managed 文件
 
 严重级别建议：
 

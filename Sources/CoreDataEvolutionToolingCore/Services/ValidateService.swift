@@ -19,6 +19,11 @@ import Foundation
 /// drift checks against tool-managed files on disk.
 public enum ValidateService {
   public static func run(_ request: ValidateRequest) throws -> ValidateResult {
+    try ToolingModelLoader.validateSourceModelLayout(
+      modelPath: request.modelPath,
+      modelVersion: request.modelVersion
+    )
+
     let loadedModel = try ToolingModelLoader.loadModel(
       modelPath: request.modelPath,
       modelVersion: request.modelVersion,

@@ -17,12 +17,8 @@ import Testing
 struct InspectServiceTests {
   @Test("inspect service emits reusable IR json for the integration model")
   func inspectServiceBuildsJSONForIntegrationModel() throws {
-    let repositoryRoot = try findRepositoryRoot()
-    let modelPath =
-      repositoryRoot
-      .appendingPathComponent("Models")
-      .appendingPathComponent("Integration")
-      .appendingPathComponent("CoreDataEvolutionIntegrationModel.xcdatamodeld")
+    let modelPath = try makeToolingSourceModelFixture()
+    defer { try? FileManager.default.removeItem(at: modelPath.deletingLastPathComponent()) }
 
     let result = try InspectService.run(
       .init(
@@ -47,20 +43,4 @@ struct InspectServiceTests {
     #expect(json.contains("\"CDEItem\""))
   }
 
-  private func findRepositoryRoot(filePath: String = #filePath) throws -> URL {
-    var currentURL = URL(fileURLWithPath: filePath).deletingLastPathComponent()
-    while currentURL.path != "/" {
-      if FileManager.default.fileExists(
-        atPath: currentURL.appendingPathComponent("Package.swift").path)
-      {
-        return currentURL
-      }
-      currentURL = currentURL.deletingLastPathComponent()
-    }
-
-    throw ToolingFailure.runtime(
-      .internalError,
-      "failed to locate repository root from '\(filePath)'."
-    )
-  }
 }

@@ -157,6 +157,30 @@ public enum ToolingModelLoader {
     }
   }
 
+  /// Validates the repository's source-model input contract before the expensive load path begins.
+  ///
+  /// Tooling commands are intentionally source-model-only. They reject compiled `.mom` / `.momd`
+  /// inputs and any source entity that still opts into Xcode-managed class/module generation.
+  public static func validateSourceModelLayout(
+    modelPath: String,
+    modelVersion: String?
+  ) throws {
+    let resolvedInput = try resolveModelInput(
+      modelPath: modelPath,
+      modelVersion: modelVersion
+    )
+
+    switch resolvedInput.kind {
+    case .xcdatamodeld, .xcdatamodel:
+      try validateSourceModelCodeGeneration(selectedSourceURL: resolvedInput.selectedSourceURL)
+    case .momd, .mom:
+      throw ToolingFailure.user(
+        .modelUnsupported,
+        "tooling commands require a source model path. Use .xcdatamodeld or .xcdatamodel instead of '\(resolvedInput.originalURL.path)'."
+      )
+    }
+  }
+
   // Loading is split from path resolution so tests can validate version-selection behavior
   // without requiring a working Core Data toolchain.
   private static func loadCompiledModel(
@@ -329,6 +353,65 @@ public enum ToolingModelLoader {
         .modelCompileFailed,
         "momc failed to compile model '\(sourceURL.path)' (status \(process.terminationStatus)).",
         hint: output.isEmpty ? nil : output
+      )
+    }
+  }
+
+  /// Enforces the repository convention that source models must not opt into Xcode codegen.
+  ///
+  /// Tooling-generated macro code will conflict with Xcode-managed Core Data class generation, so
+  /// source models using `class` / `module` / `category` code generation are rejected before
+  /// compilation. Xcode's "Manual/None" mode is serialized by omitting the attribute entirely, so
+  /// missing `codeGenerationType` is treated as valid.
+  private static func validateSourceModelCodeGeneration(selectedSourceURL: URL) throws {
+    let contentsURL = selectedSourceURL.appendingPathComponent("contents")
+    guard FileManager.default.fileExists(atPath: contentsURL.path) else { return }
+
+    let contents: String
+    do {
+      contents = try String(contentsOf: contentsURL, encoding: .utf8)
+    } catch {
+      throw ToolingFailure.runtime(
+        .ioFailed,
+        "failed to read source model contents at '\(contentsURL.path)' (\(error.localizedDescription))."
+      )
+    }
+
+    let pattern = #"<entity\b[^>]*\bname="([^"]+)"([^>]*)>"#
+    let regex = try! NSRegularExpression(pattern: pattern)
+    let codegenRegex = try! NSRegularExpression(pattern: #"\bcodeGenerationType="([^"]+)""#)
+    let range = NSRange(contents.startIndex..<contents.endIndex, in: contents)
+
+    for match in regex.matches(in: contents, range: range) {
+      guard
+        let nameRange = Range(match.range(at: 1), in: contents),
+        let attributesRange = Range(match.range(at: 2), in: contents)
+      else {
+        continue
+      }
+
+      let entityName = String(contents[nameRange])
+      let attributes = String(contents[attributesRange])
+      let attributesNSRange = NSRange(attributes.startIndex..<attributes.endIndex, in: attributes)
+      guard let codegenMatch = codegenRegex.firstMatch(in: attributes, range: attributesNSRange),
+        let codegenRange = Range(codegenMatch.range(at: 1), in: attributes)
+      else {
+        continue
+      }
+
+      let codeGenerationType = String(attributes[codegenRange])
+      guard ["class", "module", "category"].contains(codeGenerationType.lowercased()) else {
+        continue
+      }
+
+      throw ToolingFailure.user(
+        .configInvalid,
+        """
+        source model entity '\(entityName)' must not use Xcode code generation mode \
+        '\(codeGenerationType)' before running tooling.
+        """,
+        hint:
+          "Set the Core Data model entity Codegen to Manual/None so the model omits codeGenerationType and avoids conflicts with tooling-generated macro code."
       )
     }
   }

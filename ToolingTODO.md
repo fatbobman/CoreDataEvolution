@@ -30,7 +30,7 @@
 
 - `[x]` 支持加载 `.xcdatamodeld`
 - `[x]` 支持加载 `.xcdatamodel`
-- `[x]` 支持加载 `.momd`
+- `[x]` 底层 loader 仍可解析已编译模型，但 tooling service 已统一限制为 source model 输入
 - `[x]` 支持 `modelVersion` 显式选择
 - `[x]` 默认选择 `xccurrentversion`
 - `[x]` 缺失 `xccurrentversion` 时回退到最新版本
@@ -38,6 +38,7 @@
 - `[x]` 支持 `momc` 自动发现
 - `[x]` 支持 `momcBin` 手动覆盖
 - `[x]` 清理源码模型编译产生的临时 `.mom` / `.momd`
+- `[x]` source model 的 entity 不得显式使用 `class` / `module` / `category` code generation；缺省值视为 Manual/None
 
 ## 2.1. Pre-IR Hardening
 
@@ -193,6 +194,7 @@
 - `[ ]` tool 仍未提供描述 `@Ignore` / 纯内存属性的额外配置模型。
 - `[ ]` conformance validate 允许额外 `@Ignore` stored property，但 exact 会对 tool-managed 文件做精确漂移比对；在当前 Swift 语义下，额外 `@Ignore` stored property 仍无法与 exact 共存，除非未来引入专门的额外属性配置/生成能力。
 - `[ ]` exact 模式与 `singleFile` 可以共存，但开发体验不佳；长期使用 exact 时更推荐 `splitByEntity + emitExtensionStubs`。
+- `[ ]` exact 模式当前是文本级 drift 检查，不适合作为默认模式；如果团队使用它，需让 formatter/linter 忽略 tool-managed 文件。
 - `[ ]` generate 当前只会直接使用模型默认值；对于非可选自定义 raw/codable/composition/transformed 类型，仍缺少未来的显式代码默认值规则。
 - `[ ]` validate 当前已支持 `text/json/sarif` 报告输出，但 CLI 集成测试尚未补齐。
 - `[ ]` 当前仅补齐了 validate CLI 的报告与 exit code 集成测试，其余 CLI 子命令的集成测试仍待补齐。

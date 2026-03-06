@@ -20,6 +20,11 @@ import Foundation
 /// - add diagnostics for fields that still require human decisions
 public enum BootstrapConfigService {
   public static func run(_ request: BootstrapConfigRequest) throws -> BootstrapConfigResult {
+    try ToolingModelLoader.validateSourceModelLayout(
+      modelPath: request.modelPath,
+      modelVersion: request.modelVersion
+    )
+
     let loadedModel = try ToolingModelLoader.loadModel(
       modelPath: request.modelPath,
       modelVersion: request.modelVersion,

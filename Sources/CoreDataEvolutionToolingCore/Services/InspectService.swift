@@ -17,6 +17,11 @@ import Foundation
 /// failing fast so partially-complete bootstrap configs remain inspectable.
 public enum InspectService {
   public static func run(_ request: InspectRequest) throws -> InspectResult {
+    try ToolingModelLoader.validateSourceModelLayout(
+      modelPath: request.modelPath,
+      modelVersion: request.modelVersion
+    )
+
     let loadedModel = try ToolingModelLoader.loadModel(
       modelPath: request.modelPath,
       modelVersion: request.modelVersion,

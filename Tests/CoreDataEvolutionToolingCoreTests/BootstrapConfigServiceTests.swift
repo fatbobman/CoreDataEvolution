@@ -17,12 +17,8 @@ import Testing
 struct BootstrapConfigServiceTests {
   @Test("service builds editable config scaffold from integration model")
   func bootstrapConfigIncludesModelDerivedAttributeRules() throws {
-    let repositoryRoot = try findRepositoryRoot()
-    let modelPath =
-      repositoryRoot
-      .appendingPathComponent("Models")
-      .appendingPathComponent("Integration")
-      .appendingPathComponent("CoreDataEvolutionIntegrationModel.xcdatamodeld")
+    let modelPath = try makeToolingSourceModelFixture()
+    defer { try? FileManager.default.removeItem(at: modelPath.deletingLastPathComponent()) }
 
     let result = try BootstrapConfigService.run(
       .init(
@@ -67,20 +63,4 @@ struct BootstrapConfigServiceTests {
     #expect(result.diagnostics.contains(where: { $0.message.contains("Binary -> Data") }))
   }
 
-  private func findRepositoryRoot(filePath: String = #filePath) throws -> URL {
-    var currentURL = URL(fileURLWithPath: filePath).deletingLastPathComponent()
-    while currentURL.path != "/" {
-      if FileManager.default.fileExists(
-        atPath: currentURL.appendingPathComponent("Package.swift").path)
-      {
-        return currentURL
-      }
-      currentURL = currentURL.deletingLastPathComponent()
-    }
-
-    throw ToolingFailure.runtime(
-      .internalError,
-      "failed to locate repository root from '\(filePath)'."
-    )
-  }
 }
