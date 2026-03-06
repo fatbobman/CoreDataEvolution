@@ -14,8 +14,7 @@ import Foundation
 
 /// Builds in-memory Swift sources from a Core Data model and resolved tooling rules.
 ///
-/// Session 4 stops before file planning and disk writes. The service returns generated source
-/// units that session 5 will later wrap into overwrite and formatting workflows.
+/// The service stops at disk writes. External formatter execution still belongs to CLI/adapters.
 public enum GenerateService {
   public static func run(_ request: GenerateRequest) throws -> GenerateResult {
     let loadedModel = try ToolingModelLoader.loadModel(
@@ -36,12 +35,26 @@ public enum GenerateService {
 
     let generatedSources = try ToolingSourceRenderer.renderSources(
       from: buildResult.modelIR,
+      moduleName: request.moduleName,
       header: request.headerTemplate
+    )
+    let filePlan = try ToolingFilePlanner.makeFilePlan(
+      from: generatedSources,
+      outputDir: request.outputDir
+    )
+    let writeResult = try ToolingFileWriter.apply(
+      plan: filePlan,
+      outputDir: request.outputDir,
+      overwrite: request.overwrite,
+      cleanStale: request.cleanStale,
+      dryRun: request.dryRun
     )
 
     return .init(
       modelIR: buildResult.modelIR,
       generatedSources: generatedSources,
+      filePlan: filePlan,
+      writeResult: writeResult,
       diagnostics: buildResult.diagnostics
     )
   }

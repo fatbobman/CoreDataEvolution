@@ -72,6 +72,9 @@ struct GenerateServiceTests {
     )
 
     #expect(result.generatedSources.count == 2)
+    #expect(result.filePlan.count == 2)
+    #expect(result.writeResult.dryRun)
+    #expect(result.writeResult.operations.filter { $0.kind == .create }.count == 2)
     #expect(result.diagnostics.isEmpty)
 
     let itemSource = try #require(
@@ -107,6 +110,57 @@ struct GenerateServiceTests {
     )
     #expect(tagSource.contents.contains("var items: Set<CDEItem>"))
     #expect(tagSource.contents.contains("var label: String = \"\""))
+
+    let itemPlan = try #require(
+      result.filePlan.first(where: { $0.relativePath == "CDEItem+CoreDataEvolution.swift" })
+    )
+    #expect(itemPlan.contents.contains(toolingManagedFileMarker))
+  }
+
+  @Test("generate service supports single-file output")
+  func generateServiceSupportsSingleFileOutput() throws {
+    let repositoryRoot = try findRepositoryRoot()
+    let modelPath =
+      repositoryRoot
+      .appendingPathComponent("Models")
+      .appendingPathComponent("Integration")
+      .appendingPathComponent("CoreDataEvolutionIntegrationModel.xcdatamodeld")
+
+    let result = try GenerateService.run(
+      .init(
+        modelPath: modelPath.path,
+        modelVersion: nil,
+        momcBin: nil,
+        outputDir: repositoryRoot.appendingPathComponent(".build").path,
+        moduleName: "AppModels",
+        typeMappings: makeDefaultToolingTypeMappings(),
+        attributeRules: .init(
+          entities: [
+            "CDEItem": [
+              "location": .init(swiftType: "CDEItemLocation", storageMethod: .composition)
+            ]
+          ]
+        ),
+        accessLevel: .internal,
+        singleFile: true,
+        splitByEntity: false,
+        overwrite: .changed,
+        cleanStale: false,
+        dryRun: true,
+        format: .none,
+        headerTemplate: nil,
+        generateInit: false,
+        relationshipSetterPolicy: .warning,
+        relationshipCountPolicy: .none,
+        defaultDecodeFailurePolicy: .fallbackToDefaultValue
+      )
+    )
+
+    #expect(result.generatedSources.count == 1)
+    #expect(result.filePlan.count == 1)
+    #expect(result.generatedSources[0].suggestedFileName == "AppModels+CoreDataEvolution.swift")
+    #expect(result.generatedSources[0].contents.contains("@objc(CDEItem)"))
+    #expect(result.generatedSources[0].contents.contains("@objc(CDETag)"))
   }
 
   private func findRepositoryRoot(filePath: String = #filePath) throws -> URL {

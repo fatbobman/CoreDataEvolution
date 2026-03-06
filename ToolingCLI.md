@@ -17,15 +17,16 @@ CLI v1 先解决两件事：
 
 当前 `ToolingCore` 已完成：
 
-- model -> IR -> in-memory generated sources
+- model -> IR -> generated sources -> file plan -> disk writes
 - `@objc` / `@PersistentModel` / `@Attribute` / relationship / composition 声明渲染
 - `typeMappings` 与 `attributeRules` 的生成侧解析
+- `overwrite` / `clean-stale` / `dry-run`
+- 单文件与按 entity 拆分输出
 
 当前仍未完成：
 
-- file plan / overwrite / clean-stale / 实际写盘
-- CLI `generate` 接线
-- `headerTemplate` 文件读取
+- `validate` 引擎
+- `generate` 的插件/GUI 适配层
 
 ### `cde-tool validate`
 
@@ -429,6 +430,9 @@ CLI v1 先解决两件事：
 - `dryRun`: optional, bool，默认 `false`。
 - `format`: optional, enum(`none`,`swift-format`,`swiftformat`)，默认 `none`。
 - `headerTemplate`: optional, string/null，默认 `null`。
+  - 语义是“模板文件路径”，不是内联文本。
+  - 配置文件中的相对路径相对配置文件目录解析。
+  - CLI 显式传入的相对路径相对当前工作目录解析。
 - `generateInit`: optional, bool，默认 `false`。
 - `relationshipSetterPolicy`: optional, enum(`none`,`warning`,`plain`)，默认 `warning`。
 - `relationshipCountPolicy`: optional, enum(`none`,`warning`,`plain`)，默认 `none`。

@@ -74,9 +74,21 @@ struct GenerateCommand: ParsableCommand {
   var config: String?
 
   mutating func run() throws {
-    try failUser(
-      code: .notImplemented,
-      message: "generate is not implemented yet."
-    )
+    let request: GenerateRequest
+    do {
+      request = try GenerateCommandSupport.makeRequest(from: self)
+    } catch let failure as ToolingFailure {
+      try fail(failure)
+    }
+
+    let result: GenerateResult
+    do {
+      result = try GenerateService.run(request)
+      try GenerateCommandSupport.runFormatterIfNeeded(mode: request.format, result: result)
+    } catch let failure as ToolingFailure {
+      try fail(failure)
+    }
+
+    GenerateCommandSupport.emitResult(result)
   }
 }

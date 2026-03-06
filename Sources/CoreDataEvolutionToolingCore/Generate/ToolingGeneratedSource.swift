@@ -11,10 +11,9 @@
 
 import Foundation
 
-/// One generated Swift source unit produced by the tooling generate engine.
+/// One rendered Swift source unit produced before file planning.
 ///
-/// Session 4 stops at in-memory source generation. Session 5 will wrap these units into file
-/// plans, overwrite decisions, and on-disk writes.
+/// Session 5 converts these units into concrete file plans and on-disk write operations.
 public struct ToolingGeneratedSource: Codable, Sendable, Equatable {
   public let entityName: String
   public let suggestedFileName: String

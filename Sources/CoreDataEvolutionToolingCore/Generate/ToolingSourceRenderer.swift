@@ -15,20 +15,56 @@ import Foundation
 public enum ToolingSourceRenderer {
   public static func renderSources(
     from modelIR: ToolingModelIR,
+    moduleName: String = "AppModels",
     header: String? = nil
   ) throws -> [ToolingGeneratedSource] {
-    try modelIR.entities.map { entity in
-      let contents = try renderEntitySource(
-        entity,
-        generationPolicy: modelIR.generationPolicy,
-        header: header
-      )
-      return .init(
+    if modelIR.generationPolicy.singleFile {
+      return [
+        .init(
+          entityName: moduleName,
+          suggestedFileName: "\(moduleName)+CoreDataEvolution.swift",
+          contents: try renderModuleSource(
+            modelIR.entities,
+            generationPolicy: modelIR.generationPolicy,
+            header: header
+          )
+        )
+      ]
+    }
+
+    return try modelIR.entities.map { entity in
+      .init(
         entityName: entity.name,
         suggestedFileName: "\(entity.name)+CoreDataEvolution.swift",
-        contents: contents
+        contents: try renderEntitySource(
+          entity,
+          generationPolicy: modelIR.generationPolicy,
+          header: header
+        )
       )
     }
+  }
+
+  private static func renderModuleSource(
+    _ entities: [ToolingEntityIR],
+    generationPolicy: ToolingGenerationPolicyIR,
+    header: String?
+  ) throws -> String {
+    var lines = renderFilePrelude(header: header)
+
+    for (index, entity) in entities.enumerated() {
+      if index > 0 {
+        lines.append("")
+      }
+      lines.append(
+        contentsOf: try renderEntityDeclaration(
+          entity,
+          generationPolicy: generationPolicy
+        )
+      )
+    }
+
+    return lines.joined(separator: "\n")
   }
 
   private static func renderEntitySource(
@@ -36,23 +72,39 @@ public enum ToolingSourceRenderer {
     generationPolicy: ToolingGenerationPolicyIR,
     header: String?
   ) throws -> String {
-    var lines: [String] = []
+    var lines = renderFilePrelude(header: header)
+    lines.append(
+      contentsOf: try renderEntityDeclaration(
+        entity,
+        generationPolicy: generationPolicy
+      )
+    )
+    return lines.joined(separator: "\n")
+  }
 
+  private static func renderFilePrelude(header: String?) -> [String] {
+    var lines: [String] = []
     if let header, header.isEmpty == false {
       lines.append(header.trimmingCharacters(in: .whitespacesAndNewlines))
       lines.append("")
     }
-
     lines.append("import CoreData")
     lines.append("import CoreDataEvolution")
     lines.append("import Foundation")
     lines.append("")
+    return lines
+  }
+
+  private static func renderEntityDeclaration(
+    _ entity: ToolingEntityIR,
+    generationPolicy: ToolingGenerationPolicyIR
+  ) throws -> [String] {
+    var lines: [String] = []
     lines.append("@objc(\(entity.name))")
     lines.append(renderPersistentModelAttribute(generationPolicy))
     lines.append(
       "\(accessModifierPrefix(generationPolicy.accessLevel))final class \(entity.name): NSManagedObject {"
     )
-
     let compositionAttributesByPersistentName: [String: ToolingCompositionIR] = Dictionary(
       uniqueKeysWithValues: entity.compositions.compactMap { composition in
         guard let persistentField = composition.persistentFields.first else { return nil }
@@ -104,8 +156,7 @@ public enum ToolingSourceRenderer {
     lines.append("}")
     lines.append("")
     lines.append("extension \(entity.name): PersistentEntity {}")
-
-    return lines.joined(separator: "\n")
+    return lines
   }
 
   private static func renderPersistentModelAttribute(

@@ -49,15 +49,21 @@ public struct BootstrapConfigResult: Sendable {
 public struct GenerateResult: Sendable, Equatable {
   public let modelIR: ToolingModelIR
   public let generatedSources: [ToolingGeneratedSource]
+  public let filePlan: [ToolingGeneratedFilePlan]
+  public let writeResult: ToolingGeneratedWriteResult
   public let diagnostics: [ToolingDiagnostic]
 
   public init(
     modelIR: ToolingModelIR,
     generatedSources: [ToolingGeneratedSource],
+    filePlan: [ToolingGeneratedFilePlan],
+    writeResult: ToolingGeneratedWriteResult,
     diagnostics: [ToolingDiagnostic]
   ) {
     self.modelIR = modelIR
     self.generatedSources = generatedSources
+    self.filePlan = filePlan
+    self.writeResult = writeResult
     self.diagnostics = diagnostics
   }
 }

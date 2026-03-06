@@ -77,23 +77,23 @@
 - `[x]` 支持 `generateInit`
 - `[x]` 支持 `relationshipSetterPolicy`
 - `[x]` 支持 `relationshipCountPolicy`
-- `[ ]` 接线 `headerTemplate` 文件解析与 CLI/config 输入
+- `[x]` 接线 `headerTemplate` 文件解析与 CLI/config 输入
 
 ## 5. File Planning And Writing
 
-- `[ ]` 定义 file plan 模型
-- `[ ]` 支持单文件输出
-- `[ ]` 支持按 entity 拆分输出
-- `[ ]` 生成文件带稳定标记，便于后续覆盖/清理
-- `[ ]` 支持 `overwrite = none`
-- `[ ]` 支持 `overwrite = changed`
-- `[ ]` 支持 `overwrite = all`
-- `[ ]` 支持 `cleanStale`
-- `[ ]` 限制 stale 清理只在 `outputDir` 内进行
-- `[ ]` 支持 `dryRun`
-- `[ ]` 支持 `swift-format`
-- `[ ]` 支持 `SwiftFormat`
-- `[ ]` 将 formatter 执行限制在 CLI/adapter 层
+- `[x]` 定义 file plan 模型
+- `[x]` 支持单文件输出
+- `[x]` 支持按 entity 拆分输出
+- `[x]` 生成文件带稳定标记，便于后续覆盖/清理
+- `[x]` 支持 `overwrite = none`
+- `[x]` 支持 `overwrite = changed`
+- `[x]` 支持 `overwrite = all`
+- `[x]` 支持 `cleanStale`
+- `[x]` 限制 stale 清理只在 `outputDir` 内进行
+- `[x]` 支持 `dryRun`
+- `[x]` 支持 `swift-format`
+- `[x]` 支持 `SwiftFormat`
+- `[x]` 将 formatter 执行限制在 CLI/adapter 层
 
 ## 6. Validate Engine
 
@@ -122,9 +122,11 @@
 - `[x]` 提供 `validate` 命令骨架
 - `[x]` 提供 `inspect` 命令骨架
 - `[x]` 将 `inspect` 接入 `ToolingCore`
-- `[ ]` 将 `generate` 接入 `ToolingCore`
+- `[x]` 将 `generate` 接入 `ToolingCore`
 - `[ ]` 将 `validate` 接入 `ToolingCore`
-- `[ ]` 支持 `--config`
+- `[x]` `generate` 支持 `--config`
+- `[ ]` `validate` 支持 `--config`
+- `[x]` `inspect` 支持 `--config`
 - `[ ]` 支持 `json` 输出
 - `[ ]` 支持 `sarif` 输出
 - `[ ]` 统一 CLI 文本错误与提示
@@ -157,8 +159,8 @@
 - `[x]` inspect service 测试
 - `[x]` generate source renderer 测试
 - `[x]` generate service 测试
-- `[ ]` generate file plan 测试
-- `[ ]` overwrite / clean-stale 测试
+- `[x]` generate file plan 测试
+- `[x]` overwrite / clean-stale 测试
 - `[ ]` validate quick 测试
 - `[ ]` validate strict 测试
 - `[ ]` CLI `init-config` 集成测试
@@ -168,9 +170,9 @@
 ## 11. Immediate Next Steps
 
 - `1.` 为 validate 建立 service 层入口
-- `2.` 定义 file plan，并把 generate sources 接入写盘策略
-- `3.` 将 CLI `generate --config` 接入 `ToolingCore`
-- `4.` 为 validate 设计 quick 模式入口
+- `2.` 为 validate 设计 quick 模式入口
+- `3.` 将 validate CLI 接入 `ToolingCore`
+- `4.` 规划 validate 的文本/json/sarif 输出
 
 ## 12. Deferred / Known Gaps
 
@@ -183,5 +185,4 @@
 - `[ ]` tool 仍未提供描述 `@Ignore` / 纯内存属性的额外配置模型。
 - `[ ]` generate 当前只会直接使用模型默认值；对于非可选自定义 raw/codable/composition/transformed 类型，仍缺少未来的显式代码默认值规则。
 - `[ ]` `GenerateService.validateGenerateRequest` 仍通过 `GenerateRequest -> GenerateTemplate` 的中转来复用校验逻辑；后续可提取为直接接受已解析参数的共享验证入口，降低字段漂移风险。
-- `[ ]` `headerTemplate` 当前仅在直接调用 GenerateService 时作为原始文本前缀使用；CLI/config 的模板文件解析仍未接线。
 - `[ ]` 只有在未来宏语义允许“代码默认值覆盖模型默认值”时，tool 才会引入默认值配置，并用该值参与代码生成。

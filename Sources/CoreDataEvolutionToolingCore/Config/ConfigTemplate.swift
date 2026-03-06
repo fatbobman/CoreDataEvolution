@@ -305,30 +305,15 @@ extension GenerateRequest {
   /// Merges config-file values with CLI overrides.
   ///
   /// Priority is: CLI override > config file > built-in default.
-  public init(config: GenerateTemplate, overrides: GenerateRequestOverrides = .init()) {
-    self.init(
-      modelPath: overrides.modelPath ?? config.modelPath,
-      modelVersion: overrides.modelVersion ?? config.modelVersion,
-      momcBin: overrides.momcBin ?? config.momcBin,
-      outputDir: overrides.outputDir ?? config.outputDir,
-      moduleName: overrides.moduleName ?? config.moduleName,
-      typeMappings: mergeToolingTypeMappings(config.typeMappings),
-      attributeRules: config.attributeRules ?? .init(),
-      accessLevel: overrides.accessLevel ?? config.accessLevel ?? .internal,
-      singleFile: overrides.singleFile ?? config.singleFile ?? false,
-      splitByEntity: overrides.splitByEntity ?? config.splitByEntity ?? true,
-      overwrite: overrides.overwrite ?? config.overwrite ?? .none,
-      cleanStale: overrides.cleanStale ?? config.cleanStale ?? false,
-      dryRun: overrides.dryRun ?? config.dryRun ?? false,
-      format: overrides.format ?? config.format ?? .none,
-      headerTemplate: overrides.headerTemplate ?? config.headerTemplate,
-      generateInit: overrides.generateInit ?? config.generateInit ?? false,
-      relationshipSetterPolicy: overrides.relationshipSetterPolicy
-        ?? config.relationshipSetterPolicy ?? .warning,
-      relationshipCountPolicy: overrides.relationshipCountPolicy
-        ?? config.relationshipCountPolicy ?? .none,
-      defaultDecodeFailurePolicy: overrides.defaultDecodeFailurePolicy
-        ?? config.defaultDecodeFailurePolicy ?? .fallbackToDefaultValue
+  public init(
+    config: GenerateTemplate,
+    overrides: GenerateRequestOverrides = .init(),
+    configDirectory: URL? = nil
+  ) throws {
+    self = try makeGenerateRequest(
+      config: config,
+      overrides: overrides,
+      configDirectory: configDirectory
     )
   }
 }

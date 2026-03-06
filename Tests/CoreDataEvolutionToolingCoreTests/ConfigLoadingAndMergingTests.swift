@@ -82,12 +82,12 @@ struct ConfigLoadingAndMergingTests {
     overrides.overwrite = .all
     overrides.generateInit = true
 
-    let request = GenerateRequest(
+    let request = try GenerateRequest(
       config: configured,
       overrides: overrides
     )
 
-    #expect(request.modelPath == "Models/AppModel.xcdatamodeld")
+    #expect(request.modelPath.hasSuffix("/Models/AppModel.xcdatamodeld"))
     #expect(request.modelVersion == "V2")
     #expect(request.typeMappings[coreDataType: "Integer 64"]?.swiftType == "Int")
     #expect(request.typeMappings[coreDataType: "UUID"]?.swiftType == "UUID")
@@ -96,6 +96,7 @@ struct ConfigLoadingAndMergingTests {
     #expect(request.overwrite == .all)
     #expect(request.generateInit)
     #expect(request.relationshipSetterPolicy == .warning)
+    #expect(request.outputDir.hasSuffix("/Generated/CoreDataEvolution"))
   }
 
   @Test("validate request merges config defaults when overrides are empty")
@@ -141,5 +142,51 @@ struct ConfigLoadingAndMergingTests {
     #expect(request.level == .quick)
     #expect(request.report == .text)
     #expect(request.maxIssues == 200)
+  }
+
+  @Test("generate request resolves header template relative to config directory")
+  func generateRequestResolvesHeaderTemplateFromConfigDirectory() throws {
+    let temporaryDirectory = makeTemporaryDirectory()
+    defer { try? FileManager.default.removeItem(at: temporaryDirectory) }
+
+    let headerURL = temporaryDirectory.appendingPathComponent("header.txt")
+    try "// HEADER".write(to: headerURL, atomically: true, encoding: .utf8)
+
+    let config = GenerateTemplate(
+      modelPath: "Models/AppModel.xcdatamodeld",
+      modelVersion: nil,
+      momcBin: nil,
+      outputDir: "Generated/CoreDataEvolution",
+      moduleName: "AppModels",
+      typeMappings: nil,
+      attributeRules: nil,
+      accessLevel: .internal,
+      singleFile: false,
+      splitByEntity: true,
+      overwrite: ToolingOverwriteMode.none,
+      cleanStale: false,
+      dryRun: false,
+      format: ToolingFormatMode.none,
+      headerTemplate: "header.txt",
+      generateInit: false,
+      relationshipSetterPolicy: .warning,
+      relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
+      defaultDecodeFailurePolicy: .fallbackToDefaultValue
+    )
+
+    let request = try GenerateRequest(
+      config: config,
+      configDirectory: temporaryDirectory
+    )
+
+    #expect(request.headerTemplate == "// HEADER")
+  }
+
+  private func makeTemporaryDirectory() -> URL {
+    let url = FileManager.default.temporaryDirectory
+      .appendingPathComponent("CoreDataEvolutionToolingCoreTests", isDirectory: true)
+      .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+    return url
   }
 }
