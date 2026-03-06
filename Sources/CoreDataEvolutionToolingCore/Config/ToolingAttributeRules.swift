@@ -11,6 +11,7 @@
 
 import Foundation
 
+/// Mirrors the attribute storage strategies currently exposed by the macro layer.
 public enum ToolingAttributeStorageRule: String, Codable, Sendable, Equatable {
   case `default`
   case raw
@@ -19,6 +20,10 @@ public enum ToolingAttributeStorageRule: String, Codable, Sendable, Equatable {
   case transformed
 }
 
+/// Optional per-attribute overrides consumed by `generate` and `validate`.
+///
+/// The rule only stores differences from model defaults. For example, if `swiftName`
+/// is omitted, the consumer should treat the persistent field name as the Swift name.
 public struct ToolingAttributeRule: Codable, Sendable, Equatable {
   public let swiftName: String?
   public let swiftType: String?
@@ -42,6 +47,12 @@ public struct ToolingAttributeRule: Codable, Sendable, Equatable {
 }
 
 /// Maps entity persistent fields to generation rules.
+///
+/// Notes:
+/// - The first key is the entity name.
+/// - The second key is the persistent field name from the Core Data model.
+/// - Consumers should resolve `swiftName ?? persistentField`.
+///
 /// Shape in JSON:
 /// {
 ///   "Item": {

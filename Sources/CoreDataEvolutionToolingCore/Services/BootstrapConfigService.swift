@@ -12,6 +12,12 @@
 @preconcurrency import CoreData
 import Foundation
 
+/// Builds an editable config scaffold directly from a Core Data model.
+///
+/// V1 intentionally prefers a conservative scaffold:
+/// - emit the full default `typeMappings`
+/// - emit lightweight per-attribute placeholders in `attributeRules`
+/// - add diagnostics for fields that still require human decisions
 public enum BootstrapConfigService {
   public static func run(_ request: BootstrapConfigRequest) throws -> BootstrapConfigResult {
     let loadedModel = try ToolingModelLoader.loadModel(
@@ -102,6 +108,8 @@ public enum BootstrapConfigService {
     return .init(entities: entities)
   }
 
+  // Rules in the bootstrap scaffold should describe only what a developer may want to edit.
+  // Matching names are omitted on purpose to keep the JSON compact and reviewable.
   private static func makeRule(for attribute: NSAttributeDescription) -> ToolingAttributeRule {
     switch attribute.attributeType {
     case .transformableAttributeType:
@@ -114,6 +122,7 @@ public enum BootstrapConfigService {
     }
   }
 
+  // Diagnostics are used to call out fields that need manual follow-up before `generate`.
   private static func makeDiagnostics(from model: NSManagedObjectModel) -> [ToolingDiagnostic] {
     var diagnostics: [ToolingDiagnostic] = []
 

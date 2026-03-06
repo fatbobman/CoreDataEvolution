@@ -165,6 +165,18 @@ When making code changes:
 - Keep main-actor and background-actor behavior aligned where appropriate; the two protocol extensions intentionally expose similar APIs.
 - Be conservative around availability, executor behavior, and Core Data threading assumptions.
 
+## ToolingCore Comment Standard
+
+When editing `Sources/CoreDataEvolutionToolingCore/`:
+
+- Add succinct comments to public types and service entry points so another developer can quickly understand the role of each file and API.
+- Add short internal comments only where a helper encodes non-obvious behavior, ordering, or fallback rules.
+- Do not comment every line. Prefer comments that explain:
+  - what problem a type/function solves
+  - which inputs or precedence rules matter
+  - which assumptions or v1 boundaries are intentional
+- Keep comments aligned with code and docs. If behavior changes, update the nearby comment in the same change.
+
 ## Current WIP (TypedPath)
 
 There is active WIP for typed path mapping and NSPredicate construction.

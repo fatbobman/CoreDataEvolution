@@ -12,6 +12,7 @@
 @preconcurrency import CoreData
 import Foundation
 
+/// Bundles the loaded Core Data model with the resolution metadata that produced it.
 public struct ToolingLoadedModel {
   public let model: NSManagedObjectModel
   public let resolvedInput: ToolingResolvedModelInput
@@ -25,7 +26,14 @@ public struct ToolingLoadedModel {
   }
 }
 
+/// Loads Core Data models from source packages (`.xcdatamodeld`, `.xcdatamodel`) or compiled
+/// artifacts (`.momd`, `.mom`).
+///
+/// Notes:
+/// - Source models are compiled through `momc` into a temporary location.
+/// - `.xccurrentversion` is treated as the authoritative current version for `.xcdatamodeld`.
 public enum ToolingModelLoader {
+  /// Resolves the user's input path into a concrete source/compiled pair without loading Core Data.
   public static func resolveModelInput(
     modelPath: String,
     modelVersion: String?
@@ -80,6 +88,8 @@ public enum ToolingModelLoader {
     }
   }
 
+  /// Finds `momc` using the same precedence as the repository scripts:
+  /// explicit path -> `xcrun --find momc` -> `PATH`.
   public static func discoverMomcBinary(
     preferredPath: String? = nil
   ) throws -> URL {
@@ -110,6 +120,7 @@ public enum ToolingModelLoader {
     )
   }
 
+  /// End-to-end entry point used by services that need a real `NSManagedObjectModel`.
   public static func loadModel(
     modelPath: String,
     modelVersion: String?,
@@ -134,6 +145,8 @@ public enum ToolingModelLoader {
     }
   }
 
+  // Loading is split from path resolution so tests can validate version-selection behavior
+  // without requiring a working Core Data toolchain.
   private static func loadCompiledModel(
     from resolvedInput: ToolingResolvedModelInput
   ) throws -> ToolingLoadedModel {

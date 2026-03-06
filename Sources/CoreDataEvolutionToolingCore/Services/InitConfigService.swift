@@ -11,6 +11,7 @@
 
 import Foundation
 
+/// Emits static config templates without touching any model files.
 public enum InitConfigService {
   public static func run(_ request: InitConfigRequest) throws -> InitConfigResult {
     let template = makeDefaultConfigTemplate(preset: request.preset)

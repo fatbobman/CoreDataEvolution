@@ -11,6 +11,7 @@
 
 import Foundation
 
+/// Result for `init-config`.
 public struct InitConfigResult: Sendable {
   public let template: ToolingConfigTemplate
   public let jsonData: Data
@@ -27,6 +28,7 @@ public struct InitConfigResult: Sendable {
   }
 }
 
+/// Result for `bootstrap-config`.
 public struct BootstrapConfigResult: Sendable {
   public let template: ToolingConfigTemplate
   public let jsonData: Data
@@ -43,6 +45,7 @@ public struct BootstrapConfigResult: Sendable {
   }
 }
 
+/// Placeholder result model for future generate engine output.
 public struct GenerateResult: Sendable, Equatable {
   public let diagnostics: [ToolingDiagnostic]
 
@@ -51,6 +54,7 @@ public struct GenerateResult: Sendable, Equatable {
   }
 }
 
+/// Placeholder result model for future validate engine output.
 public struct ValidateResult: Sendable, Equatable {
   public let diagnostics: [ToolingDiagnostic]
 
@@ -59,6 +63,7 @@ public struct ValidateResult: Sendable, Equatable {
   }
 }
 
+/// Placeholder result model for future inspect engine output.
 public struct InspectResult: Sendable, Equatable {
   public let diagnostics: [ToolingDiagnostic]
 

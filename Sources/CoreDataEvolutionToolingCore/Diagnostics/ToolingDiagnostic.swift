@@ -11,12 +11,14 @@
 
 import Foundation
 
+/// Severity model shared by CLI text output and future structured reports.
 public enum ToolingDiagnosticSeverity: String, Codable, Sendable {
   case error
   case warning
   case note
 }
 
+/// A non-fatal issue emitted by tooling services.
 public struct ToolingDiagnostic: Codable, Sendable, Equatable {
   public let severity: ToolingDiagnosticSeverity
   public let code: ToolingErrorCode?
@@ -36,6 +38,7 @@ public struct ToolingDiagnostic: Codable, Sendable, Equatable {
   }
 }
 
+/// A fatal tooling error that already carries an exit-code classification.
 public struct ToolingFailure: Error, Sendable, Equatable {
   public let code: ToolingErrorCode
   public let message: String

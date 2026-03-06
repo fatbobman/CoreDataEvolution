@@ -13,11 +13,13 @@ import Foundation
 
 public let toolingSupportedSchemaVersion = 1
 
+/// Controls whether `init-config` emits a compact or fully-populated template.
 public enum ToolingConfigTemplatePreset: String, Codable, Sendable {
   case minimal
   case full
 }
 
+/// Root JSON config object shared by `init-config`, `bootstrap-config`, and future loaders.
 public struct ToolingConfigTemplate: Codable, Sendable, Equatable {
   public let schemaVersion: Int
   public let generate: GenerateTemplate?
@@ -40,6 +42,10 @@ public struct ToolingConfigTemplate: Codable, Sendable, Equatable {
   }
 }
 
+/// Config template for `generate`.
+///
+/// Keep this focused on stable, serializable settings. Runtime-only objects should live in
+/// request/result models or future engine types.
 public struct GenerateTemplate: Codable, Sendable, Equatable {
   public let modelPath: String
   public let modelVersion: String?
@@ -104,6 +110,7 @@ public struct GenerateTemplate: Codable, Sendable, Equatable {
   }
 }
 
+/// Config template for `validate`.
 public struct ValidateTemplate: Codable, Sendable, Equatable {
   public let modelPath: String
   public let modelVersion: String?
@@ -147,6 +154,10 @@ public struct ValidateTemplate: Codable, Sendable, Equatable {
   }
 }
 
+/// Creates the built-in config templates used by `init-config`.
+///
+/// `minimal` keeps only the required shape.
+/// `full` emits all supported options and default values so users can edit in place.
 public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> ToolingConfigTemplate
 {
   switch preset {
@@ -231,6 +242,7 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
   }
 }
 
+/// Uses stable formatting so generated config files remain diff-friendly.
 public func encodeToolingJSON<T: Encodable>(_ value: T) throws -> Data {
   let encoder = JSONEncoder()
   encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -283,6 +295,9 @@ public func loadToolingConfigTemplate(at url: URL) throws -> ToolingConfigTempla
 }
 
 extension GenerateRequest {
+  /// Merges config-file values with CLI overrides.
+  ///
+  /// Priority is: CLI override > config file > built-in default.
   public init(config: GenerateTemplate, overrides: GenerateRequestOverrides = .init()) {
     self.init(
       modelPath: overrides.modelPath ?? config.modelPath,
@@ -312,6 +327,7 @@ extension GenerateRequest {
 }
 
 extension ValidateRequest {
+  /// Merges config-file values with CLI overrides.
   public init(config: ValidateTemplate, overrides: ValidateRequestOverrides = .init()) {
     self.init(
       modelPath: overrides.modelPath ?? config.modelPath,

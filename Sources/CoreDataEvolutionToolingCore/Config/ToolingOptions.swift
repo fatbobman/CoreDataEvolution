@@ -11,6 +11,7 @@
 
 import Foundation
 
+/// Shared enums used by config templates, requests, and future IR/generation layers.
 public enum ToolingAccessLevel: String, Codable, Sendable, Equatable {
   case `internal`
   case `public`

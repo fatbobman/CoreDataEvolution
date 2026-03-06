@@ -11,6 +11,7 @@
 
 import Foundation
 
+/// Request for emitting a static config template.
 public struct InitConfigRequest: Sendable, Equatable {
   public let preset: ToolingConfigTemplatePreset
 
@@ -19,6 +20,7 @@ public struct InitConfigRequest: Sendable, Equatable {
   }
 }
 
+/// Request for generating a model-derived config scaffold.
 public struct BootstrapConfigRequest: Sendable, Equatable {
   public let modelPath: String
   public let modelVersion: String?
@@ -44,6 +46,9 @@ public struct BootstrapConfigRequest: Sendable, Equatable {
   }
 }
 
+/// Runtime request model for `generate`.
+///
+/// Unlike `GenerateTemplate`, this struct should already contain resolved defaults.
 public struct GenerateRequest: Sendable, Equatable {
   public let modelPath: String
   public let modelVersion: String?
@@ -108,6 +113,7 @@ public struct GenerateRequest: Sendable, Equatable {
   }
 }
 
+/// Runtime request model for `validate`.
 public struct ValidateRequest: Sendable, Equatable {
   public let modelPath: String
   public let modelVersion: String?
@@ -151,6 +157,7 @@ public struct ValidateRequest: Sendable, Equatable {
   }
 }
 
+/// Runtime request model for `inspect`.
 public struct InspectRequest: Sendable, Equatable {
   public let modelPath: String
   public let modelVersion: String?
@@ -161,6 +168,7 @@ public struct InspectRequest: Sendable, Equatable {
   }
 }
 
+/// CLI-only override carrier merged on top of `GenerateTemplate`.
 public struct GenerateRequestOverrides: Sendable, Equatable {
   public var modelPath: String?
   public var modelVersion: String?
@@ -183,6 +191,7 @@ public struct GenerateRequestOverrides: Sendable, Equatable {
   public init() {}
 }
 
+/// CLI-only override carrier merged on top of `ValidateTemplate`.
 public struct ValidateRequestOverrides: Sendable, Equatable {
   public var modelPath: String?
   public var modelVersion: String?

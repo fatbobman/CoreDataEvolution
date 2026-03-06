@@ -11,6 +11,9 @@
 
 import Foundation
 
+/// Stable error identifiers shared across CLI, future plugin adapters, and GUI surfaces.
+///
+/// Keep raw values stable once they are consumed externally.
 public enum ToolingErrorCode: String, Codable, Sendable {
   case notImplemented = "TOOL-NOT-IMPLEMENTED"
   case configConflict = "TOOL-CONFIG-CONFLICT"

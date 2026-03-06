@@ -11,6 +11,7 @@
 
 import Foundation
 
+/// The concrete kind of model input selected by the loader.
 public enum ToolingModelInputKind: String, Sendable, Equatable {
   case xcdatamodeld
   case xcdatamodel
@@ -18,6 +19,9 @@ public enum ToolingModelInputKind: String, Sendable, Equatable {
   case mom
 }
 
+/// Captures how an input path was resolved before it becomes an `NSManagedObjectModel`.
+///
+/// This keeps later layers independent from filesystem and version-selection details.
 public struct ToolingResolvedModelInput: Sendable, Equatable {
   public let originalURL: URL
   public let selectedSourceURL: URL

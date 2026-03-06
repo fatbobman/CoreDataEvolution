@@ -11,6 +11,7 @@
 
 import Foundation
 
+/// Describes the default Swift type chosen for one Core Data primitive type.
 public struct ToolingTypeMappingRule: Codable, Sendable, Equatable {
   public let swiftType: String
 
@@ -20,6 +21,11 @@ public struct ToolingTypeMappingRule: Codable, Sendable, Equatable {
 }
 
 /// Maps Core Data primitive attribute types to default Swift property types.
+///
+/// Notes:
+/// - These are default rules only. Per-attribute overrides should go in `attributeRules`.
+/// - V1 intentionally uses exact-width defaults (`Integer 64 -> Int64`, `Float -> Float`).
+///
 /// Shape in JSON:
 /// {
 ///   "Integer 64": {
@@ -74,6 +80,7 @@ public struct ToolingTypeMappings: Codable, Sendable, Equatable {
   }
 }
 
+/// Returns the built-in default mapping table used when config does not override it.
 public func makeDefaultToolingTypeMappings() -> ToolingTypeMappings {
   .init(
     coreDataTypes: [
