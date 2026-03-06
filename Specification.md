@@ -26,7 +26,10 @@ Runtime schema / runtime model builder 的 v1 边界：
 - 仅用于测试/调试，不替代 `xcdatamodeld`
 - 假定宏生成的静态 metadata 为唯一输入，不做运行时反射
 - 同一组模型类型应复用缓存后的 `NSManagedObjectModel`
-- 代码侧 relationship metadata 当前不携带显式 `inverseName`，因此 runtime builder 仅支持唯一可推断 inverse
+- 当同一实体中存在多个 relationship 指向同一目标实体时，源码必须显式提供 inverse hint
+- inverse hint 采用 `@Inverse(\\TargetEntity.property)` 语法
+- 无法唯一推断 inverse 的 relationship，两侧都必须显式标注 `@Inverse(...)`
+- 自连接（self relationship）遵循同一规则；若无法唯一推断，同样要求两侧显式标注
 - primitive 默认值仅支持可稳定翻译到 Core Data 默认值的表达式子集；不支持时直接报错
 - composition 在 runtime 路径中按单个 transformable dictionary payload 建模，不追求与 xcdatamodeld 的展平字段布局一致
 
@@ -140,6 +143,15 @@ enum RelationshipGenerationPolicy { case none, warning, plain }
 - 被标记的 `var` 不参与持久化代码生成。  
 - `let` 无需标记，默认不参与持久化生成。  
 
+### `@Inverse`
+
+- 仅用于 relationship 属性。
+- 语法：`@Inverse(\TargetEntity.property)`
+- 语义：显式声明对端 inverse relationship 的属性名。
+- 若 relationship 可唯一推断 inverse，则无需标注。
+- 当同一实体中存在多个 relationship 指向同一目标实体时，这些 relationship 两侧都必须显式标注 `@Inverse(...)`。
+- `Entity.self` 不能表达对端具体属性，因此不作为 v1 语法。
+
 ### RelationshipInfo 注释
 
 - v1 不提供 `@RelationshipInfo` 宏。
@@ -180,6 +192,13 @@ v1 声明约束（硬性）：
 - `T?` -> to-one  
 
 > 说明：关系目标类型在宏展开代码中通过 `_CDRelationshipMacroValidation.requirePersistentEntity(T.self)` 做编译期强约束。
+
+inverse hint 规则：
+
+- 若当前实体内某个目标实体类型只出现一条 relationship，则可省略 `@Inverse(...)`
+- 若当前实体内有多条 relationship 指向同一目标实体，则这些 relationship 必须全部显式标注 `@Inverse(...)`
+- 自连接按同一规则处理
+- 缺少必要的 `@Inverse(...)` 时，主宏应在编译期报错并拒绝展开
 
 ### Getter / Setter
 
@@ -300,8 +319,9 @@ NSPredicate(format: "%K == %@", Item.Keys.status.rawValue, status.rawValue)
 1. 不依赖运行时反射；仅消费宏生成的静态 schema metadata。
 2. 调用方必须显式提供所有相关实体类型，例如 `makeRuntimeModel([Item.self, Tag.self])`。
 3. relationship 解析要求目标类型与 inverse 两端都在输入集合中。
-4. composition 仍按已生成的字段表展开为底层 attribute 集合。
-5. 由于当前范式已强约束“attribute 必须可选或有默认值、relationship 必须 optional 且有 inverse”，这些信息足以用于测试模型构建。
+4. 无法唯一推断 inverse 的 relationship 需要源码通过 `@Inverse(...)` 提供显式 inverse metadata；两侧都必须标注。
+5. composition 仍按已生成的字段表展开为底层 attribute 集合。
+6. 由于当前范式已强约束“attribute 必须可选或有默认值、relationship 必须 optional 且有 inverse”，这些信息足以用于测试模型构建。
 
 `@Attribute(.unique)` / `@Attribute(.transient)` 约定：
 
@@ -324,6 +344,12 @@ let model = NSManagedObjectModel.makeRuntimeModel([
 ```
 
 或等价的 builder 入口；命名可在实现阶段再收敛。
+
+实体继承（deferred）：
+
+- v1 暂不处理 entity inheritance。
+- inheritance 会影响 runtime schema、tooling generate/validate、relationship 目标解析与 metadata 继承规则。
+- 该议题延期到后续版本单独收敛。
 
 ## 8. Tool Contract
 

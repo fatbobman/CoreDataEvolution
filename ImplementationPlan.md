@@ -23,7 +23,7 @@
 - `CDPredicate`：类型安全表达式自动转换到 `NSPredicate`
 - Runtime Schema Metadata（测试 / 调试用）
 - 纯代码 `NSManagedObjectModel` 构建辅助
-- runtime relationship explicit inverse hint
+- entity inheritance support
 
 ## 3. Milestones
 
@@ -108,6 +108,7 @@
 - 为 `@PersistentModel` 生成静态 runtime schema metadata
 - 提供从 `[PersistentModel.Type]` 组装 `NSManagedObjectModel` 的 builder / helper
 - 支持普通 attribute、relationship、composition 展平
+- 支持 `@Inverse(\TargetEntity.property)` 显式 inverse hint
 - 支持 `@Attribute(.unique)` 产生单字段 uniqueness metadata
 - 约束 `@Attribute(.transient)`：
   - 表示 transient Core Data attribute
@@ -121,15 +122,14 @@
   - 不保证与 `xcdatamodeld` 的 hash/version/migration 一致
   - 不作为生产建模能力
   - 不处理历史版本模型
-  - 代码侧 relationship metadata 当前不携带显式 `inverseName`，因此不保证支持“同一目标实体的多条关系”的纯代码建模场景
-  - 该限制仅作用于 runtime schema / test-debug 路径，不影响 `xcdatamodeld` 正式工作流
-  - v2 计划补充 explicit inverse hint
+  - entity inheritance 延期到后续版本单独设计
 
 验收标准：
 
 - 不依赖 `.xcdatamodeld` 即可构建测试用 `NSManagedObjectModel`
 - 同一组模型类型可创建测试 container 并完成基础读写
 - relationship/inverse 可在输入类型集合中正确解析
+- 同一实体中指向同一目标实体的多条 relationship，在源码显式提供 `@Inverse(...)` 时可正确解析
 - `@Attribute(.unique)` 能转化为单字段唯一约束 metadata
 - `@Attribute(.transient)` 的 generate / validate 规则与 runtime schema 行为一致
 - Derived Attribute 会被 generate / validate 一致拒绝
