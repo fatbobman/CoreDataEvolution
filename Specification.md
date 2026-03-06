@@ -16,6 +16,11 @@
 
 - `CDPredicate`
 
+### Planned (Test / Debug Only)
+
+- Runtime Schema Metadata
+- 纯代码 `NSManagedObjectModel` 构建辅助
+
 ## 2. Hard Rules
 
 1. `xcdatamodeld` 每个 Entity 的 Codegen 必须为 `Manual/None`。
@@ -101,6 +106,12 @@ enum RelationshipGenerationPolicy { case none, warning, plain }
 - `.composition` 会在编译期约束属性类型满足 `@Composition` 生成的协议能力（`CDCompositionPathProviding` + `CDCompositionValueCodable`）。
 - `@Attribute` 不能标注关系属性（`T?` / `Set<T>` / `[T]` 且 `T: NSManagedObject`）；关系由主宏按类型自动识别并生成代码。
 - `decodeFailurePolicy` 同时用于 getter 解码失败与 setter 编码/转换失败。
+- 计划扩展 trait 语法：`@Attribute(.unique, ...)`。
+- `unique` 首版按单一 trait 处理，不新增单独宏：
+  - 宏内部 metadata 可直接记录为 `Bool`
+  - 仅用于测试/调试用 runtime schema 的 uniqueness constraint 组装
+  - 不改变现有 getter/setter 生成逻辑
+  - 首版只支持单字段 unique，不支持复合唯一约束
 
 ### `@Ignore`
 
@@ -246,6 +257,47 @@ NSPredicate(format: "%K == %@", Item.Keys.status.rawValue, status.rawValue)
 1. `@objc` 规则：改为“显式声明强校验”（非自动注入）。
 2. 关系目标类型：宏展开阶段已强制 `T: PersistentEntity`。
 3. `relationshipCountPolicy`：改为规范引导 warning，不自动生成 `*Count`。
+
+## 11. Runtime Schema For Tests / Debugging (Planned)
+
+目标：
+
+- 为测试、调试、SPM/CLI 非 Xcode 场景提供“纯代码构建 `NSManagedObjectModel`”能力
+- 复用 `@PersistentModel` / `@Attribute` / `@Composition` 已声明的信息
+- 避免测试场景依赖 `.xcdatamodeld` / `.momd`
+
+非目标：
+
+- 不替代 `xcdatamodeld`
+- 不用于生产持久化模型
+- 不保证与 `xcdatamodeld` 的 hash / version / migration 行为一致
+- 不处理历史版本迁移
+
+设计约束：
+
+1. 不依赖运行时反射；仅消费宏生成的静态 schema metadata。
+2. 调用方必须显式提供所有相关实体类型，例如 `makeRuntimeModel([Item.self, Tag.self])`。
+3. relationship 解析要求目标类型与 inverse 两端都在输入集合中。
+4. composition 仍按已生成的字段表展开为底层 attribute 集合。
+5. 由于当前范式已强约束“attribute 必须可选或有默认值、relationship 必须 optional 且有 inverse”，这些信息足以用于测试模型构建。
+
+`@Attribute(.unique)` 约定：
+
+- 采用 SwiftData 风格 trait 写法，而非新增 `@Unique` 宏。
+- 首版仅表示“该字段参与单字段唯一约束”。
+- 宏展开后的 runtime metadata 中记录为简单布尔值即可。
+- 后续若需要复合唯一约束，再单独设计实体级 schema 能力，不在此阶段引入。
+
+预期 API 方向：
+
+```swift
+let model = NSManagedObjectModel.makeRuntimeModel([
+  Item.self,
+  Tag.self,
+])
+```
+
+或等价的 builder 入口；命名可在实现阶段再收敛。
 
 ## 8. Tool Contract
 

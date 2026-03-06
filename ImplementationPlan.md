@@ -21,6 +21,8 @@
 ### v2 (Next)
 
 - `CDPredicate`：类型安全表达式自动转换到 `NSPredicate`
+- Runtime Schema Metadata（测试 / 调试用）
+- 纯代码 `NSManagedObjectModel` 构建辅助
 
 ## 3. Milestones
 
@@ -100,6 +102,24 @@
 - 合规模型可生成代码并通过 validate
 - 非合规模型生成前即被拒绝
 
+### M5: Runtime Schema For Tests / Debugging
+
+- 为 `@PersistentModel` 生成静态 runtime schema metadata
+- 提供从 `[PersistentModel.Type]` 组装 `NSManagedObjectModel` 的 builder / helper
+- 支持普通 attribute、relationship、composition 展平
+- 支持 `@Attribute(.unique)` 产生单字段 uniqueness metadata
+- 明确非目标：
+  - 不保证与 `xcdatamodeld` 的 hash/version/migration 一致
+  - 不作为生产建模能力
+  - 不处理历史版本模型
+
+验收标准：
+
+- 不依赖 `.xcdatamodeld` 即可构建测试用 `NSManagedObjectModel`
+- 同一组模型类型可创建测试 container 并完成基础读写
+- relationship/inverse 可在输入类型集合中正确解析
+- `@Attribute(.unique)` 能转化为单字段唯一约束 metadata
+
 ## 4. Technical Validations (Mandatory)
 
 1. Macro Expansion Snapshot
@@ -127,6 +147,8 @@
 
 1. `SortCollation` 与 `SortExecutionMode` 的最小支持集合
 - 明确哪些模式保证可下推 store，哪些仅内存有效
+2. Runtime schema builder 的公开命名
+- `NSManagedObjectModel.makeRuntimeModel` 或独立 builder 类型，待实现时收敛
 
 ## 6. Delivery Checklist
 
