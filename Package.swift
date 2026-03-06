@@ -71,6 +71,13 @@ let package = Package(
       ]
     ),
     .testTarget(
+      name: "CDEToolTests",
+      dependencies: [
+        "CDETool",
+        "CoreDataEvolutionToolingCore",
+      ]
+    ),
+    .testTarget(
       name: "CoreDataEvolutionTests",
       dependencies: [
         "CoreDataEvolution"

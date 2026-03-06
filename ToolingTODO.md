@@ -112,7 +112,6 @@
 - `[x]` 校验 storage method
 - `[x]` 校验关系方向与基数
 - `[x]` 校验 ordered / unordered to-many
-- `[ ]` 校验 composition 子路径
 - `[x]` 校验类级 `@PersistentModel(...)` 参数
 - `[x]` 实现 `quick` 模式（结构级 source/model/config 对比）
 - `[x]` 实现 `strict` 模式（在 quick 之上做 managed file 精确漂移比对）
@@ -170,15 +169,14 @@
 - `[x]` validate strict 测试
 - `[x]` validate `@Ignore` 规则测试
 - `[x]` validate 默认值不一致测试
+- `[x]` validate CLI 报告与 exit code 集成测试
 - `[ ]` CLI `init-config` 集成测试
 - `[ ]` CLI 参数解析测试
-- `[ ]` CLI exit code 测试
+- `[-]` CLI exit code 测试（已覆盖 validate，其他子命令待补）
 
 ## 11. Immediate Next Steps
 
-- `1.` 为 validate CLI 增加参数解析 / exit code / report 的独立集成测试
-- `2.` 视需要补 composition 子路径校验
-- `3.` 评估是否需要对 strict 增加缺失/多余 managed file 的更细粒度提示
+- `1.` 评估是否需要对 strict 增加缺失/多余 managed file 的更细粒度提示
 
 ## 12. Deferred / Known Gaps
 
@@ -192,7 +190,8 @@
 - `[ ]` tool 仍未提供描述 `@Ignore` / 纯内存属性的额外配置模型。
 - `[ ]` generate 当前只会直接使用模型默认值；对于非可选自定义 raw/codable/composition/transformed 类型，仍缺少未来的显式代码默认值规则。
 - `[ ]` validate 当前已支持 `text/json/sarif` 报告输出，但 CLI 集成测试尚未补齐。
-- `[ ]` validate 当前只校验 composition 属性声明，不校验 composition 子路径/字段展开细节。
+- `[ ]` 当前仅补齐了 validate CLI 的报告与 exit code 集成测试，其余 CLI 子命令的集成测试仍待补齐。
+- `[ ]` validate 当前只校验 composition 属性声明，不校验 composition 子路径/字段展开细节；该能力需要先有 tooling 层的 composition field mapping 描述模型。
 - `[ ]` validate v1 将以“符合当前 tool 生成约定”为准，不尝试判断任意语义等价默认值写法。
 - `[ ]` `GenerateService.validateGenerateRequest` 仍通过 `GenerateRequest -> GenerateTemplate` 的中转来复用校验逻辑；后续可提取为直接接受已解析参数的共享验证入口，降低字段漂移风险。
 - `[ ]` 只有在未来宏语义允许“代码默认值覆盖模型默认值”时，tool 才会引入默认值配置，并用该值参与代码生成。
