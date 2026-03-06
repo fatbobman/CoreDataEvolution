@@ -91,7 +91,7 @@ Use `@Attribute` when you need more control.
 ### Rename a Persistent Field
 
 ```swift
-@Attribute(originalName: "name")
+@Attribute(persistentName: "name")
 var title: String = ""
 ```
 
@@ -99,6 +99,25 @@ This means:
 
 - Swift property name: `title`
 - Core Data persistent field name: `name`
+
+This is intentionally different from SwiftData's `originalName`.
+
+- In SwiftData, `originalName` is a migration hint. It means "this property used to be named
+  something else in an older schema version."
+- In CoreDataEvolution, `persistentName` is a storage mapping. It means "this Swift property is
+  backed by this Core Data field name right now."
+
+Example:
+
+```swift
+// SwiftData-style migration meaning
+@Attribute(originalName: "name")
+var title: String
+
+// CoreDataEvolution storage mapping meaning
+@Attribute(persistentName: "name")
+var title: String = ""
+```
 
 This renamed mapping also feeds the library's typed path system automatically. You still write
 Swift-facing property names in code, while sort and predicate construction resolve them to the
@@ -116,7 +135,7 @@ let predicate = NSPredicate(
 )
 ```
 
-With `@Attribute(originalName: "name") var title: String = ""`, the generated path still uses
+With `@Attribute(persistentName: "name") var title: String = ""`, the generated path still uses
 `title` in Swift code, but maps it to the persistent field `name` when building `%K`-based
 predicates or sort descriptors.
 
@@ -559,7 +578,7 @@ Before using `@PersistentModel`, make sure all of these are true.
 - `.unique` is supported
 - `.transient` is supported only with `.default`
 - Derived Attribute is not supported
-- renamed attributes use `originalName:`
+- renamed attributes use `persistentName:`
 
 ### Relationship Rules
 
@@ -706,7 +725,7 @@ final class Item: NSManagedObject {
   @Attribute(.unique)
   var slug: String = ""
 
-  @Attribute(originalName: "name")
+  @Attribute(persistentName: "name")
   var title: String = ""
 
   @Attribute(storageMethod: .raw)

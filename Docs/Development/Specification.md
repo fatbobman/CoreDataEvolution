@@ -96,7 +96,10 @@ enum RelationshipGenerationPolicy { case none, warning, plain }
 
 ### `@Attribute`
 
-- 参数：`originalName`（映射持久化字段名），`storageMethod`，`decodeFailurePolicy`。  
+- 参数：`persistentName`（映射持久化字段名），`storageMethod`，`decodeFailurePolicy`。  
+- `persistentName` 的语义与 SwiftData 的 `originalName` 不同：
+  - `persistentName` 表示“当前 Swift 属性对应的持久化字段名”
+  - 不表示“旧 schema 中的历史属性名”
 - 持久化属性必须有默认值：非可选属性需显式默认值；可选属性可省略初始化器（视为默认 `nil`）。  
 - 上述代码规则必须与模型层规则一致：模型中非可选 attribute 必须配置默认值；可选 attribute 可以不配置默认值。  
 - 对基础类型自动 `.default`。  
@@ -261,7 +264,7 @@ inverse hint 规则：
 
 `#Predicate` 在下列场景不作为规范路径：
 
-- 对外名与持久化名不一致（`@Attribute(originalName:)`）
+- 对外名与持久化名不一致（`@Attribute(persistentName:)`）
 - Swift 类型与持久化类型不一致（例如 enum/rawValue）
 
 推荐写法：
@@ -330,7 +333,7 @@ NSPredicate(format: "%K == %@", Item.Keys.status.rawValue, status.rawValue)
 - 宏展开后的 runtime metadata 中记录为简单布尔值即可。
 - 后续若需要复合唯一约束，再单独设计实体级 schema 能力，不在此阶段引入。
 - `transient` 也采用同一 trait 语法：
-  - `@Attribute(.transient, originalName: "cached_summary")`
+  - `@Attribute(.transient, persistentName: "cached_summary")`
   - 表达的是 Core Data transient attribute，而不是模型外属性
   - v1 仍按 `.default` 存储处理，禁止与其它 storageMethod 混用
 
