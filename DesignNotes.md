@@ -463,14 +463,32 @@ final class Item: NSManagedObject {
 
 ### 与 SwiftData @Transient 的区别
 
-SwiftData 提供 `@Transient` 宏，对应 Core Data 模型里的 transient 属性（不持久化但受 undo/redo 追踪）。本方案**不需要 `@Transient`**，原因如下：
+SwiftData 提供 `@Transient` 宏，对应 Core Data 模型里的 transient 属性（不持久化但受 undo/redo 追踪）。本方案在 v1 不新增单独 `@Transient` 宏，而是统一采用 `@Attribute(.transient, ...)` trait 写法：
+
+```swift
+@Attribute(.transient, originalName: "cached_summary")
+var cachedSummary: String = ""
+```
 
 | | SwiftData `@Transient` | 本方案 |
 |---|---|---|
-| transient 属性声明 | 在代码里用宏标注 | 在 xcdatamodeld 里勾选，代码用 `@Attribute` 正常声明 |
+| transient 属性声明 | 在代码里用宏标注 | 在代码里用 `@Attribute(.transient, ...)` 标注，并要求模型也声明为 transient |
 | 纯内存属性 | 不需要标注（不声明即不持久化）| 需要 `@Ignore` 告知宏跳过 |
 
-SwiftData 需要 `@Transient` 是因为它用代码描述完整模型，transient 是模型定义的一部分。本方案模型定义在 xcdatamodeld 中，transient 属性对代码层完全透明，`@Attribute` 正常处理即可，`@Ignore` 只用于标记与 Core Data 模型完全无关的纯内存属性。
+这里要区分两种语义：
+
+- `@Attribute(.transient, ...)`
+  - 仍然属于 Core Data 模型的一部分
+  - 只是 `isTransient = true`，不落库
+- `@Ignore`
+  - 完全不进入 Core Data 模型
+  - 仅用于纯 Swift 内存属性
+
+v1 约束：
+
+- `transient` 仅允许与 `.default` 存储配合使用
+- 暂不支持与 `.raw` / `.codable` / `.transformed` / `.composition` 混用
+- tooling 的 `generate` / `validate` 需要识别并校验该 trait
 
 ---
 

@@ -114,12 +114,20 @@ enum RelationshipGenerationPolicy { case none, warning, plain }
 - `.composition` 会在编译期约束属性类型满足 `@Composition` 生成的协议能力（`CDCompositionPathProviding` + `CDCompositionValueCodable`）。
 - `@Attribute` 不能标注关系属性（`T?` / `Set<T>` / `[T]` 且 `T: NSManagedObject`）；关系由主宏按类型自动识别并生成代码。
 - `decodeFailurePolicy` 同时用于 getter 解码失败与 setter 编码/转换失败。
-- 计划扩展 trait 语法：`@Attribute(.unique, ...)`。
+- trait 语法：
+  - `@Attribute(.unique, ...)`
+  - `@Attribute(.transient, ...)`
 - `unique` 首版按单一 trait 处理，不新增单独宏：
   - 宏内部 metadata 可直接记录为 `Bool`
   - 仅用于测试/调试用 runtime schema 的 uniqueness constraint 组装
   - 不改变现有 getter/setter 生成逻辑
   - 首版只支持单字段 unique，不支持复合唯一约束
+- `transient` 首版同样按单一 trait 处理，不新增单独宏：
+  - 表示该 attribute 仍属于 Core Data 模型，但 `isTransient = true`
+  - 不等同于 `@Ignore`；`@Ignore` 仍表示“完全不进入 Core Data 模型”的纯内存属性
+  - v1 仅允许与 `.default` 存储配合使用
+  - v1 禁止与 `.raw` / `.codable` / `.transformed` / `.composition` 混用
+  - tooling 的 `generate` / `validate` 需要识别并校验该 trait
 
 ### `@Ignore`
 
@@ -289,12 +297,16 @@ NSPredicate(format: "%K == %@", Item.Keys.status.rawValue, status.rawValue)
 4. composition 仍按已生成的字段表展开为底层 attribute 集合。
 5. 由于当前范式已强约束“attribute 必须可选或有默认值、relationship 必须 optional 且有 inverse”，这些信息足以用于测试模型构建。
 
-`@Attribute(.unique)` 约定：
+`@Attribute(.unique)` / `@Attribute(.transient)` 约定：
 
 - 采用 SwiftData 风格 trait 写法，而非新增 `@Unique` 宏。
 - 首版仅表示“该字段参与单字段唯一约束”。
 - 宏展开后的 runtime metadata 中记录为简单布尔值即可。
 - 后续若需要复合唯一约束，再单独设计实体级 schema 能力，不在此阶段引入。
+- `transient` 也采用同一 trait 语法：
+  - `@Attribute(.transient, originalName: "cached_summary")`
+  - 表达的是 Core Data transient attribute，而不是模型外属性
+  - v1 仍按 `.default` 存储处理，禁止与其它 storageMethod 混用
 
 预期 API 方向：
 

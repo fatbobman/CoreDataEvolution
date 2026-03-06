@@ -30,7 +30,7 @@
 
 - 完成 `@PersistentModel` 基本展开（`@objc` 规则校验、`CoreDataKeys` conformance、访问权限继承）
 - 完成 `@PersistentModel` 参数：`generateInit`、`relationshipSetterPolicy`、`relationshipCountPolicy`
-- 完成 `@Attribute` 的 `.default/.raw/.codable/.transformed/.composition` 展开
+- 完成 `@Attribute` 的 `.default/.raw/.codable/.transformed/.composition` 展开，以及 `.unique/.transient` trait 语义
 - 完成 `@Composition` 宏：解析 struct 成员，生成 `[String: Any]` 字典组装/解构代码（`__cdDecodeComposition` / `__cdEncodeComposition`）
 - 落实 `@Composition` v1 约束：
   - 仅允许 struct、禁止泛型
@@ -108,6 +108,10 @@
 - 提供从 `[PersistentModel.Type]` 组装 `NSManagedObjectModel` 的 builder / helper
 - 支持普通 attribute、relationship、composition 展平
 - 支持 `@Attribute(.unique)` 产生单字段 uniqueness metadata
+- 约束 `@Attribute(.transient)`：
+  - 表示 transient Core Data attribute
+  - v1 仅允许与 `.default` 存储配合使用
+  - v1 禁止与 `.raw` / `.codable` / `.transformed` / `.composition` 混用
 - 复用缓存后的 `NSManagedObjectModel`，避免同一组测试 schema 在一轮测试中重复创建多个 model 实例
 - 明确非目标：
   - 不保证与 `xcdatamodeld` 的 hash/version/migration 一致
@@ -121,8 +125,9 @@
 - 同一组模型类型可创建测试 container 并完成基础读写
 - relationship/inverse 可在输入类型集合中正确解析
 - `@Attribute(.unique)` 能转化为单字段唯一约束 metadata
+- `@Attribute(.transient)` 的 generate / validate 规则与 runtime schema 行为一致
 - builder 对不受支持的 primitive 默认值表达式直接报错，不静默丢失默认值
-- `unique` 完成后，tooling 的 `generate` / `validate` 需补充对应测试，覆盖生成与校验两条路径
+- `unique` / `transient` 完成后，tooling 的 `generate` / `validate` 需补充对应测试，覆盖生成与校验两条路径
 
 ## 4. Technical Validations (Mandatory)
 
