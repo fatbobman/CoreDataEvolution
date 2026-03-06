@@ -123,6 +123,10 @@ struct ConfigLoadingAndMergingTests {
       moduleName: "AppModels",
       typeMappings: typeMappings,
       attributeRules: attributeRules,
+      generateInit: false,
+      relationshipSetterPolicy: .warning,
+      relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
+      defaultDecodeFailurePolicy: .fallbackToDefaultValue,
       include: [],
       exclude: [],
       level: .quick,
@@ -134,11 +138,13 @@ struct ConfigLoadingAndMergingTests {
       config: config
     )
 
-    #expect(request.modelPath == "Models/AppModel.xcdatamodeld")
-    #expect(request.sourceDir == "Sources/AppModels")
+    #expect(request.modelPath.hasSuffix("/Models/AppModel.xcdatamodeld"))
+    #expect(request.sourceDir.hasSuffix("/Sources/AppModels"))
     #expect(request.typeMappings[coreDataType: "Integer 64"]?.swiftType == "Int")
     #expect(request.typeMappings[coreDataType: "Date"]?.swiftType == "Date")
     #expect(request.attributeRules == attributeRules)
+    #expect(request.relationshipSetterPolicy == .warning)
+    #expect(request.defaultDecodeFailurePolicy == .fallbackToDefaultValue)
     #expect(request.level == .quick)
     #expect(request.report == .text)
     #expect(request.maxIssues == 200)

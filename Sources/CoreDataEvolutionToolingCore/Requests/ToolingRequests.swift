@@ -122,6 +122,10 @@ public struct ValidateRequest: Sendable, Equatable {
   public let moduleName: String
   public let typeMappings: ToolingTypeMappings
   public let attributeRules: ToolingAttributeRules
+  public let generateInit: Bool
+  public let relationshipSetterPolicy: ToolingRelationshipSetterPolicy
+  public let relationshipCountPolicy: ToolingRelationshipCountPolicy
+  public let defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy
   public let include: [String]
   public let exclude: [String]
   public let level: ToolingValidationLevel
@@ -137,6 +141,10 @@ public struct ValidateRequest: Sendable, Equatable {
     moduleName: String,
     typeMappings: ToolingTypeMappings,
     attributeRules: ToolingAttributeRules,
+    generateInit: Bool,
+    relationshipSetterPolicy: ToolingRelationshipSetterPolicy,
+    relationshipCountPolicy: ToolingRelationshipCountPolicy,
+    defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy,
     include: [String],
     exclude: [String],
     level: ToolingValidationLevel,
@@ -151,6 +159,10 @@ public struct ValidateRequest: Sendable, Equatable {
     self.moduleName = moduleName
     self.typeMappings = typeMappings
     self.attributeRules = attributeRules
+    self.generateInit = generateInit
+    self.relationshipSetterPolicy = relationshipSetterPolicy
+    self.relationshipCountPolicy = relationshipCountPolicy
+    self.defaultDecodeFailurePolicy = defaultDecodeFailurePolicy
     self.include = include
     self.exclude = exclude
     self.level = level
@@ -222,6 +234,24 @@ extension InspectRequest {
       defaultDecodeFailurePolicy: generateRequest.defaultDecodeFailurePolicy
     )
   }
+
+  /// Reuses the inspect pipeline as the model-to-IR front-end for validate.
+  public init(validateRequest: ValidateRequest) {
+    self.init(
+      modelPath: validateRequest.modelPath,
+      modelVersion: validateRequest.modelVersion,
+      momcBin: validateRequest.momcBin,
+      typeMappings: validateRequest.typeMappings,
+      attributeRules: validateRequest.attributeRules,
+      accessLevel: .internal,
+      singleFile: false,
+      splitByEntity: true,
+      generateInit: validateRequest.generateInit,
+      relationshipSetterPolicy: validateRequest.relationshipSetterPolicy,
+      relationshipCountPolicy: validateRequest.relationshipCountPolicy,
+      defaultDecodeFailurePolicy: validateRequest.defaultDecodeFailurePolicy
+    )
+  }
 }
 
 /// CLI-only override carrier merged on top of `GenerateTemplate`.
@@ -254,6 +284,10 @@ public struct ValidateRequestOverrides: Sendable, Equatable {
   public var momcBin: String?
   public var sourceDir: String?
   public var moduleName: String?
+  public var generateInit: Bool?
+  public var relationshipSetterPolicy: ToolingRelationshipSetterPolicy?
+  public var relationshipCountPolicy: ToolingRelationshipCountPolicy?
+  public var defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy?
   public var include: [String]?
   public var exclude: [String]?
   public var level: ToolingValidationLevel?

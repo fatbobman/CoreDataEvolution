@@ -58,7 +58,11 @@ let package = Package(
       ],
     ),
     .target(
-      name: "CoreDataEvolutionToolingCore"
+      name: "CoreDataEvolutionToolingCore",
+      dependencies: [
+        .product(name: "SwiftParser", package: "swift-syntax"),
+        .product(name: "SwiftSyntax", package: "swift-syntax"),
+      ]
     ),
     .testTarget(
       name: "CoreDataEvolutionToolingCoreTests",

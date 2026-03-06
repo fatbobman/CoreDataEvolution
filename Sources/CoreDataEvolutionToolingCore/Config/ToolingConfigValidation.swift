@@ -74,7 +74,7 @@ public func validateToolingConfigTemplate(
       attributeRules: validate.attributeRules ?? .init(),
       context: "validate",
       entitiesByName: entitiesByName,
-      defaultDecodeFailurePolicy: .fallbackToDefaultValue
+      defaultDecodeFailurePolicy: validate.defaultDecodeFailurePolicy ?? .fallbackToDefaultValue
     )
   }
 }
@@ -203,7 +203,7 @@ private func validateValidateTemplate(_ template: ValidateTemplate) throws {
   try validateAttributeRulesStatic(
     template.attributeRules,
     context: "validate.attributeRules",
-    defaultDecodeFailurePolicy: .fallbackToDefaultValue
+    defaultDecodeFailurePolicy: template.defaultDecodeFailurePolicy ?? .fallbackToDefaultValue
   )
 }
 

@@ -31,5 +31,7 @@ public enum ToolingErrorCode: String, Codable, Sendable {
   case modelVersionNotFound = "TOOL-MODEL-VERSION-NOT-FOUND"
   case momcNotFound = "TOOL-MOMC-NOT-FOUND"
   case outputDirMissing = "TOOL-OUTPUT-DIR-MISSING"
+  case sourceDirMissing = "TOOL-SOURCE-DIR-MISSING"
+  case validationFailed = "TOOL-VALIDATION-FAILED"
   case writeDenied = "TOOL-WRITE-DENIED"
 }

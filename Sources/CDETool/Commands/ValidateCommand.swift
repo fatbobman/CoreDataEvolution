@@ -33,6 +33,21 @@ struct ValidateCommand: ParsableCommand {
   @Option(name: .long, help: "Swift module name.")
   var moduleName: String?
 
+  @Option(
+    name: .long,
+    help: "Whether generated source is expected to include a convenience init (true/false).")
+  var generateInit: Bool?
+
+  @Option(name: .long, help: "Expected relationship setter policy: none/warning/plain.")
+  var relationshipSetterPolicy: ToolingRelationshipSetterPolicy?
+
+  @Option(name: .long, help: "Expected relationship count policy: none/warning/plain.")
+  var relationshipCountPolicy: ToolingRelationshipCountPolicy?
+
+  @Option(
+    name: .long, help: "Expected decode failure policy: fallbackToDefaultValue/debugAssertNil.")
+  var defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy?
+
   @Option(name: .long, help: "Comma-separated include glob patterns.")
   var include: String?
 
@@ -55,9 +70,31 @@ struct ValidateCommand: ParsableCommand {
   var config: String?
 
   mutating func run() throws {
-    try failUser(
-      code: .notImplemented,
-      message: "validate is not implemented yet."
-    )
+    let request: ValidateRequest
+    do {
+      request = try ValidateCommandSupport.makeRequest(from: self)
+    } catch let failure as ToolingFailure {
+      try fail(failure)
+    }
+
+    let result: ValidateResult
+    do {
+      result = try ValidateService.run(request)
+    } catch let failure as ToolingFailure {
+      try fail(failure)
+    }
+
+    do {
+      try ValidateCommandSupport.emitResult(result, report: request.report)
+    } catch let failure as ToolingFailure {
+      try fail(failure)
+    }
+
+    if let failure = ValidateCommandSupport.failureIfNeeded(
+      for: result,
+      failOnWarning: request.failOnWarning
+    ) {
+      try fail(failure)
+    }
   }
 }

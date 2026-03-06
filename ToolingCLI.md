@@ -446,6 +446,10 @@ CLI v1 先解决两件事：
 - `--momc-bin <path>`
 - `--source-dir <path>`
 - `--module-name <name>`
+- `--generate-init <bool>`
+- `--relationship-setter-policy <none|warning|plain>`
+- `--relationship-count-policy <none|warning|plain>`
+- `--default-decode-failure-policy <fallbackToDefaultValue|debugAssertNil>`
 - `--type-mappings`
   - v1 不单独提供 CLI 参数，推荐在 JSON 配置中声明。
 - `--attribute-rules`
@@ -480,6 +484,10 @@ CLI v1 先解决两件事：
 - `moduleName`: required, string，无默认值。
 - `typeMappings`: optional, object，默认内建精确类型映射表。
 - `attributeRules`: optional, object，默认 `{}`。
+- `generateInit`: optional, bool，默认 `false`。
+- `relationshipSetterPolicy`: optional, enum(`none`,`warning`,`plain`)，默认 `warning`。
+- `relationshipCountPolicy`: optional, enum(`none`,`warning`,`plain`)，默认 `none`。
+- `defaultDecodeFailurePolicy`: optional, enum(`fallbackToDefaultValue`,`debugAssertNil`)，默认 `fallbackToDefaultValue`。
 - `include`: optional, array<string>，默认 `[]`。
 - `exclude`: optional, array<string>，默认 `[]`。
 - `level`: optional, enum(`quick`,`strict`)，默认 `quick`。
@@ -516,6 +524,7 @@ CLI v1 先解决两件事：
 - 解析 `@PersistentModel`、`@objc`、`@Attribute`、`@Ignore`
 - 解析属性/关系类型、可选性和默认值字面量
 - 比较模型、配置、源码三者是否一致
+- 当前已实现并接入 `cde-tool validate`
 
 `strict` 目标：
 
@@ -524,6 +533,7 @@ CLI v1 先解决两件事：
 - 对带 `// cde-tool:generated` marker 的文件做精确内容比对
 - 报告缺失文件、多余 managed file、内容漂移
 - v1 的 `strict` 仍是静态验证，不自动执行真实 SQLite / Core Data fetch 级运行时检查
+- 当前尚未实现；CLI 会对 `--level strict` 返回 `TOOL-NOT-IMPLEMENTED`
 
 `@Ignore` 规则：
 
@@ -538,6 +548,12 @@ CLI v1 先解决两件事：
 - optional 持久化属性允许显式 `= nil`，也允许省略默认值
 - 非 optional 的自定义 `raw` / `codable` / `composition` / `transformed` 仍按当前工具规则视为不合法
 - v1 以“符合当前 tool 生成约定”为准，不尝试判断任意语义等价写法
+
+composition 边界：
+
+- 当前 `quick` 只校验 composition 属性声明本身是否与规则一致
+- 尚未校验 composition 的子路径/字段展开细节
+- 这部分要等 tooling 配置真正描述 composition field mapping 后再补
 
 严重级别建议：
 

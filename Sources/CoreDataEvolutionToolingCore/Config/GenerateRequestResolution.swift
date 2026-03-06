@@ -86,16 +86,16 @@ private func resolveHeaderTemplateURL(path: String, relativeTo baseDirectory: UR
   resolveURLPath(path, relativeTo: baseDirectory)
 }
 
-private func resolvePathValue(_ path: String, relativeTo baseDirectory: URL?) -> String {
+func resolvePathValue(_ path: String, relativeTo baseDirectory: URL?) -> String {
   resolveURLPath(path, relativeTo: baseDirectory).path
 }
 
-private func resolveOptionalPathValue(_ path: String?, relativeTo baseDirectory: URL?) -> String? {
+func resolveOptionalPathValue(_ path: String?, relativeTo baseDirectory: URL?) -> String? {
   guard let path else { return nil }
   return resolvePathValue(path, relativeTo: baseDirectory)
 }
 
-private func resolveURLPath(_ path: String, relativeTo baseDirectory: URL?) -> URL {
+func resolveURLPath(_ path: String, relativeTo baseDirectory: URL?) -> URL {
   if (path as NSString).isAbsolutePath {
     return URL(fileURLWithPath: path)
   }

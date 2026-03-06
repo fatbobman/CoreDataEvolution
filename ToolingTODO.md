@@ -97,24 +97,24 @@
 
 ## 6. Validate Engine
 
-- `[ ]` 定义 source-side IR（entity / property / relationship / macro arguments）
-- `[ ]` 解析 `@PersistentModel` / `@objc` / `@Attribute` / `@Ignore`
-- `[ ]` 解析代码中的默认值字面量
-- `[ ]` 校验实体是否一一对应
-- `[ ]` 校验属性名与 `originalName`
-- `[ ]` 根据 `attributeRules` 校验属性重命名
-- `[ ]` 根据 `typeMappings` 校验默认类型映射
-- `[ ]` 根据 `attributeRules` 校验属性级类型与 storage method 覆盖
-- `[ ]` 校验额外 stored property 是否显式标记为 `@Ignore`
-- `[ ]` 校验 `@Ignore` 不得遮蔽持久化属性
-- `[ ]` 校验默认存储的非 optional 持久化属性默认值是否与模型一致
-- `[ ]` 校验 optional 持久化属性允许省略 `= nil`
-- `[ ]` 校验 storage method
-- `[ ]` 校验关系方向与基数
-- `[ ]` 校验 ordered / unordered to-many
+- `[x]` 定义 source-side IR（entity / property / relationship / macro arguments）
+- `[x]` 解析 `@PersistentModel` / `@objc` / `@Attribute` / `@Ignore`
+- `[x]` 解析代码中的默认值字面量
+- `[x]` 校验实体是否一一对应
+- `[x]` 校验属性名与 `originalName`
+- `[x]` 根据 `attributeRules` 校验属性重命名
+- `[x]` 根据 `typeMappings` 校验默认类型映射
+- `[x]` 根据 `attributeRules` 校验属性级类型与 storage method 覆盖
+- `[x]` 校验额外 stored property 是否显式标记为 `@Ignore`
+- `[x]` 校验 `@Ignore` 不得遮蔽持久化属性
+- `[x]` 校验默认存储的非 optional 持久化属性默认值是否与模型一致
+- `[x]` 校验 optional 持久化属性允许省略 `= nil`
+- `[x]` 校验 storage method
+- `[x]` 校验关系方向与基数
+- `[x]` 校验 ordered / unordered to-many
 - `[ ]` 校验 composition 子路径
-- `[ ]` 校验类级 `@PersistentModel(...)` 参数
-- `[ ]` 实现 `quick` 模式（结构级 source/model/config 对比）
+- `[x]` 校验类级 `@PersistentModel(...)` 参数
+- `[x]` 实现 `quick` 模式（结构级 source/model/config 对比）
 - `[ ]` 实现 `strict` 模式（在 quick 之上做 managed file 精确漂移比对）
 
 ## 7. CLI
@@ -128,12 +128,12 @@
 - `[x]` 提供 `inspect` 命令骨架
 - `[x]` 将 `inspect` 接入 `ToolingCore`
 - `[x]` 将 `generate` 接入 `ToolingCore`
-- `[ ]` 将 `validate` 接入 `ToolingCore`
+- `[x]` 将 `validate` 接入 `ToolingCore`
 - `[x]` `generate` 支持 `--config`
-- `[ ]` `validate` 支持 `--config`
+- `[x]` `validate` 支持 `--config`
 - `[x]` `inspect` 支持 `--config`
-- `[ ]` 支持 `json` 输出
-- `[ ]` 支持 `sarif` 输出
+- `[x]` 支持 `json` 输出
+- `[x]` 支持 `sarif` 输出
 - `[ ]` 统一 CLI 文本错误与提示
 
 ## 8. Plugin
@@ -166,20 +166,19 @@
 - `[x]` generate service 测试
 - `[x]` generate file plan 测试
 - `[x]` overwrite / clean-stale 测试
-- `[ ]` validate quick 测试
+- `[x]` validate quick 测试
 - `[ ]` validate strict 测试
-- `[ ]` validate `@Ignore` 规则测试
-- `[ ]` validate 默认值不一致测试
+- `[x]` validate `@Ignore` 规则测试
+- `[x]` validate 默认值不一致测试
 - `[ ]` CLI `init-config` 集成测试
 - `[ ]` CLI 参数解析测试
 - `[ ]` CLI exit code 测试
 
 ## 11. Immediate Next Steps
 
-- `1.` 定义 validate 的 source-side IR 与源码解析入口
-- `2.` 实现 quick 模式比较器（model/config/source）
-- `3.` 将 validate CLI 接入 `ToolingCore`
-- `4.` 再叠加 strict 的 managed file 精确漂移比对
+- `1.` 在 validate 上叠加 strict 的 managed file 精确漂移比对
+- `2.` 为 validate CLI 增加参数解析 / exit code / report 的独立集成测试
+- `3.` 视需要补 composition 子路径校验
 
 ## 12. Deferred / Known Gaps
 
@@ -192,6 +191,9 @@
 - `[ ]` generate 目前不会从模型外信息推断 `@Ignore` 字段。
 - `[ ]` tool 仍未提供描述 `@Ignore` / 纯内存属性的额外配置模型。
 - `[ ]` generate 当前只会直接使用模型默认值；对于非可选自定义 raw/codable/composition/transformed 类型，仍缺少未来的显式代码默认值规则。
+- `[ ]` validate 当前仅实现 `quick`；`strict` 仍未落地。
+- `[ ]` validate 当前已支持 `text/json/sarif` 报告输出，但 CLI 集成测试尚未补齐。
+- `[ ]` validate 当前只校验 composition 属性声明，不校验 composition 子路径/字段展开细节。
 - `[ ]` validate v1 将以“符合当前 tool 生成约定”为准，不尝试判断任意语义等价默认值写法。
 - `[ ]` `GenerateService.validateGenerateRequest` 仍通过 `GenerateRequest -> GenerateTemplate` 的中转来复用校验逻辑；后续可提取为直接接受已解析参数的共享验证入口，降低字段漂移风险。
 - `[ ]` 只有在未来宏语义允许“代码默认值覆盖模型默认值”时，tool 才会引入默认值配置，并用该值参与代码生成。

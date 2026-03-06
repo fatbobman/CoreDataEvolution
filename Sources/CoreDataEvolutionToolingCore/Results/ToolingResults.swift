@@ -68,12 +68,26 @@ public struct GenerateResult: Sendable, Equatable {
   }
 }
 
-/// Placeholder result model for future validate engine output.
-public struct ValidateResult: Sendable, Equatable {
+/// Result for validate.
+public struct ValidateResult: Codable, Sendable, Equatable {
+  public let modelIR: ToolingModelIR
+  public let sourceIR: ToolingSourceModelIR
   public let diagnostics: [ToolingDiagnostic]
+  public let errorCount: Int
+  public let warningCount: Int
 
-  public init(diagnostics: [ToolingDiagnostic]) {
+  public init(
+    modelIR: ToolingModelIR,
+    sourceIR: ToolingSourceModelIR,
+    diagnostics: [ToolingDiagnostic],
+    errorCount: Int? = nil,
+    warningCount: Int? = nil
+  ) {
+    self.modelIR = modelIR
+    self.sourceIR = sourceIR
     self.diagnostics = diagnostics
+    self.errorCount = errorCount ?? diagnostics.filter { $0.severity == .error }.count
+    self.warningCount = warningCount ?? diagnostics.filter { $0.severity == .warning }.count
   }
 }
 

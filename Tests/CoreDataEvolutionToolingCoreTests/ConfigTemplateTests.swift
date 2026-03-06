@@ -31,6 +31,7 @@ struct ConfigTemplateTests {
     #expect(template.validate?.moduleName == "AppModels")
     #expect(template.validate?.typeMappings == nil)
     #expect(template.validate?.attributeRules == nil)
+    #expect(template.validate?.relationshipSetterPolicy == nil)
     #expect(template.validate?.level == nil)
   }
 
@@ -52,6 +53,9 @@ struct ConfigTemplateTests {
     #expect(template.validate?.typeMappings == defaultTypeMappings)
     #expect(template.validate?.attributeRules == .init())
     #expect(template.validate?.momcBin == nil)
+    #expect(template.validate?.relationshipSetterPolicy == .warning)
+    #expect(template.validate?.relationshipCountPolicy == ToolingRelationshipCountPolicy.none)
+    #expect(template.validate?.defaultDecodeFailurePolicy == .fallbackToDefaultValue)
     #expect(template.validate?.level == .quick)
     #expect(template.validate?.report == .text)
     #expect(template.validate?.maxIssues == 200)

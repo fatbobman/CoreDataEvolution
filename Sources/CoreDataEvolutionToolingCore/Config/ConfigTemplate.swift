@@ -119,6 +119,10 @@ public struct ValidateTemplate: Codable, Sendable, Equatable {
   public let moduleName: String
   public let typeMappings: ToolingTypeMappings?
   public let attributeRules: ToolingAttributeRules?
+  public let generateInit: Bool?
+  public let relationshipSetterPolicy: ToolingRelationshipSetterPolicy?
+  public let relationshipCountPolicy: ToolingRelationshipCountPolicy?
+  public let defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy?
   public let include: [String]?
   public let exclude: [String]?
   public let level: ToolingValidationLevel?
@@ -134,6 +138,10 @@ public struct ValidateTemplate: Codable, Sendable, Equatable {
     moduleName: String,
     typeMappings: ToolingTypeMappings?,
     attributeRules: ToolingAttributeRules?,
+    generateInit: Bool?,
+    relationshipSetterPolicy: ToolingRelationshipSetterPolicy?,
+    relationshipCountPolicy: ToolingRelationshipCountPolicy?,
+    defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy?,
     include: [String]?,
     exclude: [String]?,
     level: ToolingValidationLevel?,
@@ -148,6 +156,10 @@ public struct ValidateTemplate: Codable, Sendable, Equatable {
     self.moduleName = moduleName
     self.typeMappings = typeMappings
     self.attributeRules = attributeRules
+    self.generateInit = generateInit
+    self.relationshipSetterPolicy = relationshipSetterPolicy
+    self.relationshipCountPolicy = relationshipCountPolicy
+    self.defaultDecodeFailurePolicy = defaultDecodeFailurePolicy
     self.include = include
     self.exclude = exclude
     self.level = level
@@ -196,6 +208,10 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         moduleName: "AppModels",
         typeMappings: nil,
         attributeRules: nil,
+        generateInit: nil,
+        relationshipSetterPolicy: nil,
+        relationshipCountPolicy: nil,
+        defaultDecodeFailurePolicy: nil,
         include: nil,
         exclude: nil,
         level: nil,
@@ -236,6 +252,10 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         moduleName: "AppModels",
         typeMappings: makeDefaultToolingTypeMappings(),
         attributeRules: .init(),
+        generateInit: false,
+        relationshipSetterPolicy: .warning,
+        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
+        defaultDecodeFailurePolicy: .fallbackToDefaultValue,
         include: [],
         exclude: [],
         level: .quick,
@@ -320,21 +340,15 @@ extension GenerateRequest {
 
 extension ValidateRequest {
   /// Merges config-file values with CLI overrides.
-  public init(config: ValidateTemplate, overrides: ValidateRequestOverrides = .init()) {
-    self.init(
-      modelPath: overrides.modelPath ?? config.modelPath,
-      modelVersion: overrides.modelVersion ?? config.modelVersion,
-      momcBin: overrides.momcBin ?? config.momcBin,
-      sourceDir: overrides.sourceDir ?? config.sourceDir,
-      moduleName: overrides.moduleName ?? config.moduleName,
-      typeMappings: mergeToolingTypeMappings(config.typeMappings),
-      attributeRules: config.attributeRules ?? .init(),
-      include: overrides.include ?? config.include ?? [],
-      exclude: overrides.exclude ?? config.exclude ?? [],
-      level: overrides.level ?? config.level ?? .quick,
-      report: overrides.report ?? config.report ?? .text,
-      failOnWarning: overrides.failOnWarning ?? config.failOnWarning ?? false,
-      maxIssues: overrides.maxIssues ?? config.maxIssues ?? 200
+  public init(
+    config: ValidateTemplate,
+    overrides: ValidateRequestOverrides = .init(),
+    configDirectory: URL? = nil
+  ) {
+    self = makeValidateRequest(
+      config: config,
+      overrides: overrides,
+      configDirectory: configDirectory
     )
   }
 }
