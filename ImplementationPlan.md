@@ -23,6 +23,7 @@
 - `CDPredicate`：类型安全表达式自动转换到 `NSPredicate`
 - Runtime Schema Metadata（测试 / 调试用）
 - 纯代码 `NSManagedObjectModel` 构建辅助
+- runtime relationship explicit inverse hint
 
 ## 3. Milestones
 
@@ -120,7 +121,9 @@
   - 不保证与 `xcdatamodeld` 的 hash/version/migration 一致
   - 不作为生产建模能力
   - 不处理历史版本模型
-  - 不保证支持“同一目标实体的多条关系且未显式给出 inverseName”的纯代码建模场景
+  - 代码侧 relationship metadata 当前不携带显式 `inverseName`，因此不保证支持“同一目标实体的多条关系”的纯代码建模场景
+  - 该限制仅作用于 runtime schema / test-debug 路径，不影响 `xcdatamodeld` 正式工作流
+  - v2 计划补充 explicit inverse hint
 
 验收标准：
 

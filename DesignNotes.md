@@ -41,9 +41,10 @@ SwiftData 采用纯代码声明模型，看似更符合 Swift 习惯，但在模
 - 不处理历史模型版本
 - 不依赖运行时反射，只消费宏生成的静态 metadata
 
-当前 runtime schema v1 还包含两条明确边界：
+当前 runtime schema v1 还包含三条明确边界：
 
-- 若关系 metadata 未显式提供 `inverseName`，builder 只支持“每个 source/target 实体对之间存在唯一可推断 inverse”的关系形态；同一目标实体的多条关系在纯代码建模下暂不支持。
+- 代码侧 relationship metadata 当前不携带显式 `inverseName`。因此 runtime builder 仅支持“每个 source/target 实体对之间存在唯一可推断 inverse”的关系形态；同一目标实体的多条关系在纯代码建模下暂不支持。
+- 这是一条 runtime-only 约束，不影响基于 `xcdatamodeld` 的正式模型工作流；若模型中存在多条同目标关系，测试/调试场景应继续使用 `xcdatamodeld`，或等待 v2 的显式 inverse hint。
 - primitive 默认值只支持一组可稳定翻译到 `NSAttributeDescription.defaultValue` 的表达式子集；无法稳定翻译时直接报错，不做静默降级。
 - composition 在 runtime schema / runtime builder 中按单个 transformable dictionary payload 建模，遵循宏生成的 composition accessor 契约，不等价于 xcdatamodeld 的展平字段布局。
 
