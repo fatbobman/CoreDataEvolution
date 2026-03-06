@@ -152,7 +152,7 @@ public enum ToolingSourceRenderer {
         return (persistentField, composition)
       }
     )
-    let ambiguousRelationshipNames = ambiguousRelationshipNames(in: entity)
+    let ambiguousRelationshipNames = toolingAmbiguousRelationshipNames(in: entity)
 
     for attribute in entity.attributes {
       if attribute.storage.method == .composition {
@@ -535,14 +535,4 @@ public enum ToolingSourceRenderer {
     accessModifierPrefix(accessLevel)
   }
 
-  private static func ambiguousRelationshipNames(in entity: ToolingEntityIR) -> Set<String> {
-    let grouped = Dictionary(grouping: entity.relationships) {
-      $0.destinationEntityName ?? "<missing>"
-    }
-    return Set(
-      grouped.values
-        .filter { $0.count > 1 }
-        .flatMap { $0.map(\.swiftName) }
-    )
-  }
 }

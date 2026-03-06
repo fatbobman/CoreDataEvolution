@@ -21,7 +21,7 @@ public enum InverseMacro: PeerMacro {
   ) throws -> [DeclSyntax] {
     guard let variable = declaration.as(VariableDeclSyntax.self) else {
       MacroDiagnosticReporter.error(
-        "@Inverse can only be attached to a stored `var` relationship property.",
+        "@Inverse can only be attached to a `var` property declaration.",
         domain: "CoreDataEvolution.InverseMacro",
         in: context,
         node: declaration

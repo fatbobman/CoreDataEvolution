@@ -113,7 +113,7 @@ public enum ToolingValidateComparator {
       return (persistentField, composition)
     }
     let compositionByPersistentName = Dictionary(uniqueKeysWithValues: compositionPairs)
-    let ambiguousRelationshipNames = ambiguousRelationshipNames(in: entity)
+    let ambiguousRelationshipNames = toolingAmbiguousRelationshipNames(in: entity)
 
     for attribute in entity.attributes {
       let expectedName: String
@@ -455,7 +455,7 @@ public enum ToolingValidateComparator {
     inverse: ToolingSourceInverseAnnotationIR,
     diagnostics: inout [ToolingDiagnostic]
   ) {
-    if typeNamesReferToSameEntity(
+    if toolingTypeNamesReferToSameEntity(
       inverse.targetTypeName,
       relationship.destinationEntityName ?? ""
     ) == false {
@@ -466,31 +466,24 @@ public enum ToolingValidateComparator {
       )
     }
 
-    if inverse.inversePropertyName != relationship.inverseRelationshipName {
+    guard let expectedInverseName = relationship.inverseRelationshipName else {
+      assertionFailure(
+        "Validation should not compare inverse hints for relationships without inverse metadata.")
       diagnostics.append(
         error(
-          "validate found inverse name mismatch for '\(entityName).\(relationship.swiftName)'. Expected '\(relationship.inverseRelationshipName ?? "<missing>")', found '\(inverse.inversePropertyName)'."
+          "validate found incomplete model inverse metadata for '\(entityName).\(relationship.swiftName)'."
+        )
+      )
+      return
+    }
+
+    if inverse.inversePropertyName != expectedInverseName {
+      diagnostics.append(
+        error(
+          "validate found inverse name mismatch for '\(entityName).\(relationship.swiftName)'. Expected '\(expectedInverseName)', found '\(inverse.inversePropertyName)'."
         )
       )
     }
-  }
-
-  private static func ambiguousRelationshipNames(in entity: ToolingEntityIR) -> Set<String> {
-    let grouped = Dictionary(grouping: entity.relationships) {
-      $0.destinationEntityName ?? "<missing>"
-    }
-    return Set(
-      grouped.values
-        .filter { $0.count > 1 }
-        .flatMap { $0.map(\.swiftName) }
-    )
-  }
-
-  private static func typeNamesReferToSameEntity(_ lhs: String, _ rhs: String) -> Bool {
-    if lhs == rhs {
-      return true
-    }
-    return lhs.split(separator: ".").last == rhs.split(separator: ".").last
   }
 
   private static func resolveRelationshipShape(

@@ -203,6 +203,16 @@ func validateInverseHints(
     guard let inverseAttribute = firstAttribute(named: "Inverse", in: variable) else {
       continue
     }
+
+    if let binding = variable.bindings.first,
+      let typeAnnotation = binding.typeAnnotation,
+      isOptionalToManyRelationshipType(typeAnnotation.type)
+    {
+      // Optional to-many relationships are rejected earlier. Avoid stacking a second, less useful
+      // "not a relationship" diagnostic on the same declaration.
+      continue
+    }
+
     guard let relationship = relationshipsByName[propertyName] else {
       MacroDiagnosticReporter.error(
         "@Inverse can only be attached to relationship properties.",
@@ -237,6 +247,9 @@ func validateInverseHints(
   }
 
   for relationships in groupedRelationships.values where relationships.count > 1 {
+    // Macro expansion only sees the current type declaration, so it can require explicit inverse
+    // hints on this side but cannot enforce that the matching inverse property in another type is
+    // also annotated. Tooling validation and runtime schema wiring cover the full graph later.
     for relationship in relationships where relationship.inverseName == nil {
       let message =
         """
