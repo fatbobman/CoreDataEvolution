@@ -129,7 +129,7 @@ func buildAttributeInfo(
   let persistentName = arguments.originalName ?? propertyName
   let typeName = typeAnnotation.type.trimmedDescription
   let nonOptionalTypeName = attributeOptionalWrappedTypeName(typeAnnotation.type) ?? typeName
-  let baseTypeName = attributeNormalizedBaseTypeName(typeAnnotation.type) ?? nonOptionalTypeName
+  let baseTypeName = normalizedBaseTypeName(typeAnnotation.type) ?? nonOptionalTypeName
   let isOptional = attributeOptionalWrappedTypeName(typeAnnotation.type) != nil
   let explicitDefaultValueExpression = binding.initializer?.value.trimmedDescription
   let defaultValueExpression = explicitDefaultValueExpression ?? (isOptional ? "nil" : nil)

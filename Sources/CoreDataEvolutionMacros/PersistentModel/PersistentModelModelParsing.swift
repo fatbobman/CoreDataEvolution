@@ -250,7 +250,7 @@ private func parseRelationshipProperty(
       return nil
     }
     let wrapped = wrappedType.trimmedDescription
-    let base = attributeNormalizedBaseTypeName(wrappedType) ?? wrapped
+    let base = normalizedBaseTypeName(wrappedType) ?? wrapped
     if coreDataPrimitiveTypeNames.contains(base) == false {
       return PersistentRelationshipProperty(
         propertyName: propertyName,
@@ -276,7 +276,7 @@ private func isLikelyMissingOptionalToOneRelationship(_ type: TypeSyntax) -> Boo
   if setElementTypeName(type) != nil || arrayElementTypeName(type) != nil {
     return false
   }
-  let base = attributeNormalizedBaseTypeName(type) ?? type.trimmedDescription
+  let base = normalizedBaseTypeName(type) ?? type.trimmedDescription
   return coreDataPrimitiveTypeNames.contains(base) == false
 }
 

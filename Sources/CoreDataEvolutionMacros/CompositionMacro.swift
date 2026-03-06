@@ -266,30 +266,3 @@ private func isOptionalType(_ type: TypeSyntax) -> Bool {
   type.as(OptionalTypeSyntax.self) != nil
     || type.as(ImplicitlyUnwrappedOptionalTypeSyntax.self) != nil
 }
-
-private func optionalWrappedTypeName(_ type: TypeSyntax) -> String? {
-  if let optional = type.as(OptionalTypeSyntax.self) {
-    return optional.wrappedType.trimmedDescription
-  }
-  if let implicitly = type.as(ImplicitlyUnwrappedOptionalTypeSyntax.self) {
-    return implicitly.wrappedType.trimmedDescription
-  }
-  return nil
-}
-
-private func normalizedBaseTypeName(_ type: TypeSyntax) -> String? {
-  if let optional = type.as(OptionalTypeSyntax.self) {
-    return normalizedBaseTypeName(optional.wrappedType)
-  }
-  if let implicitly = type.as(ImplicitlyUnwrappedOptionalTypeSyntax.self) {
-    return normalizedBaseTypeName(implicitly.wrappedType)
-  }
-  let raw = type.trimmedDescription.replacingOccurrences(of: " ", with: "")
-  if raw.hasPrefix("Swift.") {
-    return String(raw.dropFirst("Swift.".count))
-  }
-  if raw.hasPrefix("Foundation.") {
-    return String(raw.dropFirst("Foundation.".count))
-  }
-  return raw
-}

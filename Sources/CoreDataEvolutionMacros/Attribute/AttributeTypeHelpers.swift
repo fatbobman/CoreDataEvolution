@@ -12,7 +12,7 @@
 import SwiftSyntax
 
 func isAllowedDefaultAttributeType(_ type: TypeSyntax) -> Bool {
-  guard let base = attributeNormalizedBaseTypeName(type) else {
+  guard let base = normalizedBaseTypeName(type) else {
     return false
   }
   return coreDataPrimitiveTypeNames.contains(base)
@@ -26,23 +26,6 @@ func attributeOptionalWrappedTypeName(_ type: TypeSyntax) -> String? {
     return implicitly.wrappedType.trimmedDescription
   }
   return nil
-}
-
-func attributeNormalizedBaseTypeName(_ type: TypeSyntax) -> String? {
-  if let optional = type.as(OptionalTypeSyntax.self) {
-    return attributeNormalizedBaseTypeName(optional.wrappedType)
-  }
-  if let implicitly = type.as(ImplicitlyUnwrappedOptionalTypeSyntax.self) {
-    return attributeNormalizedBaseTypeName(implicitly.wrappedType)
-  }
-  let raw = type.trimmedDescription.replacingOccurrences(of: " ", with: "")
-  if raw.hasPrefix("Swift.") {
-    return String(raw.dropFirst("Swift.".count))
-  }
-  if raw.hasPrefix("Foundation.") {
-    return String(raw.dropFirst("Foundation.".count))
-  }
-  return raw
 }
 
 func numberBridgeAccessor(forBaseType typeName: String) -> String? {

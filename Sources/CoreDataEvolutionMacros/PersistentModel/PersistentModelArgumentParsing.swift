@@ -47,7 +47,7 @@ func parsePersistentModelArguments(
       generateInit = bool.literal.text == "true"
     case "relationshipSetterPolicy":
       guard
-        let policy = parseRelationshipPolicy(
+        let policy = parseRelationshipGenerationPolicy(
           from: argument.expression.trimmedDescription.replacingOccurrences(of: " ", with: "")
         )
       else {
@@ -64,7 +64,7 @@ func parsePersistentModelArguments(
       setter = policy
     case "relationshipCountPolicy":
       guard
-        let policy = parseRelationshipPolicy(
+        let policy = parseRelationshipGenerationPolicy(
           from: argument.expression.trimmedDescription.replacingOccurrences(of: " ", with: "")
         )
       else {
@@ -97,22 +97,4 @@ func parsePersistentModelArguments(
     relationshipSetterPolicy: setter,
     relationshipCountPolicy: count
   )
-}
-
-private func parseRelationshipPolicy(
-  from raw: String
-) -> ParsedRelationshipGenerationPolicy? {
-  switch raw {
-  case ".none", "RelationshipGenerationPolicy.none",
-    "CoreDataEvolution.RelationshipGenerationPolicy.none":
-    return ParsedRelationshipGenerationPolicy.none
-  case ".warning", "RelationshipGenerationPolicy.warning",
-    "CoreDataEvolution.RelationshipGenerationPolicy.warning":
-    return ParsedRelationshipGenerationPolicy.warning
-  case ".plain", "RelationshipGenerationPolicy.plain",
-    "CoreDataEvolution.RelationshipGenerationPolicy.plain":
-    return ParsedRelationshipGenerationPolicy.plain
-  default:
-    return nil
-  }
 }

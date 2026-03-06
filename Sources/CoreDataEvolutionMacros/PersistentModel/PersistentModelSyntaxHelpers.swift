@@ -44,48 +44,9 @@ func hasExplicitObjCClassName(on classDecl: ClassDeclSyntax) -> Bool {
     }
 }
 
-func setElementTypeName(_ type: TypeSyntax) -> String? {
-  guard let identifier = type.as(IdentifierTypeSyntax.self) else {
-    return nil
-  }
-  guard identifier.name.text == "Set", let clause = identifier.genericArgumentClause else {
-    return nil
-  }
-  guard clause.arguments.count == 1, let argument = clause.arguments.first else {
-    return nil
-  }
-  return argument.argument.trimmedDescription
-}
-
-func arrayElementTypeName(_ type: TypeSyntax) -> String? {
-  if let arrayType = type.as(ArrayTypeSyntax.self) {
-    return arrayType.element.trimmedDescription
-  }
-  guard let identifier = type.as(IdentifierTypeSyntax.self) else {
-    return nil
-  }
-  guard identifier.name.text == "Array", let clause = identifier.genericArgumentClause else {
-    return nil
-  }
-  guard clause.arguments.count == 1, let argument = clause.arguments.first else {
-    return nil
-  }
-  return argument.argument.trimmedDescription
-}
-
 func optionalFallbackDefault(type: TypeSyntax) -> String? {
   if attributeOptionalWrappedTypeName(type) != nil {
     return "nil"
-  }
-  return nil
-}
-
-func optionalWrappedTypeSyntax(_ type: TypeSyntax) -> TypeSyntax? {
-  if let optional = type.as(OptionalTypeSyntax.self) {
-    return optional.wrappedType
-  }
-  if let implicitly = type.as(ImplicitlyUnwrappedOptionalTypeSyntax.self) {
-    return implicitly.wrappedType
   }
   return nil
 }

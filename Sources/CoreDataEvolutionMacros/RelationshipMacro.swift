@@ -202,7 +202,7 @@ private func parseRelationshipMacroArguments(
     }
     if label == "setterPolicy" {
       setterPolicy =
-        parseRelationshipMacroPolicy(
+        parseRelationshipGenerationPolicy(
           from: argument.expression.trimmedDescription.replacingOccurrences(of: " ", with: "")
         ) ?? .none
     } else if label == "_fromPersistentModel",
@@ -217,35 +217,19 @@ private func parseRelationshipMacroArguments(
   )
 }
 
-private func parseRelationshipMacroPolicy(from raw: String) -> ParsedRelationshipGenerationPolicy? {
-  switch raw {
-  case ".none", "RelationshipGenerationPolicy.none",
-    "CoreDataEvolution.RelationshipGenerationPolicy.none":
-    return ParsedRelationshipGenerationPolicy.none
-  case ".warning", "RelationshipGenerationPolicy.warning",
-    "CoreDataEvolution.RelationshipGenerationPolicy.warning":
-    return ParsedRelationshipGenerationPolicy.warning
-  case ".plain", "RelationshipGenerationPolicy.plain",
-    "CoreDataEvolution.RelationshipGenerationPolicy.plain":
-    return ParsedRelationshipGenerationPolicy.plain
-  default:
-    return nil
-  }
-}
-
 private func parseRelationshipKind(
   from type: TypeSyntax,
   context: some MacroExpansionContext
 ) -> RelationshipInfo.Kind? {
-  if let element = relationshipSetElementTypeName(type) {
+  if let element = setElementTypeName(type) {
     return .toManySet(targetTypeName: element)
   }
-  if let element = relationshipArrayElementTypeName(type) {
+  if let element = arrayElementTypeName(type) {
     return .toManyArray(targetTypeName: element)
   }
-  if let wrapped = optionalWrappedType(type) {
-    if relationshipSetElementTypeName(wrapped) != nil
-      || relationshipArrayElementTypeName(wrapped) != nil
+  if let wrapped = optionalWrappedTypeSyntax(type) {
+    if setElementTypeName(wrapped) != nil
+      || arrayElementTypeName(wrapped) != nil
     {
       MacroDiagnosticReporter.error(
         "To-many relationship properties must be non-optional (`Set<T>` or `[T]`).",
@@ -344,43 +328,4 @@ private func makeRelationshipValidationPeers(from info: RelationshipInfo) -> [De
     private static let \(raw: memberName): Void = CoreDataEvolution._CDRelationshipMacroValidation.requirePersistentEntity(\(raw: targetType).self)
     """
   ]
-}
-
-private func optionalWrappedType(_ type: TypeSyntax) -> TypeSyntax? {
-  if let optional = type.as(OptionalTypeSyntax.self) {
-    return optional.wrappedType
-  }
-  if let implicitly = type.as(ImplicitlyUnwrappedOptionalTypeSyntax.self) {
-    return implicitly.wrappedType
-  }
-  return nil
-}
-
-private func relationshipSetElementTypeName(_ type: TypeSyntax) -> String? {
-  guard let identifier = type.as(IdentifierTypeSyntax.self) else {
-    return nil
-  }
-  guard identifier.name.text == "Set", let clause = identifier.genericArgumentClause else {
-    return nil
-  }
-  guard clause.arguments.count == 1, let argument = clause.arguments.first else {
-    return nil
-  }
-  return argument.argument.trimmedDescription
-}
-
-private func relationshipArrayElementTypeName(_ type: TypeSyntax) -> String? {
-  if let arrayType = type.as(ArrayTypeSyntax.self) {
-    return arrayType.element.trimmedDescription
-  }
-  guard let identifier = type.as(IdentifierTypeSyntax.self) else {
-    return nil
-  }
-  guard identifier.name.text == "Array", let clause = identifier.genericArgumentClause else {
-    return nil
-  }
-  guard clause.arguments.count == 1, let argument = clause.arguments.first else {
-    return nil
-  }
-  return argument.argument.trimmedDescription
 }
