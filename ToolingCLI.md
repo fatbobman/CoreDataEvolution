@@ -456,8 +456,8 @@ CLI v1 先解决两件事：
 ### 5.2 校验级别
 
 - `--level <quick|strict>`
-  - `quick`: 只做结构映射检查（实体/字段/关系/类型映射）。
-  - `strict`: 额外做“可编译性 + 运行时基础校验”。
+  - `quick`: 只做结构级 source/model/config 对比，不要求编译，不触发真实持久化。
+  - `strict`: 在 `quick` 之上，对带 managed marker 的生成文件做精确漂移比对。
 
 ### 5.3 输出与退出码
 
@@ -501,13 +501,62 @@ CLI v1 先解决两件事：
   - 默认存储无法从 Core Data primitive 推导出映射 key
   - `raw` / `codable` / `composition` / `transformed` 缺少 `swiftType`
 
-### 5.6 全局退出码约定（建议统一）
+### 5.6 `validate` 结构级规则（session 6 约定）
+
+`validate` 不只是把模型和字符串做比对；它需要先解析源码，构建 source-side IR，再与 model IR 和配置规则做比较。
+
+边界约定：
+
+- `validate` 假定宏展开结果正确
+- `validate` 只检查开发者提供的源码输入是否满足模型与工具规则
+- 宏展开正确性由宏测试与编译器保障，不属于 tooling validate 的职责
+
+`quick` 目标：
+
+- 解析 `@PersistentModel`、`@objc`、`@Attribute`、`@Ignore`
+- 解析属性/关系类型、可选性和默认值字面量
+- 比较模型、配置、源码三者是否一致
+
+`strict` 目标：
+
+- 在 `quick` 通过的前提下
+- 重新生成期望文件计划
+- 对带 `// cde-tool:generated` marker 的文件做精确内容比对
+- 报告缺失文件、多余 managed file、内容漂移
+- v1 的 `strict` 仍是静态验证，不自动执行真实 SQLite / Core Data fetch 级运行时检查
+
+`@Ignore` 规则：
+
+- `@Ignore` 属性不参与模型对齐
+- 代码中额外的 stored property 若未标记 `@Ignore`，视为 drift
+- `@Ignore` 不得遮蔽模型中的持久化属性名
+- `@Ignore` 不通过配置声明，必须从源码直接识别
+
+默认值规则：
+
+- 默认存储的非 optional 持久化属性，代码默认值必须与模型默认值一致
+- optional 持久化属性允许显式 `= nil`，也允许省略默认值
+- 非 optional 的自定义 `raw` / `codable` / `composition` / `transformed` 仍按当前工具规则视为不合法
+- v1 以“符合当前 tool 生成约定”为准，不尝试判断任意语义等价写法
+
+严重级别建议：
+
+- `error`
+  - entity / property / relationship 漂移
+  - `originalName` / `storageMethod` / `swiftType` 不一致
+  - 默认值不一致
+  - `@Ignore` 规则违规
+  - strict 下的 managed file 内容漂移
+- `warning`
+  - 仅保留给建议性、非阻塞性提示；v1 应尽量少用
+
+### 5.7 全局退出码约定（建议统一）
 
 - `0`: 命令执行成功（包括 `validate` 无错误）。
 - `1`: 业务层失败或用户输入错误（可通过修改参数/输入修复）。
 - `2`: 运行时异常或内部错误（通常需要查看日志或修复实现）。
 
-## 5.7 `inspect` 参数设计（当前实现）
+## 5.8 `inspect` 参数设计（当前实现）
 
 - `--model-path <path>`
 - `--model-version <name>`
@@ -542,7 +591,18 @@ CLI v1 先解决两件事：
 - 存储策略是否匹配（`default/raw/codable/composition/transformed`）。
 - 关系方向、to-one/to-many、是否有序是否一致。
 - composition 子路径映射（如 `location.x`）是否存在。
-- `Keys` / `path` / `__cdFieldTable` 与模型 persistent key 是否一致。
+
+不直接检查的项：
+
+- 宏展开后才存在的 `Keys`
+- 宏展开后才存在的 `path`
+- 宏展开后才存在的 `__cdFieldTable`
+
+原因：
+
+- 这三项不属于开发者源码输入
+- 当前 validate 不观察宏展开产物
+- validate v1 通过检查其输入声明来间接保证这些成员可被正确导出
 
 ## 8. 面向 SPM Plugin / GUI 的演进路径
 

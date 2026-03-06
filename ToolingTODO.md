@@ -97,20 +97,25 @@
 
 ## 6. Validate Engine
 
+- `[ ]` 定义 source-side IR（entity / property / relationship / macro arguments）
+- `[ ]` 解析 `@PersistentModel` / `@objc` / `@Attribute` / `@Ignore`
+- `[ ]` 解析代码中的默认值字面量
 - `[ ]` 校验实体是否一一对应
 - `[ ]` 校验属性名与 `originalName`
 - `[ ]` 根据 `attributeRules` 校验属性重命名
 - `[ ]` 根据 `typeMappings` 校验默认类型映射
 - `[ ]` 根据 `attributeRules` 校验属性级类型与 storage method 覆盖
+- `[ ]` 校验额外 stored property 是否显式标记为 `@Ignore`
+- `[ ]` 校验 `@Ignore` 不得遮蔽持久化属性
+- `[ ]` 校验默认存储的非 optional 持久化属性默认值是否与模型一致
+- `[ ]` 校验 optional 持久化属性允许省略 `= nil`
 - `[ ]` 校验 storage method
 - `[ ]` 校验关系方向与基数
 - `[ ]` 校验 ordered / unordered to-many
 - `[ ]` 校验 composition 子路径
-- `[ ]` 校验生成代码中的 `Keys`
-- `[ ]` 校验生成代码中的 `path`
-- `[ ]` 校验生成代码中的 `__cdFieldTable`
-- `[ ]` 实现 `quick` 模式
-- `[ ]` 实现 `strict` 模式
+- `[ ]` 校验类级 `@PersistentModel(...)` 参数
+- `[ ]` 实现 `quick` 模式（结构级 source/model/config 对比）
+- `[ ]` 实现 `strict` 模式（在 quick 之上做 managed file 精确漂移比对）
 
 ## 7. CLI
 
@@ -163,16 +168,18 @@
 - `[x]` overwrite / clean-stale 测试
 - `[ ]` validate quick 测试
 - `[ ]` validate strict 测试
+- `[ ]` validate `@Ignore` 规则测试
+- `[ ]` validate 默认值不一致测试
 - `[ ]` CLI `init-config` 集成测试
 - `[ ]` CLI 参数解析测试
 - `[ ]` CLI exit code 测试
 
 ## 11. Immediate Next Steps
 
-- `1.` 为 validate 建立 service 层入口
-- `2.` 为 validate 设计 quick 模式入口
+- `1.` 定义 validate 的 source-side IR 与源码解析入口
+- `2.` 实现 quick 模式比较器（model/config/source）
 - `3.` 将 validate CLI 接入 `ToolingCore`
-- `4.` 规划 validate 的文本/json/sarif 输出
+- `4.` 再叠加 strict 的 managed file 精确漂移比对
 
 ## 12. Deferred / Known Gaps
 
@@ -181,8 +188,10 @@
 - `[ ]` `generate.attributeRules` 与 `validate.attributeRules` 仍是两份独立配置，暂不提供引用/复用语法。
 - `[ ]` `generate` / `validate` service 接线后，仍需在“合并 CLI overrides 后”的 request 层再做一次最终校验。
 - `[ ]` 当前 inspect 对未解析字段只发出 diagnostics，不会像 generate/validate 那样直接失败。
+- `[ ]` validate v1 假定宏展开结果正确，不直接校验宏生成的 `Keys` / `path` / `__cdFieldTable`；当前只校验足以导出这些成员的源码输入。
 - `[ ]` generate 目前不会从模型外信息推断 `@Ignore` 字段。
 - `[ ]` tool 仍未提供描述 `@Ignore` / 纯内存属性的额外配置模型。
 - `[ ]` generate 当前只会直接使用模型默认值；对于非可选自定义 raw/codable/composition/transformed 类型，仍缺少未来的显式代码默认值规则。
+- `[ ]` validate v1 将以“符合当前 tool 生成约定”为准，不尝试判断任意语义等价默认值写法。
 - `[ ]` `GenerateService.validateGenerateRequest` 仍通过 `GenerateRequest -> GenerateTemplate` 的中转来复用校验逻辑；后续可提取为直接接受已解析参数的共享验证入口，降低字段漂移风险。
 - `[ ]` 只有在未来宏语义允许“代码默认值覆盖模型默认值”时，tool 才会引入默认值配置，并用该值参与代码生成。
