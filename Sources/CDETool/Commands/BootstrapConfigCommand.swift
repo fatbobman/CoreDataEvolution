@@ -77,7 +77,7 @@ struct BootstrapConfigCommand: ParsableCommand {
           message: "failed to encode bootstrap config as UTF-8."
         )
       }
-      print(text)
+      emitInfo(text)
       return
     }
 
@@ -103,7 +103,7 @@ struct BootstrapConfigCommand: ParsableCommand {
 
     do {
       try result.jsonData.write(to: url, options: [.atomic])
-      print("wrote bootstrap config to \(url.path)")
+      emitWriteSuccess(kind: "bootstrap config", path: url.path)
     } catch {
       try failUser(
         code: .writeDenied,

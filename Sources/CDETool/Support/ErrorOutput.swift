@@ -13,6 +13,14 @@ import ArgumentParser
 import CoreDataEvolutionToolingCore
 import Foundation
 
+func emitInfo(_ message: String) {
+  print(message)
+}
+
+func emitWriteSuccess(kind: String, path: String) {
+  emitInfo("wrote \(kind) to \(path)")
+}
+
 func failUser(code: ToolingErrorCode, message: String, hint: String? = nil) throws -> Never {
   emitError(code: code, message: message, hint: hint)
   throw ExitCode(1)
@@ -31,6 +39,25 @@ func fail(_ failure: ToolingFailure) throws -> Never {
 func emitError(code: ToolingErrorCode, message: String, hint: String?) {
   fputs("error[\(code.rawValue)]: \(message)\n", stderr)
   if let hint {
+    fputs("hint: \(hint)\n", stderr)
+  }
+}
+
+func emitDiagnostic(_ diagnostic: ToolingDiagnostic) {
+  let label: String
+  switch diagnostic.severity {
+  case .error:
+    label = "error"
+  case .warning:
+    label = "warning"
+  case .note:
+    label = "note"
+  }
+
+  let code = diagnostic.code.map(\.rawValue)
+  let prefix = code.map { "\(label)[\($0)]" } ?? label
+  fputs("\(prefix): \(diagnostic.message)\n", stderr)
+  if let hint = diagnostic.hint {
     fputs("hint: \(hint)\n", stderr)
   }
 }

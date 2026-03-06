@@ -135,25 +135,10 @@ enum ValidateCommandSupport {
 
   private static func emitText(_ result: ValidateResult) {
     for diagnostic in result.diagnostics {
-      let label: String
-      switch diagnostic.severity {
-      case .error:
-        label = "error"
-      case .warning:
-        label = "warning"
-      case .note:
-        label = "note"
-      }
-
-      let code = diagnostic.code.map(\.rawValue)
-      let prefix = code.map { "\(label)[\($0)]" } ?? label
-      fputs("\(prefix): \(diagnostic.message)\n", stderr)
-      if let hint = diagnostic.hint {
-        fputs("hint: \(hint)\n", stderr)
-      }
+      emitDiagnostic(diagnostic)
     }
 
-    print(
+    emitInfo(
       "validate completed with \(result.errorCount) error(s) and \(result.warningCount) warning(s)."
     )
   }

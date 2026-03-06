@@ -113,7 +113,7 @@ enum GenerateCommandSupport {
       case .delete:
         verb = result.writeResult.dryRun ? "would delete" : "deleted"
       }
-      print("\(verb): \(operation.relativePath)")
+      emitInfo("\(verb): \(operation.relativePath)")
     }
   }
 
@@ -175,25 +175,6 @@ enum GenerateCommandSupport {
         "formatter '\(executable)' failed.",
         hint: stderrText?.isEmpty == false ? stderrText : nil
       )
-    }
-  }
-
-  private static func emitDiagnostic(_ diagnostic: ToolingDiagnostic) {
-    let label: String
-    switch diagnostic.severity {
-    case .error:
-      label = "error"
-    case .warning:
-      label = "warning"
-    case .note:
-      label = "note"
-    }
-
-    let code = diagnostic.code.map(\.rawValue)
-    let prefix = code.map { "\(label)[\($0)]" } ?? label
-    fputs("\(prefix): \(diagnostic.message)\n", stderr)
-    if let hint = diagnostic.hint {
-      fputs("hint: \(hint)\n", stderr)
     }
   }
 

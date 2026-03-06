@@ -53,7 +53,7 @@ struct InitConfigCommand: ParsableCommand {
           message: "failed to encode config template as UTF-8."
         )
       }
-      print(text)
+      emitInfo(text)
       return
     }
 
@@ -79,7 +79,7 @@ struct InitConfigCommand: ParsableCommand {
 
     do {
       try result.jsonData.write(to: url, options: [.atomic])
-      print("wrote config template to \(url.path)")
+      emitWriteSuccess(kind: "config template", path: url.path)
     } catch {
       try failUser(
         code: .writeDenied,

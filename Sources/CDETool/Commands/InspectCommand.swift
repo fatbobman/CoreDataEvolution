@@ -76,13 +76,10 @@ struct InspectCommand: ParsableCommand {
       )
     }
 
-    print(text)
+    emitInfo(text)
 
     for diagnostic in result.diagnostics {
-      fputs("\(diagnostic.severity.rawValue): \(diagnostic.message)\n", stderr)
-      if let hint = diagnostic.hint {
-        fputs("hint: \(hint)\n", stderr)
-      }
+      emitDiagnostic(diagnostic)
     }
   }
 }

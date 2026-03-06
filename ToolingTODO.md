@@ -135,7 +135,7 @@
 - `[x]` `inspect` 支持 `--config`
 - `[x]` 支持 `json` 输出
 - `[x]` 支持 `sarif` 输出
-- `[ ]` 统一 CLI 文本错误与提示
+- `[x]` 统一 CLI 文本错误与提示
 
 ## 8. Plugin
 
@@ -174,9 +174,9 @@
 - `[x]` validate 自定义成员提醒测试
 - `[x]` companion extension stub 测试
 - `[x]` validate CLI 报告与 exit code 集成测试
-- `[ ]` CLI `init-config` 集成测试
-- `[ ]` CLI 参数解析测试
-- `[-]` CLI exit code 测试（已覆盖 validate，其他子命令待补）
+- `[x]` CLI `init-config` 集成测试
+- `[x]` CLI 参数解析测试
+- `[x]` CLI exit code 测试（`init-config` / `bootstrap-config` / `generate` / `inspect` / `validate`）
 
 ## 11. Immediate Next Steps
 
