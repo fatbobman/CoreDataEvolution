@@ -269,7 +269,7 @@ private func parseRelationshipProperty(
   return nil
 }
 
-private func isOptionalToManyRelationshipType(_ type: TypeSyntax) -> Bool {
+func isOptionalToManyRelationshipType(_ type: TypeSyntax) -> Bool {
   guard let wrappedType = optionalWrappedTypeSyntax(type) else {
     return false
   }

@@ -63,6 +63,19 @@ extension PersistentModelMacro: MemberAttributeMacro {
       return []
     }
 
+    for binding in variable.bindings {
+      guard let typeAnnotation = binding.typeAnnotation else { continue }
+      if isOptionalToManyRelationshipType(typeAnnotation.type) {
+        MacroDiagnosticReporter.error(
+          "Optional to-many relationship '\(typeAnnotation.type.trimmedDescription)' is not supported. Use 'Set<T>' for unordered or '[T]' for ordered to-many relationships. To-many relationships cannot be optional.",
+          domain: persistentModelMacroDomain,
+          in: context,
+          node: variable
+        )
+        return []
+      }
+    }
+
     let arguments = parsePersistentModelArguments(
       from: node,
       context: context,

@@ -362,7 +362,7 @@ struct MacroDiagnosticTests {
     )
     #expect(
       result.diagnostics.contains {
-        $0.contains("To-many relationship properties must be non-optional")
+        $0.contains("Optional to-many relationship")
       })
   }
 
