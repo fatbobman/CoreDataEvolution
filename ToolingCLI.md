@@ -19,9 +19,16 @@ CLI v1 先解决两件事：
 
 用途：检查“模型文件 + 已有代码”是否一致，不写文件。
 
-### `cde-tool inspect`（可选，v1.1）
+### `cde-tool inspect`
 
 用途：输出解析后的中间模型（IR），便于调试和 GUI 展示。
+
+当前行为：
+
+- 读取模型并输出结构化 IR JSON。
+- 默认使用内建 `typeMappings` / 空 `attributeRules`。
+- 如果提供 `--config`，则读取其中 `generate` 节点的规则来解析属性名、存储方式、类型映射。
+- 对于尚未补完的字段，`inspect` 会输出 diagnostics，但仍尽量产出可读 IR。
 
 ### `cde-tool init-config`
 
@@ -458,6 +465,19 @@ CLI v1 先解决两件事：
 - `0`: 命令执行成功（包括 `validate` 无错误）。
 - `1`: 业务层失败或用户输入错误（可通过修改参数/输入修复）。
 - `2`: 运行时异常或内部错误（通常需要查看日志或修复实现）。
+
+## 5.7 `inspect` 参数设计（当前实现）
+
+- `--model-path <path>`
+- `--model-version <name>`
+- `--momc-bin <path>`
+- `--config <path>`
+
+约定：
+
+- `inspect` 的 `--config` 读取 `generate` 节点，而不是 `validate` 节点。
+- 原因是 inspect 需要反映生成侧的命名规则、类型映射和存储策略。
+- 如果 `generate` 节点缺失，`inspect` 会报错。
 
 ## 6. 覆盖与安全策略（关键约定）
 

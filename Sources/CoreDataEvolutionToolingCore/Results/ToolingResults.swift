@@ -65,9 +65,17 @@ public struct ValidateResult: Sendable, Equatable {
 
 /// Placeholder result model for future inspect engine output.
 public struct InspectResult: Sendable, Equatable {
+  public let modelIR: ToolingModelIR
+  public let jsonData: Data
   public let diagnostics: [ToolingDiagnostic]
 
-  public init(diagnostics: [ToolingDiagnostic]) {
+  public init(
+    modelIR: ToolingModelIR,
+    jsonData: Data,
+    diagnostics: [ToolingDiagnostic]
+  ) {
+    self.modelIR = modelIR
+    self.jsonData = jsonData
     self.diagnostics = diagnostics
   }
 }

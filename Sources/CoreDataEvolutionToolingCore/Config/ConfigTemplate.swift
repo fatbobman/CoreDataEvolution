@@ -353,3 +353,29 @@ extension ValidateRequest {
     )
   }
 }
+
+extension InspectRequest {
+  /// Resolves inspect options from the generate section because inspect mirrors generation-facing
+  /// naming and storage rules.
+  public init(
+    config: GenerateTemplate,
+    modelPathOverride: String? = nil,
+    modelVersionOverride: String? = nil,
+    momcBinOverride: String? = nil
+  ) {
+    self.init(
+      modelPath: modelPathOverride ?? config.modelPath,
+      modelVersion: modelVersionOverride ?? config.modelVersion,
+      momcBin: momcBinOverride ?? config.momcBin,
+      typeMappings: mergeToolingTypeMappings(config.typeMappings),
+      attributeRules: config.attributeRules ?? .init(),
+      accessLevel: config.accessLevel ?? .internal,
+      singleFile: config.singleFile ?? false,
+      splitByEntity: config.splitByEntity ?? true,
+      generateInit: config.generateInit ?? false,
+      relationshipSetterPolicy: config.relationshipSetterPolicy ?? .warning,
+      relationshipCountPolicy: config.relationshipCountPolicy ?? .none,
+      defaultDecodeFailurePolicy: config.defaultDecodeFailurePolicy ?? .fallbackToDefaultValue
+    )
+  }
+}

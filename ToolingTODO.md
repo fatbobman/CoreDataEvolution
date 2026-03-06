@@ -54,13 +54,13 @@
 
 ## 3. IR
 
-- `[ ]` 定义实体 IR
-- `[ ]` 定义属性 IR
-- `[ ]` 定义关系 IR
-- `[ ]` 定义 composition IR
-- `[ ]` 定义 storage method IR
-- `[ ]` 定义生成策略 IR
-- `[ ]` 提供 `inspect` 可复用输出模型
+- `[x]` 定义实体 IR
+- `[x]` 定义属性 IR
+- `[x]` 定义关系 IR
+- `[x]` 定义 composition IR（占位表示，暂不自动推断）
+- `[x]` 定义 storage method IR
+- `[x]` 定义生成策略 IR
+- `[x]` 提供 `inspect` 可复用输出模型
 
 ## 4. Generate Engine
 
@@ -122,9 +122,9 @@
 - `[x]` 提供 `generate` 命令骨架
 - `[x]` 提供 `validate` 命令骨架
 - `[x]` 提供 `inspect` 命令骨架
+- `[x]` 将 `inspect` 接入 `ToolingCore`
 - `[ ]` 将 `generate` 接入 `ToolingCore`
 - `[ ]` 将 `validate` 接入 `ToolingCore`
-- `[ ]` 将 `inspect` 接入 `ToolingCore`
 - `[ ]` 支持 `--config`
 - `[ ]` 支持 `json` 输出
 - `[ ]` 支持 `sarif` 输出
@@ -154,7 +154,8 @@
 - `[x]` `init-config` service 测试
 - `[x]` `bootstrap-config` service 测试
 - `[x]` 模型版本选择测试
-- `[ ]` IR 构建测试
+- `[x]` IR 构建测试
+- `[x]` inspect service 测试
 - `[ ]` generate file plan 测试
 - `[ ]` overwrite / clean-stale 测试
 - `[ ]` validate quick 测试
@@ -165,10 +166,10 @@
 
 ## 11. Immediate Next Steps
 
-- `1.` 定义基础 IR（entity / attribute / relationship / composition）
-- `2.` 将 `inspect` 接入 `ToolingCore`
-- `3.` 为 `generate` / `validate` 建立 service 层入口
-- `4.` 将 CLI `--config` 接入 `ToolingCore`
+- `1.` 为 `generate` / `validate` 建立 service 层入口
+- `2.` 将 CLI `--config` 接入 `ToolingCore`
+- `3.` 定义 file plan，并打通第一个 generate 最小闭环
+- `4.` 为 validate 设计 quick 模式入口
 
 ## 12. Deferred / Known Gaps
 
@@ -176,3 +177,4 @@
 - `[ ]` `bootstrap-config` 仍不会自动推断 composition 候选字段。
 - `[ ]` `generate.attributeRules` 与 `validate.attributeRules` 仍是两份独立配置，暂不提供引用/复用语法。
 - `[ ]` `generate` / `validate` service 接线后，仍需在“合并 CLI overrides 后”的 request 层再做一次最终校验。
+- `[ ]` 当前 inspect 对未解析字段只发出 diagnostics，不会像 generate/validate 那样直接失败。

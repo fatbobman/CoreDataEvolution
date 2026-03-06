@@ -12,7 +12,7 @@
 import Foundation
 
 /// The concrete kind of model input selected by the loader.
-public enum ToolingModelInputKind: String, Sendable, Equatable {
+public enum ToolingModelInputKind: String, Codable, Sendable, Equatable {
   case xcdatamodeld
   case xcdatamodel
   case momd

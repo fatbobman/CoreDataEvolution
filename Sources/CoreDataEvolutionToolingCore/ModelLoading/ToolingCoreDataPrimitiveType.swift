@@ -65,3 +65,48 @@ public enum ToolingCoreDataPrimitiveType: String, CaseIterable, Sendable {
 public func toolingTypeMappingKey(for attributeType: NSAttributeType) -> String? {
   ToolingCoreDataPrimitiveType(attributeType: attributeType)?.rawValue
 }
+
+/// Returns a stable human-readable Core Data attribute type name for inspect output and
+/// diagnostics.
+///
+/// This helper lives next to the primitive-type mapping because both functions translate
+/// `NSAttributeType` into the tooling's Core Data vocabulary. The primitive mapping is only a
+/// subset; inspect still needs names for non-primitive cases such as Transformable and Composite.
+public func toolingCoreDataAttributeTypeName(for attributeType: NSAttributeType) -> String {
+  switch attributeType {
+  case .undefinedAttributeType:
+    return "Undefined"
+  case .integer16AttributeType:
+    return "Integer 16"
+  case .integer32AttributeType:
+    return "Integer 32"
+  case .integer64AttributeType:
+    return "Integer 64"
+  case .decimalAttributeType:
+    return "Decimal"
+  case .doubleAttributeType:
+    return "Double"
+  case .floatAttributeType:
+    return "Float"
+  case .stringAttributeType:
+    return "String"
+  case .booleanAttributeType:
+    return "Boolean"
+  case .dateAttributeType:
+    return "Date"
+  case .binaryDataAttributeType:
+    return "Binary"
+  case .UUIDAttributeType:
+    return "UUID"
+  case .URIAttributeType:
+    return "URI"
+  case .transformableAttributeType:
+    return "Transformable"
+  case .objectIDAttributeType:
+    return "ObjectID"
+  case .compositeAttributeType:
+    return "Composite"
+  @unknown default:
+    return "Unknown"
+  }
+}

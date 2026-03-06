@@ -165,11 +165,42 @@ public struct InspectRequest: Sendable, Equatable {
   public let modelPath: String
   public let modelVersion: String?
   public let momcBin: String?
+  public let typeMappings: ToolingTypeMappings
+  public let attributeRules: ToolingAttributeRules
+  public let accessLevel: ToolingAccessLevel
+  public let singleFile: Bool
+  public let splitByEntity: Bool
+  public let generateInit: Bool
+  public let relationshipSetterPolicy: ToolingRelationshipSetterPolicy
+  public let relationshipCountPolicy: ToolingRelationshipCountPolicy
+  public let defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy
 
-  public init(modelPath: String, modelVersion: String?, momcBin: String?) {
+  public init(
+    modelPath: String,
+    modelVersion: String?,
+    momcBin: String?,
+    typeMappings: ToolingTypeMappings = makeDefaultToolingTypeMappings(),
+    attributeRules: ToolingAttributeRules = .init(),
+    accessLevel: ToolingAccessLevel = .internal,
+    singleFile: Bool = false,
+    splitByEntity: Bool = true,
+    generateInit: Bool = false,
+    relationshipSetterPolicy: ToolingRelationshipSetterPolicy = .warning,
+    relationshipCountPolicy: ToolingRelationshipCountPolicy = .none,
+    defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy = .fallbackToDefaultValue
+  ) {
     self.modelPath = modelPath
     self.modelVersion = modelVersion
     self.momcBin = momcBin
+    self.typeMappings = typeMappings
+    self.attributeRules = attributeRules
+    self.accessLevel = accessLevel
+    self.singleFile = singleFile
+    self.splitByEntity = splitByEntity
+    self.generateInit = generateInit
+    self.relationshipSetterPolicy = relationshipSetterPolicy
+    self.relationshipCountPolicy = relationshipCountPolicy
+    self.defaultDecodeFailurePolicy = defaultDecodeFailurePolicy
   }
 }
 
