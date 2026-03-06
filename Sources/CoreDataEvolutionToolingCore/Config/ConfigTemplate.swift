@@ -119,6 +119,10 @@ public struct ValidateTemplate: Codable, Sendable, Equatable {
   public let moduleName: String
   public let typeMappings: ToolingTypeMappings?
   public let attributeRules: ToolingAttributeRules?
+  public let accessLevel: ToolingAccessLevel?
+  public let singleFile: Bool?
+  public let splitByEntity: Bool?
+  public let headerTemplate: String?
   public let generateInit: Bool?
   public let relationshipSetterPolicy: ToolingRelationshipSetterPolicy?
   public let relationshipCountPolicy: ToolingRelationshipCountPolicy?
@@ -138,6 +142,10 @@ public struct ValidateTemplate: Codable, Sendable, Equatable {
     moduleName: String,
     typeMappings: ToolingTypeMappings?,
     attributeRules: ToolingAttributeRules?,
+    accessLevel: ToolingAccessLevel?,
+    singleFile: Bool?,
+    splitByEntity: Bool?,
+    headerTemplate: String?,
     generateInit: Bool?,
     relationshipSetterPolicy: ToolingRelationshipSetterPolicy?,
     relationshipCountPolicy: ToolingRelationshipCountPolicy?,
@@ -156,6 +164,10 @@ public struct ValidateTemplate: Codable, Sendable, Equatable {
     self.moduleName = moduleName
     self.typeMappings = typeMappings
     self.attributeRules = attributeRules
+    self.accessLevel = accessLevel
+    self.singleFile = singleFile
+    self.splitByEntity = splitByEntity
+    self.headerTemplate = headerTemplate
     self.generateInit = generateInit
     self.relationshipSetterPolicy = relationshipSetterPolicy
     self.relationshipCountPolicy = relationshipCountPolicy
@@ -208,6 +220,10 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         moduleName: "AppModels",
         typeMappings: nil,
         attributeRules: nil,
+        accessLevel: nil,
+        singleFile: nil,
+        splitByEntity: nil,
+        headerTemplate: nil,
         generateInit: nil,
         relationshipSetterPolicy: nil,
         relationshipCountPolicy: nil,
@@ -252,6 +268,10 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         moduleName: "AppModels",
         typeMappings: makeDefaultToolingTypeMappings(),
         attributeRules: .init(),
+        accessLevel: .internal,
+        singleFile: false,
+        splitByEntity: true,
+        headerTemplate: nil,
         generateInit: false,
         relationshipSetterPolicy: .warning,
         relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
@@ -344,8 +364,8 @@ extension ValidateRequest {
     config: ValidateTemplate,
     overrides: ValidateRequestOverrides = .init(),
     configDirectory: URL? = nil
-  ) {
-    self = makeValidateRequest(
+  ) throws {
+    self = try makeValidateRequest(
       config: config,
       overrides: overrides,
       configDirectory: configDirectory

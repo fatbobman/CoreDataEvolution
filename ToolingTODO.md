@@ -115,7 +115,7 @@
 - `[ ]` 校验 composition 子路径
 - `[x]` 校验类级 `@PersistentModel(...)` 参数
 - `[x]` 实现 `quick` 模式（结构级 source/model/config 对比）
-- `[ ]` 实现 `strict` 模式（在 quick 之上做 managed file 精确漂移比对）
+- `[x]` 实现 `strict` 模式（在 quick 之上做 managed file 精确漂移比对）
 
 ## 7. CLI
 
@@ -167,7 +167,7 @@
 - `[x]` generate file plan 测试
 - `[x]` overwrite / clean-stale 测试
 - `[x]` validate quick 测试
-- `[ ]` validate strict 测试
+- `[x]` validate strict 测试
 - `[x]` validate `@Ignore` 规则测试
 - `[x]` validate 默认值不一致测试
 - `[ ]` CLI `init-config` 集成测试
@@ -176,9 +176,9 @@
 
 ## 11. Immediate Next Steps
 
-- `1.` 在 validate 上叠加 strict 的 managed file 精确漂移比对
-- `2.` 为 validate CLI 增加参数解析 / exit code / report 的独立集成测试
-- `3.` 视需要补 composition 子路径校验
+- `1.` 为 validate CLI 增加参数解析 / exit code / report 的独立集成测试
+- `2.` 视需要补 composition 子路径校验
+- `3.` 评估是否需要对 strict 增加缺失/多余 managed file 的更细粒度提示
 
 ## 12. Deferred / Known Gaps
 
@@ -191,7 +191,6 @@
 - `[ ]` generate 目前不会从模型外信息推断 `@Ignore` 字段。
 - `[ ]` tool 仍未提供描述 `@Ignore` / 纯内存属性的额外配置模型。
 - `[ ]` generate 当前只会直接使用模型默认值；对于非可选自定义 raw/codable/composition/transformed 类型，仍缺少未来的显式代码默认值规则。
-- `[ ]` validate 当前仅实现 `quick`；`strict` 仍未落地。
 - `[ ]` validate 当前已支持 `text/json/sarif` 报告输出，但 CLI 集成测试尚未补齐。
 - `[ ]` validate 当前只校验 composition 属性声明，不校验 composition 子路径/字段展开细节。
 - `[ ]` validate v1 将以“符合当前 tool 生成约定”为准，不尝试判断任意语义等价默认值写法。

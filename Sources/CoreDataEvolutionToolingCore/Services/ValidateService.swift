@@ -14,17 +14,11 @@ import Foundation
 
 /// Validates developer-authored source against the model and resolved tooling rules.
 ///
-/// Session 6 starts with `quick` validation only. It parses source into a dedicated IR and checks
-/// it against the same model/config inputs used by generate.
+/// `quick` parses source into a dedicated IR and checks it against the same model/config inputs
+/// used by generate. `strict` builds on top of `quick` and additionally performs exact drift
+/// checks against tool-managed files on disk.
 public enum ValidateService {
   public static func run(_ request: ValidateRequest) throws -> ValidateResult {
-    guard request.level == .quick else {
-      throw ToolingFailure.user(
-        .notImplemented,
-        "validate level '\(request.level.rawValue)' is not implemented yet."
-      )
-    }
-
     let loadedModel = try ToolingModelLoader.loadModel(
       modelPath: request.modelPath,
       modelVersion: request.modelVersion,
@@ -46,12 +40,26 @@ public enum ValidateService {
       exclude: request.exclude
     )
 
-    let allDiagnostics =
+    var allDiagnostics =
       buildResult.diagnostics
       + ToolingValidateComparator.compareQuick(
         expected: buildResult.modelIR,
         actual: sourceIR
       )
+
+    if request.level == .strict {
+      let expectedFilePlan = try makeStrictExpectedFilePlan(
+        modelIR: buildResult.modelIR,
+        request: request
+      )
+      allDiagnostics += try ToolingManagedFileComparator.compareStrict(
+        expected: expectedFilePlan,
+        sourceDirectory: request.sourceDir,
+        include: request.include,
+        exclude: request.exclude
+      )
+    }
+
     let diagnostics = limitDiagnostics(
       allDiagnostics,
       maxIssues: request.maxIssues
@@ -78,6 +86,10 @@ public enum ValidateService {
       moduleName: request.moduleName,
       typeMappings: request.typeMappings,
       attributeRules: request.attributeRules,
+      accessLevel: request.accessLevel,
+      singleFile: request.singleFile,
+      splitByEntity: request.splitByEntity,
+      headerTemplate: request.headerTemplate,
       generateInit: request.generateInit,
       relationshipSetterPolicy: request.relationshipSetterPolicy,
       relationshipCountPolicy: request.relationshipCountPolicy,
@@ -97,6 +109,21 @@ public enum ValidateService {
         validate: template
       ),
       against: model
+    )
+  }
+
+  private static func makeStrictExpectedFilePlan(
+    modelIR: ToolingModelIR,
+    request: ValidateRequest
+  ) throws -> [ToolingGeneratedFilePlan] {
+    let generatedSources = try ToolingSourceRenderer.renderSources(
+      from: modelIR,
+      moduleName: request.moduleName,
+      header: request.headerTemplate
+    )
+    return try ToolingFilePlanner.makeFilePlan(
+      from: generatedSources,
+      outputDir: request.sourceDir
     )
   }
 

@@ -31,6 +31,12 @@ enum ValidateCommandSupport {
       overrides.momcBin = command.momcBin
       overrides.sourceDir = command.sourceDir
       overrides.moduleName = command.moduleName
+      overrides.accessLevel = command.accessLevel
+      overrides.singleFile = command.singleFile
+      overrides.splitByEntity = command.splitByEntity
+      overrides.headerTemplate = command.headerTemplate.map {
+        makeAbsoluteURL(fromCLIPath: $0).path
+      }
       overrides.generateInit = command.generateInit
       overrides.relationshipSetterPolicy = command.relationshipSetterPolicy
       overrides.relationshipCountPolicy = command.relationshipCountPolicy
@@ -42,7 +48,7 @@ enum ValidateCommandSupport {
       overrides.failOnWarning = command.failOnWarning
       overrides.maxIssues = command.maxIssues
 
-      return ValidateRequest(
+      return try ValidateRequest(
         config: validate,
         overrides: overrides,
         configDirectory: configURL.deletingLastPathComponent()
@@ -76,6 +82,10 @@ enum ValidateCommandSupport {
       moduleName: moduleName,
       typeMappings: nil,
       attributeRules: nil,
+      accessLevel: command.accessLevel,
+      singleFile: command.singleFile,
+      splitByEntity: command.splitByEntity,
+      headerTemplate: command.headerTemplate.map { makeAbsoluteURL(fromCLIPath: $0).path },
       generateInit: command.generateInit,
       relationshipSetterPolicy: command.relationshipSetterPolicy,
       relationshipCountPolicy: command.relationshipCountPolicy,
@@ -88,7 +98,7 @@ enum ValidateCommandSupport {
       maxIssues: command.maxIssues
     )
 
-    return ValidateRequest(config: template)
+    return try ValidateRequest(config: template)
   }
 
   static func emitResult(_ result: ValidateResult, report: ToolingReportFormat) throws {

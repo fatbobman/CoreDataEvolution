@@ -40,6 +40,15 @@ struct BootstrapConfigServiceTests {
       result.template.generate?.modelVersion == "CoreDataEvolutionIntegrationModel.xcdatamodel")
     #expect(
       result.template.validate?.modelVersion == "CoreDataEvolutionIntegrationModel.xcdatamodel")
+    #expect(result.template.validate?.accessLevel == .internal)
+    #expect(result.template.validate?.singleFile == false)
+    #expect(result.template.validate?.splitByEntity == true)
+    #expect(result.template.validate?.headerTemplate == nil)
+    #expect(result.template.validate?.generateInit == false)
+    #expect(result.template.validate?.relationshipSetterPolicy == .warning)
+    #expect(
+      result.template.validate?.relationshipCountPolicy == ToolingRelationshipCountPolicy.none)
+    #expect(result.template.validate?.defaultDecodeFailurePolicy == .fallbackToDefaultValue)
     let nameRule = try #require(itemRules["name"])
     #expect(nameRule.swiftName == nil)
     #expect(nameRule.swiftType == nil)

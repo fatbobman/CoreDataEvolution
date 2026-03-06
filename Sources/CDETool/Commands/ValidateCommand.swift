@@ -33,6 +33,22 @@ struct ValidateCommand: ParsableCommand {
   @Option(name: .long, help: "Swift module name.")
   var moduleName: String?
 
+  @Option(name: .long, help: "Expected access level: internal/public.")
+  var accessLevel: ToolingAccessLevel?
+
+  @Option(
+    name: .long,
+    help: "Whether strict validation should expect a single generated file (true/false).")
+  var singleFile: Bool?
+
+  @Option(
+    name: .long,
+    help: "Whether strict validation should expect split-by-entity output (true/false).")
+  var splitByEntity: Bool?
+
+  @Option(name: .long, help: "Header template path used during generation.")
+  var headerTemplate: String?
+
   @Option(
     name: .long,
     help: "Whether generated source is expected to include a convenience init (true/false).")

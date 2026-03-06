@@ -446,6 +446,10 @@ CLI v1 先解决两件事：
 - `--momc-bin <path>`
 - `--source-dir <path>`
 - `--module-name <name>`
+- `--access-level <internal|public>`
+- `--single-file <bool>`
+- `--split-by-entity <bool>`
+- `--header-template <path>`
 - `--generate-init <bool>`
 - `--relationship-setter-policy <none|warning|plain>`
 - `--relationship-count-policy <none|warning|plain>`
@@ -484,6 +488,10 @@ CLI v1 先解决两件事：
 - `moduleName`: required, string，无默认值。
 - `typeMappings`: optional, object，默认内建精确类型映射表。
 - `attributeRules`: optional, object，默认 `{}`。
+- `accessLevel`: optional, enum(`internal`,`public`)，默认 `internal`。
+- `singleFile`: optional, bool，默认 `false`。
+- `splitByEntity`: optional, bool，默认 `true`。
+- `headerTemplate`: optional, string/null，默认 `null`。
 - `generateInit`: optional, bool，默认 `false`。
 - `relationshipSetterPolicy`: optional, enum(`none`,`warning`,`plain`)，默认 `warning`。
 - `relationshipCountPolicy`: optional, enum(`none`,`warning`,`plain`)，默认 `none`。
@@ -533,7 +541,7 @@ CLI v1 先解决两件事：
 - 对带 `// cde-tool:generated` marker 的文件做精确内容比对
 - 报告缺失文件、多余 managed file、内容漂移
 - v1 的 `strict` 仍是静态验证，不自动执行真实 SQLite / Core Data fetch 级运行时检查
-- 当前尚未实现；CLI 会对 `--level strict` 返回 `TOOL-NOT-IMPLEMENTED`
+- 当前已实现并接入 `cde-tool validate`
 
 `@Ignore` 规则：
 

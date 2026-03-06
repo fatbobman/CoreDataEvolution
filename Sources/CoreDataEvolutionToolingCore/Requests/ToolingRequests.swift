@@ -122,6 +122,10 @@ public struct ValidateRequest: Sendable, Equatable {
   public let moduleName: String
   public let typeMappings: ToolingTypeMappings
   public let attributeRules: ToolingAttributeRules
+  public let accessLevel: ToolingAccessLevel
+  public let singleFile: Bool
+  public let splitByEntity: Bool
+  public let headerTemplate: String?
   public let generateInit: Bool
   public let relationshipSetterPolicy: ToolingRelationshipSetterPolicy
   public let relationshipCountPolicy: ToolingRelationshipCountPolicy
@@ -141,6 +145,10 @@ public struct ValidateRequest: Sendable, Equatable {
     moduleName: String,
     typeMappings: ToolingTypeMappings,
     attributeRules: ToolingAttributeRules,
+    accessLevel: ToolingAccessLevel,
+    singleFile: Bool,
+    splitByEntity: Bool,
+    headerTemplate: String?,
     generateInit: Bool,
     relationshipSetterPolicy: ToolingRelationshipSetterPolicy,
     relationshipCountPolicy: ToolingRelationshipCountPolicy,
@@ -159,6 +167,10 @@ public struct ValidateRequest: Sendable, Equatable {
     self.moduleName = moduleName
     self.typeMappings = typeMappings
     self.attributeRules = attributeRules
+    self.accessLevel = accessLevel
+    self.singleFile = singleFile
+    self.splitByEntity = splitByEntity
+    self.headerTemplate = headerTemplate
     self.generateInit = generateInit
     self.relationshipSetterPolicy = relationshipSetterPolicy
     self.relationshipCountPolicy = relationshipCountPolicy
@@ -243,9 +255,9 @@ extension InspectRequest {
       momcBin: validateRequest.momcBin,
       typeMappings: validateRequest.typeMappings,
       attributeRules: validateRequest.attributeRules,
-      accessLevel: .internal,
-      singleFile: false,
-      splitByEntity: true,
+      accessLevel: validateRequest.accessLevel,
+      singleFile: validateRequest.singleFile,
+      splitByEntity: validateRequest.splitByEntity,
       generateInit: validateRequest.generateInit,
       relationshipSetterPolicy: validateRequest.relationshipSetterPolicy,
       relationshipCountPolicy: validateRequest.relationshipCountPolicy,
@@ -284,6 +296,10 @@ public struct ValidateRequestOverrides: Sendable, Equatable {
   public var momcBin: String?
   public var sourceDir: String?
   public var moduleName: String?
+  public var accessLevel: ToolingAccessLevel?
+  public var singleFile: Bool?
+  public var splitByEntity: Bool?
+  public var headerTemplate: String?
   public var generateInit: Bool?
   public var relationshipSetterPolicy: ToolingRelationshipSetterPolicy?
   public var relationshipCountPolicy: ToolingRelationshipCountPolicy?

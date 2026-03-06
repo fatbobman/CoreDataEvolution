@@ -195,8 +195,18 @@ private func validateValidateTemplate(_ template: ValidateTemplate) throws {
   {
     throw configValidationFailure("validate.momcBin must not be empty when provided.")
   }
+  if let headerTemplate = template.headerTemplate,
+    headerTemplate.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+  {
+    throw configValidationFailure("validate.headerTemplate must not be empty when provided.")
+  }
   if let maxIssues = template.maxIssues, maxIssues <= 0 {
     throw configValidationFailure("validate.maxIssues must be greater than zero.")
+  }
+  if template.singleFile == true, template.splitByEntity == true {
+    throw configValidationFailure(
+      "validate.singleFile and validate.splitByEntity cannot both be true."
+    )
   }
 
   try validateTypeMappings(template.typeMappings, context: "validate.typeMappings")

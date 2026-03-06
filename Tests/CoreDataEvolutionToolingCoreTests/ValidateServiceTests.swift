@@ -119,6 +119,49 @@ struct ValidateServiceTests {
     )
   }
 
+  @Test("validate strict accepts generated managed files")
+  func validateStrictAcceptsGeneratedManagedFiles() throws {
+    let sourceDirectory = try makeGeneratedSourceDirectory()
+    defer { try? FileManager.default.removeItem(at: sourceDirectory) }
+
+    let result = try ValidateService.run(
+      makeValidateRequest(
+        sourceDirectory: sourceDirectory.path,
+        level: .strict
+      )
+    )
+
+    #expect(result.errorCount == 0)
+  }
+
+  @Test("validate strict rejects managed file drift")
+  func validateStrictRejectsManagedFileDrift() throws {
+    let sourceDirectory = try makeGeneratedSourceDirectory()
+    defer { try? FileManager.default.removeItem(at: sourceDirectory) }
+
+    try rewriteEntityFile(
+      named: "CDEItem+CoreDataEvolution.swift",
+      in: sourceDirectory
+    ) { contents in
+      contents.replacingOccurrences(
+        of: "var title: String = \"\"", with: "var title: String = \"drift\"")
+    }
+
+    let result = try ValidateService.run(
+      makeValidateRequest(
+        sourceDirectory: sourceDirectory.path,
+        level: .strict
+      )
+    )
+
+    #expect(result.errorCount > 0)
+    #expect(
+      result.diagnostics.contains {
+        $0.message.contains("content drift in managed file 'CDEItem+CoreDataEvolution.swift'")
+      }
+    )
+  }
+
   private func makeGeneratedSourceDirectory() throws -> URL {
     let temporaryDirectory = FileManager.default.temporaryDirectory
       .appendingPathComponent("CoreDataEvolutionToolingCoreTests", isDirectory: true)
@@ -189,7 +232,10 @@ struct ValidateServiceTests {
     )
   }
 
-  private func makeValidateRequest(sourceDirectory: String) throws -> ValidateRequest {
+  private func makeValidateRequest(
+    sourceDirectory: String,
+    level: ToolingValidationLevel = .quick
+  ) throws -> ValidateRequest {
     let modelPath = try integrationModelPath()
     return .init(
       modelPath: modelPath,
@@ -222,13 +268,17 @@ struct ValidateServiceTests {
           ]
         ]
       ),
+      accessLevel: .internal,
+      singleFile: false,
+      splitByEntity: true,
+      headerTemplate: nil,
       generateInit: true,
       relationshipSetterPolicy: .plain,
       relationshipCountPolicy: .warning,
       defaultDecodeFailurePolicy: .debugAssertNil,
       include: [],
       exclude: [],
-      level: .quick,
+      level: level,
       report: .text,
       failOnWarning: false,
       maxIssues: 50

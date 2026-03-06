@@ -89,8 +89,7 @@ public enum ToolingSourceParser {
       return []
     }
 
-    let includeMatchers = include.map(ToolingGlobMatcher.init)
-    let excludeMatchers = exclude.map(ToolingGlobMatcher.init)
+    let pathScope = ToolingValidationPathScope(include: include, exclude: exclude)
     var files: [URL] = []
 
     for case let fileURL as URL in enumerator {
@@ -100,12 +99,7 @@ public enum ToolingSourceParser {
 
       let relativePath = fileURL.path.replacingOccurrences(
         of: sourceDirectoryURL.path + "/", with: "")
-      if includeMatchers.isEmpty == false
-        && includeMatchers.contains(where: { $0.matches(relativePath) }) == false
-      {
-        continue
-      }
-      if excludeMatchers.contains(where: { $0.matches(relativePath) }) {
+      if pathScope.contains(relativePath) == false {
         continue
       }
       files.append(fileURL)
@@ -174,22 +168,6 @@ private final class ToolingSourceEntityCollector: SyntaxVisitor {
         parseAttributeAnnotation(from:)),
       relationshipShape: typeSyntax.flatMap(parseRelationshipShape(from:))
     )
-  }
-}
-
-private struct ToolingGlobMatcher {
-  private let regex: NSRegularExpression
-
-  init(_ pattern: String) {
-    let escaped = NSRegularExpression.escapedPattern(for: pattern)
-      .replacingOccurrences(of: #"\*"#, with: ".*")
-      .replacingOccurrences(of: #"\?"#, with: ".")
-    self.regex = try! NSRegularExpression(pattern: "^\(escaped)$")
-  }
-
-  func matches(_ text: String) -> Bool {
-    let range = NSRange(text.startIndex..<text.endIndex, in: text)
-    return regex.firstMatch(in: text, range: range) != nil
   }
 }
 

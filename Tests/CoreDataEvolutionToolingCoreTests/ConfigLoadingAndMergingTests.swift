@@ -123,6 +123,10 @@ struct ConfigLoadingAndMergingTests {
       moduleName: "AppModels",
       typeMappings: typeMappings,
       attributeRules: attributeRules,
+      accessLevel: .internal,
+      singleFile: false,
+      splitByEntity: true,
+      headerTemplate: nil,
       generateInit: false,
       relationshipSetterPolicy: .warning,
       relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
@@ -134,7 +138,7 @@ struct ConfigLoadingAndMergingTests {
       failOnWarning: false,
       maxIssues: 200
     )
-    let request = ValidateRequest(
+    let request = try ValidateRequest(
       config: config
     )
 
@@ -143,6 +147,10 @@ struct ConfigLoadingAndMergingTests {
     #expect(request.typeMappings[coreDataType: "Integer 64"]?.swiftType == "Int")
     #expect(request.typeMappings[coreDataType: "Date"]?.swiftType == "Date")
     #expect(request.attributeRules == attributeRules)
+    #expect(request.accessLevel == .internal)
+    #expect(request.singleFile == false)
+    #expect(request.splitByEntity == true)
+    #expect(request.headerTemplate == nil)
     #expect(request.relationshipSetterPolicy == .warning)
     #expect(request.defaultDecodeFailurePolicy == .fallbackToDefaultValue)
     #expect(request.level == .quick)
