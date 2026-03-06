@@ -20,6 +20,7 @@ struct CDETool: ParsableCommand {
       GenerateCommand.self,
       ValidateCommand.self,
       InspectCommand.self,
+      BootstrapConfigCommand.self,
       InitConfigCommand.self,
     ]
   )

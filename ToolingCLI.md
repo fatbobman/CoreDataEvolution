@@ -27,6 +27,17 @@ CLI v1 先解决两件事：
 
 用途：导出默认配置模板 JSON，作为项目配置起点。
 
+### `cde-tool bootstrap-config`
+
+用途：根据具体 Core Data 模型生成一份“可编辑配置草案”，适合作为首次接入工具时的起点。
+
+推荐工作流：
+
+1. `bootstrap-config` 根据模型生成配置草案。
+2. 手动修改 `typeMappings` 与 `attributeRules`。
+3. `generate` 根据“模型 + 配置”生成代码。
+4. `validate` 使用同一份配置做校验。
+
 ## 3. 配置文件（JSON）
 
 为避免每次传入大量参数，CLI 支持：
@@ -226,6 +237,53 @@ CLI v1 先解决两件事：
 - 成功写文件时输出：`wrote config template to <path>`
 - `--stdout` 模式下不输出额外日志，仅输出 JSON 内容。
 
+### 3.3 模型驱动配置草案导出
+
+建议支持：
+
+- `cde-tool bootstrap-config --model-path Models/AppModel.xcdatamodeld --output cde-tool.json`
+- `cde-tool bootstrap-config --model-path Models/AppModel.xcdatamodeld --stdout`
+
+参数草案：
+
+- `--model-path <path>`
+  - required。支持 `.xcdatamodeld`、`.xcdatamodel`、`.momd`。
+- `--model-version <name>`
+  - optional。显式指定模型版本。
+- `--momc-bin <path>`
+  - optional。覆盖 `momc` 自动发现。
+- `--module-name <name>`
+  - optional。默认 `AppModels`。
+- `--output-dir <path>`
+  - optional。默认 `Generated/CoreDataEvolution`。
+- `--source-dir <path>`
+  - optional。默认 `Sources/AppModels`。
+- `--output <path>`
+  - optional。默认 `./cde-tool.json`。
+- `--stdout`
+  - optional。输出到标准输出，不写文件。
+- `--force`
+  - optional。覆盖已存在配置文件。
+
+输出约定：
+
+- 生成完整 `typeMappings`，方便用户直接修改默认类型映射策略。
+- 为每个实体的每个 attribute 生成一条 `attributeRules` 占位规则。
+- 如果 `swiftName == persistentField`，默认省略 `swiftName`，保持草案简洁。
+- 只有当属性需要重命名时，才显式填写 `swiftName`。
+- 对 `Transformable` 字段：
+  - 自动生成 `storageMethod: "transformed"`
+  - 如果模型里已有 transformer 名称，则带出 `transformerType`
+  - 同时在 diagnostics 中提示用户补齐/确认 `swiftType`
+- 对普通基础字段，不自动写入 `storageMethod`，保持可编辑但不过度冗余。
+- v1 不为 relationship 生成配置规则。
+
+设计边界：
+
+- `init-config` 是“通用模板”，不依赖具体模型。
+- `bootstrap-config` 是“模型驱动草案”，依赖具体模型。
+- 两者不合并，避免命令语义混淆。
+
 ## 4. `generate` 参数设计（v1）
 
 ### 4.1 模型输入参数
@@ -261,6 +319,8 @@ CLI v1 先解决两件事：
   - v1 不单独提供 CLI 参数，推荐在 JSON 配置中声明。
 - `--attribute-rules`
   - v1 不单独提供 CLI 参数，推荐在 JSON 配置中声明。
+
+如果是首次接入，推荐先运行 `bootstrap-config` 生成这些字段，再手动修改。
 - `--access-level <internal|public>`
   - 生成代码默认可见性。
 - `--single-file`

@@ -19,6 +19,31 @@ public struct InitConfigRequest: Sendable, Equatable {
   }
 }
 
+public struct BootstrapConfigRequest: Sendable, Equatable {
+  public let modelPath: String
+  public let modelVersion: String?
+  public let momcBin: String?
+  public let moduleName: String
+  public let outputDir: String
+  public let sourceDir: String
+
+  public init(
+    modelPath: String,
+    modelVersion: String?,
+    momcBin: String?,
+    moduleName: String,
+    outputDir: String,
+    sourceDir: String
+  ) {
+    self.modelPath = modelPath
+    self.modelVersion = modelVersion
+    self.momcBin = momcBin
+    self.moduleName = moduleName
+    self.outputDir = outputDir
+    self.sourceDir = sourceDir
+  }
+}
+
 public struct GenerateRequest: Sendable, Equatable {
   public let modelPath: String
   public let modelVersion: String?

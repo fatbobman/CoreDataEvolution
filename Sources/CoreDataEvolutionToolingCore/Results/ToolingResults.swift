@@ -27,6 +27,22 @@ public struct InitConfigResult: Sendable {
   }
 }
 
+public struct BootstrapConfigResult: Sendable {
+  public let template: ToolingConfigTemplate
+  public let jsonData: Data
+  public let diagnostics: [ToolingDiagnostic]
+
+  public init(
+    template: ToolingConfigTemplate,
+    jsonData: Data,
+    diagnostics: [ToolingDiagnostic]
+  ) {
+    self.template = template
+    self.jsonData = jsonData
+    self.diagnostics = diagnostics
+  }
+}
+
 public struct GenerateResult: Sendable, Equatable {
   public let diagnostics: [ToolingDiagnostic]
 

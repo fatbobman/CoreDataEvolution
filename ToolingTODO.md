@@ -24,6 +24,7 @@
 - `[x]` 创建 schema version 校验与升级提示逻辑
 - `[x]` 创建配置文件读取与命令行覆盖合并逻辑
 - `[x]` 创建共享 `typeMappings` 与 `attributeRules` 配置模型
+- `[x]` 创建 `bootstrap-config` 请求/结果/服务骨架
 
 ## 2. Model Loading
 
@@ -102,6 +103,7 @@
 - `[x]` 创建 `cde-tool` target
 - `[x]` 使用 `Swift Argument Parser`
 - `[x]` 提供 `init-config`
+- `[x]` 提供 `bootstrap-config`
 - `[x]` 提供 `generate` 命令骨架
 - `[x]` 提供 `validate` 命令骨架
 - `[x]` 提供 `inspect` 命令骨架
@@ -135,6 +137,7 @@
 - `[x]` schema version 测试
 - `[x]` config 合并测试
 - `[x]` `init-config` service 测试
+- `[x]` `bootstrap-config` service 测试
 - `[x]` 模型版本选择测试
 - `[ ]` IR 构建测试
 - `[ ]` generate file plan 测试
@@ -147,7 +150,7 @@
 
 ## 11. Immediate Next Steps
 
-- `1.` 开始实现 model loader 与版本选择
-- `2.` 为 `generate` / `validate` 建立 service 层入口
-- `3.` 定义基础 IR（entity / attribute / relationship / composition）
+- `1.` 定义基础 IR（entity / attribute / relationship / composition）
+- `2.` 将 `inspect` 接入 `ToolingCore`
+- `3.` 为 `generate` / `validate` 建立 service 层入口
 - `4.` 将 CLI `--config` 接入 `ToolingCore`
