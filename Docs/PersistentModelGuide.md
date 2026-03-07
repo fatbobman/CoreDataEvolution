@@ -344,9 +344,10 @@ var owner: Owner?
 You do not need to write these count arguments when the model uses Core Data's default bounds for
 that relationship shape:
 
-- optional to-one: `0...1`
-- non-optional to-one: `1...1`
-- to-many: `0...0` unless the model explicitly constrains it
+- optional to-one: minimum `0`, maximum `1`
+- non-optional to-one: minimum `1`, maximum `1`
+- to-many: minimum `0`, with no upper bound unless the model explicitly constrains it. In Core
+  Data, `maxCount == 0` means "unbounded" for to-many relationships.
 
 Write them only when the model declares non-default minimum or maximum counts.
 

@@ -150,6 +150,7 @@ enum RelationshipGenerationPolicy { case none, warning, plain }
 - `inverse` 必填。
 - `deleteRule` 必填。
 - `minimumModelCount` / `maximumModelCount` 为可选参数：
+  - 对 to-many relationship，Core Data 中 `maxCount == 0` 表示“无上限”，不是“最多 0 个”
   - 仅在模型声明了非默认关系计数约束时才需要出现在源码中
   - 默认关系界限由 Core Data relationship 形态决定（例如可选 to-one 为 `0...1`）
 - relationship 属性本身已经提供目标实体类型，因此 `@Relationship` 只需要补充对端属性名与删除策略。
