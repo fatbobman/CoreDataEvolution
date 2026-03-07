@@ -19,7 +19,7 @@ CLI v1 先解决两件事：
 
 - model -> IR -> generated sources -> file plan -> disk writes
 - `@objc` / `@PersistentModel` / `@Attribute` / relationship / composition 声明渲染
-- `typeMappings` 与 `attributeRules` 的生成侧解析
+- `typeMappings`、`attributeRules` 与 `relationshipRules` 的生成侧解析
 - `overwrite` / `clean-stale` / `dry-run`
 - 单文件与按 entity 拆分输出
 
@@ -40,7 +40,7 @@ CLI v1 先解决两件事：
 当前行为：
 
 - 读取模型并输出结构化 IR JSON。
-- 默认使用内建 `typeMappings` / 空 `attributeRules`。
+- 默认使用内建 `typeMappings` / 空 `attributeRules` / 空 `relationshipRules`。
 - 如果提供 `--config`，则读取其中 `generate` 节点的规则来解析属性名、存储方式、类型映射。
 - `inspect --config` 与 `generate/validate` 一样，按配置文件所在目录解析相对路径。
 - 对于尚未补完的字段，`inspect` 会输出 diagnostics，但仍尽量产出可读 IR。
@@ -56,7 +56,7 @@ CLI v1 先解决两件事：
 推荐工作流：
 
 1. `bootstrap-config` 根据模型生成配置草案。
-2. 手动修改 `typeMappings` 与 `attributeRules`。
+2. 手动修改 `typeMappings`、`attributeRules` 与 `relationshipRules`。
 3. `generate` 根据“模型 + 配置”生成代码。
 4. `validate` 使用同一份配置做校验。
 
@@ -173,6 +173,18 @@ v1 的版本与发行策略分为两层：
         }
       }
     },
+    "relationshipRules": {
+      "Item": {
+        "oldtags": {
+          "swiftName": "tags"
+        }
+      },
+      "Tag": {
+        "item_ref": {
+          "swiftName": "owner"
+        }
+      }
+    },
     "accessLevel": "internal",
     "singleFile": false,
     "splitByEntity": true,
@@ -221,6 +233,18 @@ v1 的版本与发行策略分为两层：
         }
       }
     },
+    "relationshipRules": {
+      "Item": {
+        "oldtags": {
+          "swiftName": "tags"
+        }
+      },
+      "Tag": {
+        "item_ref": {
+          "swiftName": "owner"
+        }
+      }
+    },
     "include": [],
     "exclude": [],
     "level": "conformance",
@@ -265,6 +289,17 @@ v1 的版本与发行策略分为两层：
   - `generate` 用于生成重命名属性与 `@Attribute(...)` 覆盖
   - `validate` 用于按同一规则校验代码与模型是否一致
 - v1 仅用于 attribute，不用于 relationship
+
+`relationshipRules` 约定：
+
+- 结构：`EntityName.persistentRelationship -> rule object`
+- 当前规则对象只包含：
+  - `swiftName`
+- 作用：
+  - `generate` 用于生成 relationship 重命名与 `@Relationship(persistentName: ...)`
+  - `validate` 用于按同一规则校验 relationship 重命名是否一致
+- 如果关系两侧都需要重命名，需要分别在两侧实体的 `relationshipRules` 中单独声明。
+- `@Relationship(inverse: ...)` 仍然使用对端 relationship 的持久化名字，不使用对端 Swift 属性名。
 
 `Binary` / `codable` 约定：
 

@@ -68,6 +68,7 @@ public macro Ignore() =
 
 @attached(peer)
 public macro Relationship(
+  persistentName: String? = nil,
   inverse: String,
   deleteRule: RelationshipDeleteRule,
   minimumModelCount: Int? = nil,
@@ -78,6 +79,7 @@ public macro Relationship(
 @attached(peer, names: arbitrary)
 public macro _CDRelationship(
   setterPolicy: RelationshipGenerationPolicy = .none,
+  persistentName: String? = nil,
   _fromPersistentModel: Bool = false
 ) = #externalMacro(module: "CoreDataEvolutionMacros", type: "RelationshipMacro")
 

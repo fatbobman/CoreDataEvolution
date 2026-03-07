@@ -55,6 +55,13 @@ struct ConfigLoadingAndMergingTests {
         ]
       ]
     )
+    let relationshipRules = ToolingRelationshipRules(
+      entities: [
+        "Item": [
+          "tags": .init(swiftName: "labels")
+        ]
+      ]
+    )
     let configured = GenerateTemplate(
       modelPath: "Models/AppModel.xcdatamodeld",
       modelVersion: config.generate?.modelVersion,
@@ -63,6 +70,7 @@ struct ConfigLoadingAndMergingTests {
       moduleName: "AppModels",
       typeMappings: typeMappings,
       attributeRules: attributeRules,
+      relationshipRules: relationshipRules,
       accessLevel: .internal,
       singleFile: false,
       splitByEntity: true,
@@ -92,6 +100,7 @@ struct ConfigLoadingAndMergingTests {
     #expect(request.typeMappings[coreDataType: "Integer 64"]?.swiftType == "Int")
     #expect(request.typeMappings[coreDataType: "UUID"]?.swiftType == "UUID")
     #expect(request.attributeRules == attributeRules)
+    #expect(request.relationshipRules == relationshipRules)
     #expect(request.accessLevel == .public)
     #expect(request.overwrite == .all)
     #expect(request.generateInit)
@@ -115,6 +124,13 @@ struct ConfigLoadingAndMergingTests {
         ]
       ]
     )
+    let relationshipRules = ToolingRelationshipRules(
+      entities: [
+        "Tag": [
+          "items": .init(swiftName: "linkedItems")
+        ]
+      ]
+    )
     let config = ValidateTemplate(
       modelPath: "Models/AppModel.xcdatamodeld",
       modelVersion: nil,
@@ -123,6 +139,7 @@ struct ConfigLoadingAndMergingTests {
       moduleName: "AppModels",
       typeMappings: typeMappings,
       attributeRules: attributeRules,
+      relationshipRules: relationshipRules,
       accessLevel: .internal,
       singleFile: false,
       splitByEntity: true,
@@ -147,6 +164,7 @@ struct ConfigLoadingAndMergingTests {
     #expect(request.typeMappings[coreDataType: "Integer 64"]?.swiftType == "Int")
     #expect(request.typeMappings[coreDataType: "Date"]?.swiftType == "Date")
     #expect(request.attributeRules == attributeRules)
+    #expect(request.relationshipRules == relationshipRules)
     #expect(request.accessLevel == .internal)
     #expect(request.singleFile == false)
     #expect(request.splitByEntity == true)

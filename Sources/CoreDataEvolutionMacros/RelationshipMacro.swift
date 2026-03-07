@@ -62,6 +62,7 @@ private struct RelationshipInfo {
   }
 
   let propertyName: String
+  let persistentName: String
   let kind: Kind
   let setterPolicy: ParsedRelationshipGenerationPolicy
 }
@@ -175,6 +176,7 @@ private func buildRelationshipInfo(
 
   return RelationshipInfo(
     propertyName: propertyName,
+    persistentName: arguments.persistentName ?? propertyName,
     kind: kind,
     setterPolicy: setterPolicy
   )
@@ -182,6 +184,7 @@ private func buildRelationshipInfo(
 
 private struct ParsedRelationshipMacroArguments {
   let setterPolicy: ParsedRelationshipGenerationPolicy
+  let persistentName: String?
   let fromPersistentModel: Bool
 }
 
@@ -191,10 +194,12 @@ private func parseRelationshipMacroArguments(
   guard let list = node.arguments?.as(LabeledExprListSyntax.self) else {
     return ParsedRelationshipMacroArguments(
       setterPolicy: ParsedRelationshipGenerationPolicy.none,
+      persistentName: nil,
       fromPersistentModel: false
     )
   }
   var setterPolicy: ParsedRelationshipGenerationPolicy = .none
+  var persistentName: String?
   var fromPersistentModel = false
   for argument in list {
     guard let label = argument.label?.text else {
@@ -205,6 +210,15 @@ private func parseRelationshipMacroArguments(
         parseRelationshipGenerationPolicy(
           from: argument.expression.trimmedDescription.replacingOccurrences(of: " ", with: "")
         ) ?? .none
+    } else if label == "persistentName" {
+      if argument.expression.trimmedDescription == "nil" {
+        persistentName = nil
+      } else if let literal = argument.expression.as(StringLiteralExprSyntax.self),
+        literal.segments.count == 1,
+        let segment = literal.segments.first?.as(StringSegmentSyntax.self)
+      {
+        persistentName = segment.content.text
+      }
     } else if label == "_fromPersistentModel",
       let literal = argument.expression.as(BooleanLiteralExprSyntax.self)
     {
@@ -213,6 +227,7 @@ private func parseRelationshipMacroArguments(
   }
   return ParsedRelationshipMacroArguments(
     setterPolicy: setterPolicy,
+    persistentName: persistentName,
     fromPersistentModel: fromPersistentModel
   )
 }
@@ -251,7 +266,7 @@ private func parseRelationshipKind(
 }
 
 private func makeRelationshipAccessors(from info: RelationshipInfo) -> [AccessorDeclSyntax] {
-  let key = info.propertyName
+  let key = info.persistentName
 
   switch info.kind {
   case .toOne(let targetTypeName):

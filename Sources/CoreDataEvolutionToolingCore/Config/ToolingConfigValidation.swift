@@ -49,11 +49,17 @@ public func validateToolingConfigTemplate(
     try validateToolingModelConstraints(
       entitiesByName: entitiesByName,
       attributeRules: generate.attributeRules ?? .init(),
+      relationshipRules: generate.relationshipRules ?? .init(),
       context: "generate"
     )
     try validateAttributeRules(
       generate.attributeRules ?? .init(),
       context: "generate.attributeRules",
+      entitiesByName: entitiesByName
+    )
+    try validateRelationshipRules(
+      generate.relationshipRules ?? .init(),
+      context: "generate.relationshipRules",
       entitiesByName: entitiesByName
     )
     try validateTypeResolutionCoverage(
@@ -69,11 +75,17 @@ public func validateToolingConfigTemplate(
     try validateToolingModelConstraints(
       entitiesByName: entitiesByName,
       attributeRules: validate.attributeRules ?? .init(),
+      relationshipRules: validate.relationshipRules ?? .init(),
       context: "validate"
     )
     try validateAttributeRules(
       validate.attributeRules ?? .init(),
       context: "validate.attributeRules",
+      entitiesByName: entitiesByName
+    )
+    try validateRelationshipRules(
+      validate.relationshipRules ?? .init(),
+      context: "validate.relationshipRules",
       entitiesByName: entitiesByName
     )
     try validateTypeResolutionCoverage(
@@ -90,6 +102,7 @@ public func validateToolingConfigTemplate(
 private func validateToolingModelConstraints(
   entitiesByName: [String: NSEntityDescription],
   attributeRules: ToolingAttributeRules,
+  relationshipRules: ToolingRelationshipRules,
   context: String
 ) throws {
   for (entityName, entity) in entitiesByName {
@@ -130,6 +143,8 @@ private func validateToolingModelConstraints(
     }
 
     for (fieldName, relationship) in entity.relationshipsByName {
+      let rule = relationshipRules[entity: entityName][fieldName] ?? .init()
+
       if relationship.isOptional == false {
         throw configValidationFailure(
           "\(context) requires relationship '\(entityName).\(fieldName)' to be optional."
@@ -145,6 +160,14 @@ private func validateToolingModelConstraints(
       if relationship.deleteRule == .noActionDeleteRule {
         throw configValidationFailure(
           "\(context) does not support No Action delete rule at '\(entityName).\(fieldName)'."
+        )
+      }
+
+      if let swiftName = rule.swiftName,
+        swiftName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+      {
+        throw configValidationFailure(
+          "\(context).relationshipRules.\(entityName).\(fieldName).swiftName must not be empty."
         )
       }
     }
@@ -215,6 +238,10 @@ private func validateGenerateTemplate(_ template: GenerateTemplate) throws {
     context: "generate.attributeRules",
     defaultDecodeFailurePolicy: template.defaultDecodeFailurePolicy ?? .fallbackToDefaultValue
   )
+  try validateRelationshipRulesStatic(
+    template.relationshipRules,
+    context: "generate.relationshipRules"
+  )
 }
 
 /// Validates the `validate` section's self-contained rules and required fields.
@@ -257,6 +284,10 @@ private func validateValidateTemplate(_ template: ValidateTemplate) throws {
     template.attributeRules,
     context: "validate.attributeRules",
     defaultDecodeFailurePolicy: template.defaultDecodeFailurePolicy ?? .fallbackToDefaultValue
+  )
+  try validateRelationshipRulesStatic(
+    template.relationshipRules,
+    context: "validate.relationshipRules"
   )
 }
 
@@ -359,6 +390,32 @@ private func validateAttributeRulesStatic(
   }
 }
 
+private func validateRelationshipRulesStatic(
+  _ rules: ToolingRelationshipRules?,
+  context: String
+) throws {
+  guard let rules else { return }
+
+  for (entityName, fields) in rules.entities {
+    if entityName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+      throw configValidationFailure("\(context) contains an empty entity name.")
+    }
+
+    for (fieldName, rule) in fields {
+      if fieldName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        throw configValidationFailure("\(context).\(entityName) contains an empty field name.")
+      }
+
+      if let swiftName = rule.swiftName,
+        swiftName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+      {
+        throw configValidationFailure(
+          "\(context).\(entityName).\(fieldName).swiftName must not be empty.")
+      }
+    }
+  }
+}
+
 /// Ensures `attributeRules` only point at attributes that actually exist in the model.
 private func validateAttributeRules(
   _ rules: ToolingAttributeRules,
@@ -374,6 +431,27 @@ private func validateAttributeRules(
       guard entity.attributesByName[fieldName] != nil else {
         throw configValidationFailure(
           "\(context) references missing attribute '\(entityName).\(fieldName)'."
+        )
+      }
+    }
+  }
+}
+
+/// Ensures `relationshipRules` only point at relationships that actually exist in the model.
+private func validateRelationshipRules(
+  _ rules: ToolingRelationshipRules,
+  context: String,
+  entitiesByName: [String: NSEntityDescription]
+) throws {
+  for (entityName, fields) in rules.entities {
+    guard let entity = entitiesByName[entityName] else {
+      throw configValidationFailure("\(context) references missing entity '\(entityName)'.")
+    }
+
+    for fieldName in fields.keys {
+      guard entity.relationshipsByName[fieldName] != nil else {
+        throw configValidationFailure(
+          "\(context) references missing relationship '\(entityName).\(fieldName)'."
         )
       }
     }

@@ -104,7 +104,7 @@ public enum PublicRelationshipMacro: PeerMacro {
       return []
     case .failure(.missingInverseArgument), .failure(.invalidInverseArgument):
       MacroDiagnosticReporter.error(
-        "@Relationship requires `inverse:` in the form @Relationship(inverse: \"property\", deleteRule: .nullify).",
+        "@Relationship requires `inverse:` in the form @Relationship(persistentName: nil, inverse: \"property\", deleteRule: .nullify).",
         domain: "CoreDataEvolution.PublicRelationshipMacro",
         in: context,
         node: node
@@ -120,7 +120,7 @@ public enum PublicRelationshipMacro: PeerMacro {
       return []
     case .failure(.missingDeleteRuleArgument), .failure(.invalidDeleteRuleArgument):
       MacroDiagnosticReporter.error(
-        "@Relationship requires `deleteRule:` in the form @Relationship(inverse: \"property\", deleteRule: .nullify).",
+        "@Relationship requires `deleteRule:` in the form @Relationship(persistentName: nil, inverse: \"property\", deleteRule: .nullify).",
         domain: "CoreDataEvolution.PublicRelationshipMacro",
         in: context,
         node: node
@@ -144,7 +144,7 @@ public enum PublicRelationshipMacro: PeerMacro {
       return []
     case .failure(.invalidShape):
       MacroDiagnosticReporter.error(
-        "@Relationship must use the form @Relationship(inverse: \"property\", deleteRule: .nullify). Optional minimumModelCount/maximumModelCount may be added when needed.",
+        "@Relationship must use the form @Relationship(persistentName: nil, inverse: \"property\", deleteRule: .nullify). Optional minimumModelCount/maximumModelCount may be added when needed.",
         domain: "CoreDataEvolution.PublicRelationshipMacro",
         in: context,
         node: node

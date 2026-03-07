@@ -245,6 +245,84 @@ struct ConfigValidationTests {
     }
   }
 
+  @Test("relationship rules reject missing model entities and fields")
+  func relationshipRulesRejectMissingEntityAndFieldAgainstModel() throws {
+    let model = makeModel()
+    let template = ToolingConfigTemplate(
+      schemaVersion: toolingSupportedSchemaVersion,
+      generate: .init(
+        modelPath: "Models/AppModel.xcdatamodeld",
+        modelVersion: nil,
+        momcBin: nil,
+        outputDir: "Generated/CoreDataEvolution",
+        moduleName: "AppModels",
+        typeMappings: nil,
+        attributeRules: nil,
+        relationshipRules: .init(
+          entities: [
+            "Ghost": [
+              "items": .init(swiftName: "children")
+            ]
+          ]
+        ),
+        accessLevel: .internal,
+        singleFile: false,
+        splitByEntity: true,
+        overwrite: ToolingOverwriteMode.none,
+        cleanStale: false,
+        dryRun: false,
+        format: ToolingFormatMode.none,
+        headerTemplate: nil,
+        generateInit: false,
+        relationshipSetterPolicy: .warning,
+        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
+        defaultDecodeFailurePolicy: .fallbackToDefaultValue
+      ),
+      validate: nil
+    )
+
+    try expectConfigFailure(template, code: .configInvalid) {
+      try validateToolingConfigTemplate(template, against: model)
+    }
+
+    let fieldTemplate = ToolingConfigTemplate(
+      schemaVersion: toolingSupportedSchemaVersion,
+      generate: .init(
+        modelPath: "Models/AppModel.xcdatamodeld",
+        modelVersion: nil,
+        momcBin: nil,
+        outputDir: "Generated/CoreDataEvolution",
+        moduleName: "AppModels",
+        typeMappings: nil,
+        attributeRules: nil,
+        relationshipRules: .init(
+          entities: [
+            "Item": [
+              "missingRelationship": .init(swiftName: "children")
+            ]
+          ]
+        ),
+        accessLevel: .internal,
+        singleFile: false,
+        splitByEntity: true,
+        overwrite: ToolingOverwriteMode.none,
+        cleanStale: false,
+        dryRun: false,
+        format: ToolingFormatMode.none,
+        headerTemplate: nil,
+        generateInit: false,
+        relationshipSetterPolicy: .warning,
+        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
+        defaultDecodeFailurePolicy: .fallbackToDefaultValue
+      ),
+      validate: nil
+    )
+
+    try expectConfigFailure(fieldTemplate, code: .configInvalid) {
+      try validateToolingConfigTemplate(fieldTemplate, against: model)
+    }
+  }
+
   @Test("default storage requires an inferable Core Data primitive type")
   func defaultStorageRequiresInferablePrimitiveType() throws {
     let model = makeModel()

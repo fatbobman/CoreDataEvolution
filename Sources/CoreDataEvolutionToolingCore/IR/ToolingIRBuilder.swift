@@ -19,19 +19,21 @@ public enum ToolingIRBuilder {
     request: InspectRequest
   ) -> (modelIR: ToolingModelIR, diagnostics: [ToolingDiagnostic]) {
     var diagnostics: [ToolingDiagnostic] = []
-    var consumedRuleFieldsByEntity: [String: Set<String>] = [:]
+    var consumedAttributeRuleFieldsByEntity: [String: Set<String>] = [:]
+    var consumedRelationshipRuleFieldsByEntity: [String: Set<String>] = [:]
 
     let entities = loadedModel.model.entities
       .compactMap { entity -> ToolingEntityIR? in
         guard let entityName = entity.name else { return nil }
 
         let entityRuleFields = request.attributeRules[entity: entityName]
-        consumedRuleFieldsByEntity[entityName] = []
+        consumedAttributeRuleFieldsByEntity[entityName] = []
+        consumedRelationshipRuleFieldsByEntity[entityName] = []
 
         let attributes = entity.attributesByName
           .sorted(by: { $0.key < $1.key })
           .map { persistentName, attribute in
-            consumedRuleFieldsByEntity[entityName, default: []].insert(persistentName)
+            consumedAttributeRuleFieldsByEntity[entityName, default: []].insert(persistentName)
             return buildAttribute(
               entityName: entityName,
               persistentName: persistentName,
@@ -44,9 +46,12 @@ public enum ToolingIRBuilder {
         let relationships = entity.relationshipsByName
           .sorted(by: { $0.key < $1.key })
           .map { persistentName, relationship in
-            buildRelationship(
+            consumedRelationshipRuleFieldsByEntity[entityName, default: []].insert(persistentName)
+            return buildRelationship(
+              entityName: entityName,
               persistentName: persistentName,
-              relationship: relationship
+              relationship: relationship,
+              request: request
             )
           }
 
@@ -75,7 +80,8 @@ public enum ToolingIRBuilder {
       contentsOf: makeUnusedRuleDiagnostics(
         model: loadedModel.model,
         request: request,
-        consumedRuleFieldsByEntity: consumedRuleFieldsByEntity
+        consumedAttributeRuleFieldsByEntity: consumedAttributeRuleFieldsByEntity,
+        consumedRelationshipRuleFieldsByEntity: consumedRelationshipRuleFieldsByEntity
       )
     )
 
@@ -170,12 +176,20 @@ public enum ToolingIRBuilder {
   }
 
   private static func buildRelationship(
+    entityName: String,
     persistentName: String,
-    relationship: NSRelationshipDescription
+    relationship: NSRelationshipDescription,
+    request: InspectRequest
   ) -> ToolingRelationshipIR {
-    .init(
+    let rule =
+      request.relationshipRules[entity: entityName][persistentName]
+      ?? ToolingRelationshipRule()
+    return .init(
       persistentName: persistentName,
-      swiftName: persistentName,
+      swiftName: resolveToolingRelationshipSwiftName(
+        persistentName: persistentName,
+        rule: rule
+      ),
       destinationEntityName: relationship.destinationEntity?.name,
       inverseRelationshipName: relationship.inverseRelationship?.name,
       cardinality: relationship.isToMany
@@ -282,7 +296,8 @@ public enum ToolingIRBuilder {
   private static func makeUnusedRuleDiagnostics(
     model: NSManagedObjectModel,
     request: InspectRequest,
-    consumedRuleFieldsByEntity: [String: Set<String>]
+    consumedAttributeRuleFieldsByEntity: [String: Set<String>],
+    consumedRelationshipRuleFieldsByEntity: [String: Set<String>]
   ) -> [ToolingDiagnostic] {
     let modelEntityNames = Set(model.entities.compactMap(\.name))
     var diagnostics: [ToolingDiagnostic] = []
@@ -299,7 +314,7 @@ public enum ToolingIRBuilder {
         continue
       }
 
-      let consumedFields = consumedRuleFieldsByEntity[entityName] ?? []
+      let consumedFields = consumedAttributeRuleFieldsByEntity[entityName] ?? []
       let unusedFields = fields.keys
         .filter { consumedFields.contains($0) == false }
         .sorted()
@@ -311,6 +326,35 @@ public enum ToolingIRBuilder {
             code: .configInvalid,
             message:
               "inspect found attributeRules for missing attribute '\(entityName).\(fieldName)'."
+          )
+        )
+      }
+    }
+
+    for (entityName, fields) in request.relationshipRules.entities.sorted(by: { $0.key < $1.key }) {
+      guard modelEntityNames.contains(entityName) else {
+        diagnostics.append(
+          .init(
+            severity: .warning,
+            code: .configInvalid,
+            message: "inspect found relationshipRules for missing entity '\(entityName)'."
+          )
+        )
+        continue
+      }
+
+      let consumedFields = consumedRelationshipRuleFieldsByEntity[entityName] ?? []
+      let unusedFields = fields.keys
+        .filter { consumedFields.contains($0) == false }
+        .sorted()
+
+      for fieldName in unusedFields {
+        diagnostics.append(
+          .init(
+            severity: .warning,
+            code: .configInvalid,
+            message:
+              "inspect found relationshipRules for missing relationship '\(entityName).\(fieldName)'."
           )
         )
       }

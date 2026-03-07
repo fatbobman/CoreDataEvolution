@@ -57,6 +57,7 @@ public struct GenerateRequest: Sendable, Equatable {
   public let moduleName: String
   public let typeMappings: ToolingTypeMappings
   public let attributeRules: ToolingAttributeRules
+  public let relationshipRules: ToolingRelationshipRules
   public let accessLevel: ToolingAccessLevel
   public let singleFile: Bool
   public let splitByEntity: Bool
@@ -79,6 +80,7 @@ public struct GenerateRequest: Sendable, Equatable {
     moduleName: String,
     typeMappings: ToolingTypeMappings,
     attributeRules: ToolingAttributeRules,
+    relationshipRules: ToolingRelationshipRules = .init(),
     accessLevel: ToolingAccessLevel,
     singleFile: Bool,
     splitByEntity: Bool,
@@ -100,6 +102,7 @@ public struct GenerateRequest: Sendable, Equatable {
     self.moduleName = moduleName
     self.typeMappings = typeMappings
     self.attributeRules = attributeRules
+    self.relationshipRules = relationshipRules
     self.accessLevel = accessLevel
     self.singleFile = singleFile
     self.splitByEntity = splitByEntity
@@ -125,6 +128,7 @@ public struct ValidateRequest: Sendable, Equatable {
   public let moduleName: String
   public let typeMappings: ToolingTypeMappings
   public let attributeRules: ToolingAttributeRules
+  public let relationshipRules: ToolingRelationshipRules
   public let accessLevel: ToolingAccessLevel
   public let singleFile: Bool
   public let splitByEntity: Bool
@@ -148,6 +152,7 @@ public struct ValidateRequest: Sendable, Equatable {
     moduleName: String,
     typeMappings: ToolingTypeMappings,
     attributeRules: ToolingAttributeRules,
+    relationshipRules: ToolingRelationshipRules = .init(),
     accessLevel: ToolingAccessLevel,
     singleFile: Bool,
     splitByEntity: Bool,
@@ -170,6 +175,7 @@ public struct ValidateRequest: Sendable, Equatable {
     self.moduleName = moduleName
     self.typeMappings = typeMappings
     self.attributeRules = attributeRules
+    self.relationshipRules = relationshipRules
     self.accessLevel = accessLevel
     self.singleFile = singleFile
     self.splitByEntity = splitByEntity
@@ -194,6 +200,7 @@ public struct InspectRequest: Sendable, Equatable {
   public let momcBin: String?
   public let typeMappings: ToolingTypeMappings
   public let attributeRules: ToolingAttributeRules
+  public let relationshipRules: ToolingRelationshipRules
   public let accessLevel: ToolingAccessLevel
   public let singleFile: Bool
   public let splitByEntity: Bool
@@ -208,6 +215,7 @@ public struct InspectRequest: Sendable, Equatable {
     momcBin: String?,
     typeMappings: ToolingTypeMappings = makeDefaultToolingTypeMappings(),
     attributeRules: ToolingAttributeRules = .init(),
+    relationshipRules: ToolingRelationshipRules = .init(),
     accessLevel: ToolingAccessLevel = .internal,
     singleFile: Bool = false,
     splitByEntity: Bool = true,
@@ -221,6 +229,7 @@ public struct InspectRequest: Sendable, Equatable {
     self.momcBin = momcBin
     self.typeMappings = typeMappings
     self.attributeRules = attributeRules
+    self.relationshipRules = relationshipRules
     self.accessLevel = accessLevel
     self.singleFile = singleFile
     self.splitByEntity = splitByEntity
@@ -240,6 +249,7 @@ extension InspectRequest {
       momcBin: generateRequest.momcBin,
       typeMappings: generateRequest.typeMappings,
       attributeRules: generateRequest.attributeRules,
+      relationshipRules: generateRequest.relationshipRules,
       accessLevel: generateRequest.accessLevel,
       singleFile: generateRequest.singleFile,
       splitByEntity: generateRequest.splitByEntity,
@@ -258,6 +268,7 @@ extension InspectRequest {
       momcBin: validateRequest.momcBin,
       typeMappings: validateRequest.typeMappings,
       attributeRules: validateRequest.attributeRules,
+      relationshipRules: validateRequest.relationshipRules,
       accessLevel: validateRequest.accessLevel,
       singleFile: validateRequest.singleFile,
       splitByEntity: validateRequest.splitByEntity,

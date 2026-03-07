@@ -17,6 +17,7 @@ import Foundation
 /// V1 intentionally prefers a conservative scaffold:
 /// - emit the full default `typeMappings`
 /// - emit lightweight per-attribute placeholders in `attributeRules`
+/// - emit lightweight per-relationship placeholders in `relationshipRules`
 /// - add diagnostics for fields that still require human decisions
 public enum BootstrapConfigService {
   public static func run(_ request: BootstrapConfigRequest) throws -> BootstrapConfigResult {
@@ -32,6 +33,9 @@ public enum BootstrapConfigService {
     let attributeRules = makeAttributeRules(
       from: loadedModel.model
     )
+    let relationshipRules = makeRelationshipRules(
+      from: loadedModel.model
+    )
 
     let template = ToolingConfigTemplate(
       schemaVersion: toolingSupportedSchemaVersion,
@@ -43,6 +47,7 @@ public enum BootstrapConfigService {
         moduleName: request.moduleName,
         typeMappings: typeMappings,
         attributeRules: attributeRules,
+        relationshipRules: relationshipRules,
         accessLevel: .internal,
         singleFile: false,
         splitByEntity: true,
@@ -65,6 +70,7 @@ public enum BootstrapConfigService {
         moduleName: request.moduleName,
         typeMappings: typeMappings,
         attributeRules: attributeRules,
+        relationshipRules: relationshipRules,
         accessLevel: .internal,
         singleFile: false,
         splitByEntity: true,
@@ -118,6 +124,27 @@ public enum BootstrapConfigService {
         }
 
       entities[entityName] = attributeRules
+    }
+
+    return .init(entities: entities)
+  }
+
+  private static func makeRelationshipRules(
+    from model: NSManagedObjectModel
+  ) -> ToolingRelationshipRules {
+    var entities: [String: [String: ToolingRelationshipRule]] = [:]
+
+    for entity in model.entities.sorted(by: { ($0.name ?? "") < ($1.name ?? "") }) {
+      guard let entityName = entity.name else { continue }
+
+      let relationshipRules = entity.relationshipsByName
+        .sorted(by: { $0.key < $1.key })
+        .reduce(into: [String: ToolingRelationshipRule]()) { partialResult, item in
+          let (persistentName, _) = item
+          partialResult[persistentName] = .init()
+        }
+
+      entities[entityName] = relationshipRules
     }
 
     return .init(entities: entities)

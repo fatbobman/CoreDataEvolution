@@ -31,6 +31,7 @@ func preferredAttributeForParsing(named name: String, in variable: VariableDeclS
 }
 
 struct ParsedRelationshipDeclArguments: Equatable {
+  let persistentName: String?
   let inversePropertyName: String
   let deleteRule: ParsedRelationshipDeleteRule
   let minimumModelCount: Int?
@@ -72,6 +73,7 @@ func parseRelationshipDeclArguments(
   var deleteRule: ParsedRelationshipDeleteRule?
   var minimumModelCount: Int?
   var maximumModelCount: Int?
+  var persistentName: String?
 
   for argument in list {
     guard let label = argument.label?.text else {
@@ -79,6 +81,22 @@ func parseRelationshipDeclArguments(
     }
 
     switch label {
+    case "persistentName":
+      if argument.expression.trimmedDescription == "nil" {
+        persistentName = nil
+        continue
+      }
+      guard let propertyLiteral = argument.expression.as(StringLiteralExprSyntax.self),
+        propertyLiteral.segments.count == 1,
+        let segment = propertyLiteral.segments.first?.as(StringSegmentSyntax.self)
+      else {
+        return .failure(.invalidShape)
+      }
+      let value = segment.content.text
+      guard value.isEmpty == false else {
+        return .failure(.invalidShape)
+      }
+      persistentName = value
     case "inverse":
       guard let propertyLiteral = argument.expression.as(StringLiteralExprSyntax.self),
         propertyLiteral.segments.count == 1,
@@ -127,6 +145,7 @@ func parseRelationshipDeclArguments(
 
   return .success(
     .init(
+      persistentName: persistentName,
       inversePropertyName: inversePropertyName,
       deleteRule: deleteRule,
       minimumModelCount: minimumModelCount,

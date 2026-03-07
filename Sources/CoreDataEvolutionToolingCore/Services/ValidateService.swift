@@ -87,6 +87,7 @@ public enum ValidateService {
       moduleName: request.moduleName,
       typeMappings: request.typeMappings,
       attributeRules: request.attributeRules,
+      relationshipRules: request.relationshipRules,
       accessLevel: request.accessLevel,
       singleFile: request.singleFile,
       splitByEntity: request.splitByEntity,

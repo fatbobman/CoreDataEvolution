@@ -33,6 +33,13 @@ public func resolveToolingSwiftName(
   rule.swiftName ?? persistentName
 }
 
+public func resolveToolingRelationshipSwiftName(
+  persistentName: String,
+  rule: ToolingRelationshipRule
+) -> String {
+  rule.swiftName ?? persistentName
+}
+
 /// Config files are allowed to provide partial overrides. Missing primitive keys inherit the
 /// built-in defaults instead of erasing them.
 public func mergeToolingTypeMappings(

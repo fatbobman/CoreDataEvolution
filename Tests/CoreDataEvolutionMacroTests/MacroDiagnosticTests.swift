@@ -428,7 +428,9 @@ struct MacroDiagnosticTests {
     )
     #expect(
       result.diagnostics.contains {
-        $0.contains("must declare @Relationship(inverse: ..., deleteRule: ...)")
+        $0.contains(
+          "must declare @Relationship(persistentName: ..., inverse: ..., deleteRule: ...)"
+        )
       })
   }
 

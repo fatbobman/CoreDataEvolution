@@ -339,10 +339,14 @@ public enum ToolingSourceRenderer {
     _ relationship: ToolingRelationshipIR,
     inverseRelationshipName: String
   ) -> String {
-    var arguments = [
-      #"inverse: "\#(inverseRelationshipName)""#,
-      "deleteRule: .\(relationship.deleteRule)",
-    ]
+    var arguments: [String] = []
+
+    if relationship.persistentName != relationship.swiftName {
+      arguments.append(#"persistentName: "\#(relationship.persistentName)""#)
+    }
+
+    arguments.append(#"inverse: "\#(inverseRelationshipName)""#)
+    arguments.append("deleteRule: .\(relationship.deleteRule)")
 
     if relationship.minCount != defaultMinimumModelCount(for: relationship) {
       arguments.append("minimumModelCount: \(relationship.minCount)")

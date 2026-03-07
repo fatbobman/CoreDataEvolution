@@ -25,6 +25,7 @@ struct InitConfigServiceTests {
     #expect(text.contains("\"$schemaVersion\""))
     #expect(text.contains("\"typeMappings\""))
     #expect(text.contains("\"attributeRules\""))
+    #expect(text.contains("\"relationshipRules\""))
     #expect(text.contains("\"Integer 64\""))
     #expect(text.contains("\"relationshipSetterPolicy\""))
     #expect(text.contains("\"warning\""))

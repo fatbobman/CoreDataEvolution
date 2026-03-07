@@ -59,7 +59,7 @@ func makePathsDecl(
         """
         static let \(relation.propertyName) = CoreDataEvolution.CDToOneRelationPath<\(modelTypeName), \(relation.targetTypeName)>(
           swiftPath: ["\(relation.propertyName)"],
-          persistentPath: ["\(relation.propertyName)"]
+          persistentPath: ["\(relation.persistentName)"]
         )
         """
       )
@@ -68,7 +68,7 @@ func makePathsDecl(
         """
         static let \(relation.propertyName) = CoreDataEvolution.CDToManyRelationPath<\(modelTypeName), \(relation.targetTypeName)>(
           swiftPath: ["\(relation.propertyName)"],
-          persistentPath: ["\(relation.propertyName)"]
+          persistentPath: ["\(relation.persistentName)"]
         )
         """
       )
@@ -190,7 +190,7 @@ func makeFieldTableDecl(
       "\(relation.propertyName)": .init(
         kind: .relationship,
         swiftPath: ["\(relation.propertyName)"],
-        persistentPath: ["\(relation.propertyName)"],
+        persistentPath: ["\(relation.persistentName)"],
         storageMethod: .default,
         supportsStoreSort: false,
         isToManyRelationship: \(relation.kind == .toManySet || relation.kind == .toManyArray)
@@ -209,7 +209,7 @@ func makeFieldTableDecl(
         table.merge(
           CoreDataEvolution.CDRelationshipTableBuilder.makeToOneFieldEntries(
             modelSwiftPathPrefix: ["\(relation.propertyName)"],
-            modelPersistentPathPrefix: ["\(relation.propertyName)"],
+            modelPersistentPathPrefix: ["\(relation.persistentName)"],
             target: \(relation.targetTypeName).self
           ),
           uniquingKeysWith: { _, new in new }
@@ -222,7 +222,7 @@ func makeFieldTableDecl(
         table.merge(
           CoreDataEvolution.CDRelationshipTableBuilder.makeToManyFieldEntries(
             modelSwiftPathPrefix: ["\(relation.propertyName)"],
-            modelPersistentPathPrefix: ["\(relation.propertyName)"],
+            modelPersistentPathPrefix: ["\(relation.persistentName)"],
             target: \(relation.targetTypeName).self
           ),
           uniquingKeysWith: { _, new in new }
@@ -296,7 +296,7 @@ func makeRuntimeEntitySchemaDecl(
     return """
       CoreDataEvolution.CDRuntimeRelationshipSchema(
         swiftName: "\(relationship.propertyName)",
-        persistentName: "\(relationship.propertyName)",
+        persistentName: "\(relationship.persistentName)",
         targetTypeName: "\(relationship.targetTypeName)",
         inverseName: "\(inverseName)",
         \(deleteRuleLine),
@@ -372,9 +372,9 @@ func makeToManyHelpers(
 ) -> [DeclSyntax] {
   var result: [DeclSyntax] = []
   for relation in model.relationships {
-    let key = relation.propertyName
+    let key = relation.persistentName
     let type = relation.targetTypeName
-    let suffix = uppercaseFirst(key)
+    let suffix = uppercaseFirst(relation.propertyName)
     switch relation.kind {
     case .toOne:
       continue

@@ -368,12 +368,15 @@ private func parseRelationshipAnnotation(
   var deleteRule: String?
   var minimumModelCount: Int?
   var maximumModelCount: Int?
+  var persistentName: String?
 
   for argument in list {
     guard let label = argument.label?.text else {
       return nil
     }
     switch label {
+    case "persistentName":
+      persistentName = parseStringLiteral(argument.expression)
     case "inverse":
       inversePropertyName = parseStringLiteral(argument.expression)
     case "deleteRule":
@@ -393,6 +396,7 @@ private func parseRelationshipAnnotation(
 
   return .init(
     range: toolingTextRange(for: attribute),
+    persistentName: persistentName,
     inversePropertyName: inversePropertyName,
     deleteRule: deleteRule,
     minimumModelCount: minimumModelCount,

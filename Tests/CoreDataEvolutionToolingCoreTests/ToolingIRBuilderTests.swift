@@ -60,6 +60,16 @@ struct ToolingIRBuilderTests {
           ]
         ]
       ),
+      relationshipRules: .init(
+        entities: [
+          "Item": [
+            "tags": .init(swiftName: "labels")
+          ],
+          "Tag": [
+            "item": .init(swiftName: "owner")
+          ],
+        ]
+      ),
       defaultDecodeFailurePolicy: .fallbackToDefaultValue
     )
 
@@ -95,6 +105,7 @@ struct ToolingIRBuilderTests {
     #expect(composition.swiftType == "GeoPayload")
 
     let tags = try #require(item.relationships.first(where: { $0.persistentName == "tags" }))
+    #expect(tags.swiftName == "labels")
     #expect(tags.cardinality == .toManyUnordered)
     #expect(tags.destinationEntityName == "Tag")
     #expect(tags.inverseRelationshipName == "item")

@@ -68,6 +68,7 @@ struct PersistentRelationshipProperty {
   }
 
   let propertyName: String
+  let persistentName: String
   let targetTypeName: String
   let inverseName: String?
   let deleteRule: ParsedRelationshipDeleteRule?

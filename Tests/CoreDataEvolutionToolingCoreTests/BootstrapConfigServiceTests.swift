@@ -32,6 +32,8 @@ struct BootstrapConfigServiceTests {
     )
 
     let itemRules = try #require(result.template.generate?.attributeRules?.entities["CDEItem"])
+    let itemRelationshipRules = try #require(
+      result.template.generate?.relationshipRules?.entities["CDEItem"])
     #expect(
       result.template.generate?.modelVersion == "CoreDataEvolutionIntegrationModel.xcdatamodel")
     #expect(
@@ -54,9 +56,11 @@ struct BootstrapConfigServiceTests {
     let locationRule = try #require(itemRules["location"])
     #expect(locationRule.swiftName == nil)
     #expect(locationRule.storageMethod == .transformed)
+    #expect(itemRelationshipRules["tag"]?.swiftName == nil)
 
     let json = try #require(String(data: result.jsonData, encoding: .utf8))
     #expect(json.contains("\"attributeRules\""))
+    #expect(json.contains("\"relationshipRules\""))
     #expect(json.contains("\"typeMappings\""))
     #expect(json.contains("\"location\""))
     #expect(result.diagnostics.isEmpty == false)

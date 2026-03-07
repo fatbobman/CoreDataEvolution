@@ -106,6 +106,18 @@ public enum ToolingValidateComparator {
 
     let sourceProperties = Dictionary(
       uniqueKeysWithValues: sourceEntity.properties.map { ($0.name, $0) })
+    let sourceRelationshipsByPersistentName = Dictionary(
+      grouping: sourceEntity.properties.compactMap {
+        property -> (String, ToolingSourcePropertyIR)? in
+        guard property.relationshipShape != nil, property.isStored, property.isStatic == false
+        else {
+          return nil
+        }
+        let persistentName = property.relationship?.persistentName ?? property.name
+        return (persistentName, property)
+      },
+      by: \.0
+    ).mapValues { $0.map(\.1) }
     var expectedPropertyNames = Set<String>()
     let compositionPairs: [(String, ToolingCompositionIR)] = entity.compositions.compactMap {
       composition in
@@ -144,13 +156,23 @@ public enum ToolingValidateComparator {
     }
 
     for relationship in entity.relationships {
-      expectedPropertyNames.insert(relationship.swiftName)
-      guard let sourceProperty = sourceProperties[relationship.swiftName] else {
+      let matches = sourceRelationshipsByPersistentName[relationship.persistentName] ?? []
+      if matches.count > 1 {
         diagnostics.append(
-          error("validate could not find relationship '\(entity.name).\(relationship.swiftName)'."))
+          error(
+            "validate found multiple source relationships mapping to persistent relationship '\(entity.name).\(relationship.persistentName)'."
+          )
+        )
         continue
       }
-
+      guard let sourceProperty = matches.first else {
+        diagnostics.append(
+          error(
+            "validate could not find relationship '\(entity.name).\(relationship.persistentName)'.")
+        )
+        continue
+      }
+      expectedPropertyNames.insert(sourceProperty.name)
       compareRelationship(
         entityName: entity.name,
         relationship: relationship,
@@ -497,6 +519,21 @@ public enum ToolingValidateComparator {
     relationshipAnnotation: ToolingSourceRelationshipAnnotationIR,
     diagnostics: inout [ToolingDiagnostic]
   ) {
+    let expectedPersistentName =
+      relationship.persistentName == relationship.swiftName ? nil : relationship.persistentName
+    if relationshipAnnotation.persistentName != expectedPersistentName {
+      diagnostics.append(
+        error(
+          "validate found relationship persistentName mismatch for '\(entityName).\(sourceProperty.name)'. Expected '\(expectedPersistentName ?? "<none>")', found '\(relationshipAnnotation.persistentName ?? "<none>")'.",
+          fix: makeRelationshipAnnotationFix(
+            entityName: entityName,
+            relationship: relationship,
+            sourceProperty: sourceProperty
+          )
+        )
+      )
+    }
+
     guard let expectedInverseName = relationship.inverseRelationshipName else {
       assertionFailure(
         "Validation should not compare relationship annotations for relationships without inverse metadata."
@@ -673,10 +710,13 @@ public enum ToolingValidateComparator {
     inverseName: String,
     relationship: ToolingRelationshipIR
   ) -> String {
-    var arguments = [
-      #"inverse: "\#(inverseName)""#,
-      "deleteRule: .\(relationship.deleteRule)",
-    ]
+    var arguments: [String] = []
+
+    if relationship.persistentName != relationship.swiftName {
+      arguments.append(#"persistentName: "\#(relationship.persistentName)""#)
+    }
+    arguments.append(#"inverse: "\#(inverseName)""#)
+    arguments.append("deleteRule: .\(relationship.deleteRule)")
 
     if relationship.minCount != defaultMinimumModelCount(for: relationship) {
       arguments.append("minimumModelCount: \(relationship.minCount)")

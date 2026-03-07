@@ -203,6 +203,7 @@ func makeGenerateRequest(outputDirectory: String, modelPath: String) -> Generate
     moduleName: "AppModels",
     typeMappings: makeDefaultToolingTypeMappings(),
     attributeRules: makeIntegrationAttributeRules(),
+    relationshipRules: .init(),
     accessLevel: .internal,
     singleFile: false,
     splitByEntity: true,

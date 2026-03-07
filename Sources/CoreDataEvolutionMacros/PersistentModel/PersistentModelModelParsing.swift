@@ -217,7 +217,7 @@ func validateRelationshipAnnotations(
 
     if relationshipAttribute == nil {
       MacroDiagnosticReporter.error(
-        "Relationship property '\(relationship.propertyName)' must declare @Relationship(inverse: ..., deleteRule: ...).",
+        "Relationship property '\(relationship.propertyName)' must declare @Relationship(persistentName: ..., inverse: ..., deleteRule: ...).",
         domain: persistentModelMacroDomain,
         in: context,
         node: variable
@@ -277,9 +277,10 @@ func autoAttachedAttribute(
       }
       if relationship.kind == .toManySet {
         return
-          "@_CDRelationship(setterPolicy: \(raw: relationshipSetterPolicyExpression(relationshipSetterPolicy)), _fromPersistentModel: true)"
+          "@_CDRelationship(setterPolicy: \(raw: relationshipSetterPolicyExpression(relationshipSetterPolicy)), persistentName: \"\(raw: relationship.persistentName)\", _fromPersistentModel: true)"
       } else {
-        return "@_CDRelationship(_fromPersistentModel: true)"
+        return
+          "@_CDRelationship(persistentName: \"\(raw: relationship.persistentName)\", _fromPersistentModel: true)"
       }
     }
     if isLikelyMissingOptionalToOneRelationship(typeAnnotation.type) {
@@ -311,6 +312,7 @@ private func parseRelationshipProperty(
   if let element = setElementTypeName(type) {
     return PersistentRelationshipProperty(
       propertyName: propertyName,
+      persistentName: relationshipArguments?.persistentName ?? propertyName,
       targetTypeName: element,
       inverseName: relationshipArguments?.inversePropertyName,
       deleteRule: relationshipArguments?.deleteRule,
@@ -322,6 +324,7 @@ private func parseRelationshipProperty(
   if let element = arrayElementTypeName(type) {
     return PersistentRelationshipProperty(
       propertyName: propertyName,
+      persistentName: relationshipArguments?.persistentName ?? propertyName,
       targetTypeName: element,
       inverseName: relationshipArguments?.inversePropertyName,
       deleteRule: relationshipArguments?.deleteRule,
@@ -339,6 +342,7 @@ private func parseRelationshipProperty(
     if coreDataPrimitiveTypeNames.contains(base) == false {
       return PersistentRelationshipProperty(
         propertyName: propertyName,
+        persistentName: relationshipArguments?.persistentName ?? propertyName,
         targetTypeName: wrapped,
         inverseName: relationshipArguments?.inversePropertyName,
         deleteRule: relationshipArguments?.deleteRule,

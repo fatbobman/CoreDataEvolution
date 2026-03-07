@@ -154,6 +154,81 @@ struct ToolingValidateComparatorTests {
     #expect(diagnostics.isEmpty)
   }
 
+  @Test("comparator accepts renamed relationship when persistentName matches model")
+  func comparatorAcceptsRenamedRelationshipMetadata() {
+    let diagnostics = ToolingValidateComparator.compareQuick(
+      expected: ToolingModelIR(
+        source: ambiguousRelationshipModelIR().source,
+        generationPolicy: ambiguousRelationshipModelIR().generationPolicy,
+        entities: [
+          .init(
+            name: "Document",
+            managedObjectClassName: "NSManagedObject",
+            representedClassName: "Document",
+            attributes: [],
+            relationships: [
+              .init(
+                persistentName: "author",
+                swiftName: "mainAuthor",
+                destinationEntityName: "User",
+                inverseRelationshipName: "authoredDocuments",
+                cardinality: .toOne,
+                isOptional: true,
+                minCount: 0,
+                maxCount: 1,
+                deleteRule: "nullify"
+              )
+            ],
+            compositions: []
+          )
+        ]
+      ),
+      actual: .init(
+        sourceDirectory: "/virtual/Sources",
+        entities: [
+          .init(
+            filePath: "/virtual/Sources/Document.swift",
+            className: "Document",
+            objcEntityName: "Document",
+            persistentModelArguments: .init(
+              generateInit: false,
+              relationshipSetterPolicy: .warning,
+              relationshipCountPolicy: .none
+            ),
+            properties: [
+              .init(
+                filePath: "/virtual/Sources/Document.swift",
+                name: "mainAuthor",
+                typeName: "User?",
+                nonOptionalTypeName: "User",
+                declarationRange: dummyRange(0, 0),
+                declarationIndent: "  ",
+                isOptional: true,
+                defaultValueLiteral: "nil",
+                defaultValueRange: dummyRange(0, 0),
+                isStored: true,
+                isStatic: false,
+                hasIgnore: false,
+                attribute: nil,
+                relationship: .init(
+                  range: dummyRange(0, 0),
+                  persistentName: "author",
+                  inversePropertyName: "authoredDocuments",
+                  deleteRule: "nullify"
+                ),
+                relationshipShape: .toOne
+              )
+            ],
+            customMembers: []
+          )
+        ]
+      ),
+      level: .conformance
+    )
+
+    #expect(diagnostics.isEmpty)
+  }
+
   @Test("comparator emits safe fix for missing relationship annotation")
   func comparatorEmitsSafeFixForMissingRelationshipAnnotation() {
     let diagnostics = ToolingValidateComparator.compareQuick(

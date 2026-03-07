@@ -169,7 +169,7 @@ struct ToolingSourceRendererTests {
           attributes: [],
           relationships: [
             .init(
-              persistentName: "author",
+              persistentName: "document_author",
               swiftName: "author",
               destinationEntityName: "User",
               inverseRelationshipName: "authoredDocuments",
@@ -200,7 +200,9 @@ struct ToolingSourceRendererTests {
     let rendered = try #require(source)
 
     #expect(
-      rendered.contains(#"@Relationship(inverse: "authoredDocuments", deleteRule: .nullify)"#))
+      rendered.contains(
+        #"@Relationship(persistentName: "document_author", inverse: "authoredDocuments", deleteRule: .nullify)"#
+      ))
     #expect(
       rendered.contains(#"@Relationship(inverse: "editedDocuments", deleteRule: .nullify)"#))
   }

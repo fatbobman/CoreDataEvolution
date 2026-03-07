@@ -43,6 +43,7 @@ public func makeGenerateRequest(
     moduleName: overrides.moduleName ?? config.moduleName,
     typeMappings: mergeToolingTypeMappings(config.typeMappings),
     attributeRules: config.attributeRules ?? .init(),
+    relationshipRules: config.relationshipRules ?? .init(),
     accessLevel: overrides.accessLevel ?? config.accessLevel ?? .internal,
     singleFile: overrides.singleFile ?? config.singleFile ?? false,
     splitByEntity: overrides.splitByEntity ?? config.splitByEntity ?? true,

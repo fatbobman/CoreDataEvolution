@@ -184,6 +184,7 @@ public struct ToolingSourceAttributeAnnotationIR: Codable, Sendable, Equatable {
 /// Parsed `@Relationship(...)` metadata from source.
 public struct ToolingSourceRelationshipAnnotationIR: Codable, Sendable, Equatable {
   public let range: ToolingTextRange
+  public let persistentName: String?
   public let inversePropertyName: String
   public let deleteRule: String
   public let minimumModelCount: Int?
@@ -191,12 +192,14 @@ public struct ToolingSourceRelationshipAnnotationIR: Codable, Sendable, Equatabl
 
   public init(
     range: ToolingTextRange,
+    persistentName: String? = nil,
     inversePropertyName: String,
     deleteRule: String,
     minimumModelCount: Int? = nil,
     maximumModelCount: Int? = nil
   ) {
     self.range = range
+    self.persistentName = persistentName
     self.inversePropertyName = inversePropertyName
     self.deleteRule = deleteRule
     self.minimumModelCount = minimumModelCount
