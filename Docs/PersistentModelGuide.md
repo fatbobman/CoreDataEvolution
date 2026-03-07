@@ -326,6 +326,14 @@ final class Tag: NSManagedObject {
 
 There is no source-level inverse inference in the current model DSL.
 
+Supported delete rules in v1:
+
+- `.nullify`
+- `.cascade`
+- `.deny`
+
+`.noAction` is intentionally unsupported.
+
 ### Multiple Relationships to the Same Target Entity
 
 Example:
@@ -597,6 +605,8 @@ Before using `@PersistentModel`, make sure all of these are true.
 - to-many relationships cannot be optional
 - relationships must have inverses in the Core Data model
 - every relationship must declare `@Relationship(inverse:deleteRule:)`
+- supported relationship delete rules are `.nullify`, `.cascade`, and `.deny`
+- `.noAction` is not supported
 
 ### Composition Rules
 
@@ -670,6 +680,22 @@ Correct:
 var tag: Tag?
 ```
 
+### Unsupported `No Action` Delete Rule
+
+Invalid:
+
+```swift
+@Relationship(inverse: "items", deleteRule: .noAction)
+var tag: Tag?
+```
+
+Correct:
+
+```swift
+@Relationship(inverse: "items", deleteRule: .nullify)
+var tag: Tag?
+```
+
 ### Transient with Unsupported Storage
 
 Invalid:
@@ -703,6 +729,7 @@ Examples of expected diagnostics:
 - `To-one relationship properties must be optional.`
 - `Optional to-many relationship ... is not supported.`
 - `Relationship property 'tag' must declare @Relationship(inverse: ..., deleteRule: ...).`
+- `@Relationship does not support deleteRule: .noAction in v1.`
 - `@Attribute trait .transient only supports .default storage.`
 - `Derived Attribute is not supported.`
 
