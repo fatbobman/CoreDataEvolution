@@ -164,6 +164,8 @@ enum RelationshipGenerationPolicy { case none, warning, plain }
 ### `@Composition`
 
 - 标记 struct 以支持 `.composition` 存储策略。
+- 术语说明：CoreDataEvolution 在源码层使用 `composition`，对应 Core Data 模型层的
+  `composite attribute`。
 - 宏解析 struct 成员，自动生成 `[String: Any]` 字典的组装/解构代码与字段表元数据。
 - v1 生成成员（命名固定）：
   - `static let __cdCompositionFieldTable`

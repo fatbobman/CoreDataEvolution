@@ -376,6 +376,9 @@ final class Category: NSManagedObject {
 Use `@Composition` for value-like grouped data that should still participate in typed paths and
 model metadata.
 
+In CoreDataEvolution, the source-level term is `composition`. It corresponds to Core Data's
+`composite attribute` feature at the model layer.
+
 ```swift
 @Composition
 struct Location {
