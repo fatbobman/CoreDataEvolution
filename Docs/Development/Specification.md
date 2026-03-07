@@ -34,8 +34,11 @@ Runtime schema / runtime model builder 的 v1 边界：
   - `spotlight`
   - `preserveValueOnDeletion`
   - `valueRange`
-  - `dateRange`
+- `dateRange`
 - 这些限制只作用于 runtime schema / pure-code model 路径，不影响正常的 `xcdatamodeld` 工作流
+- tooling 现在提供 `compositionRules` 配置模型，用于记录 composition leaf 的
+  `persistentName -> swiftName` 映射；当前这组规则进入 inspect/build IR，并为后续源码生成与
+  校验保留统一输入形态
 
 ## 2. Hard Rules
 
@@ -181,6 +184,14 @@ enum RelationshipGenerationPolicy { case none, warning, plain }
 - 组装规则：可选字段为 `nil` 时不写入字典。
 - 仅支持 iOS 17+ / SQLite store。
 
+### `@CompositionField`
+
+- 仅用于 `@Composition` struct 内的字段。
+- 语法：`@CompositionField(persistentName: "lat")`
+- `persistentName` 表示当前 composition leaf 在 Core Data 模型中的持久化字段名。
+- Swift-facing 字段名保持不变；typed path 仍从 Swift 路径出发，再映射到持久化路径。
+- 不复用 `@Attribute`，因为 composition leaf 不是顶层 `NSManagedObject` attribute 声明。
+
 v1 声明约束（硬性）：
 
 1. 仅允许标注在 `struct` 上（不支持 class/actor/enum/protocol）。
@@ -188,7 +199,7 @@ v1 声明约束（硬性）：
 3. 仅处理实例 `var` 存储属性；不处理 `let`、计算属性、`static`、`lazy`、属性包装器。
 4. 字段类型仅允许基础类型（含可选）：`String`、`Bool`、`Int`、`Int16`、`Int32`、`Int64`、`Float`、`Double`、`Decimal`、`Date`、`Data`、`UUID`、`URL`。
 5. composition 内字段不支持转换策略（不支持 `.raw` / `.codable` / `.transformed`）。
-6. composition 内字段不支持重命名（v1）；持久化名必须与字段名一致。
+6. composition 内字段若需重命名，必须显式使用 `@CompositionField(persistentName: ...)`。
 7. 不支持嵌套 composition。
 8. 必须生成静态元数据（如 composition 字段表），供主宏拼接 `__cdFieldTable`，不依赖反射。
 9. 生成成员访问权限与原类型访问权限保持一致。
@@ -317,7 +328,7 @@ NSPredicate(format: "%K == %@", Item.Keys.status.rawValue, status.rawValue)
 目标：
 
 - 为测试、调试、SPM/CLI 非 Xcode 场景提供“纯代码构建 `NSManagedObjectModel`”能力
-- 复用 `@PersistentModel` / `@Attribute` / `@Composition` 已声明的信息
+- 复用 `@PersistentModel` / `@Attribute` / `@Composition` / `@CompositionField` 已声明的信息
 - 避免测试场景依赖 `.xcdatamodeld` / `.momd`
 
 非目标：

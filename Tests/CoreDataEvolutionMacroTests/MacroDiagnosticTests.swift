@@ -856,6 +856,60 @@ struct MacroDiagnosticTests {
     #expect(result.expandedSource.contains("private var __cdEncodeComposition"))
   }
 
+  @Test("Composition accepts CompositionField persistent names")
+  func compositionAcceptsCompositionFieldPersistentNames() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreDataEvolution
+        @Composition
+        struct Coordinate {
+          @CompositionField(persistentName: "lat")
+          var latitude: Double
+          @CompositionField(persistentName: "lng")
+          var longitude: Double?
+        }
+        """
+    )
+    #expect(result.diagnostics.isEmpty)
+    #expect(result.expandedSource.contains(#"persistentPath: ["lat"]"#))
+    #expect(result.expandedSource.contains(#"persistentName: "lng""#))
+    #expect(result.expandedSource.contains(#"dictionary["lat"]"#))
+  }
+
+  @Test("CompositionField persistentName rejects interpolation")
+  func compositionFieldPersistentNameRejectsInterpolation() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreDataEvolution
+        let suffix = "itude"
+        @Composition
+        struct Coordinate {
+          @CompositionField(persistentName: "lat\\(suffix)")
+          var latitude: Double
+        }
+        """
+    )
+    #expect(
+      result.diagnostics.contains {
+        $0.contains("@CompositionField argument `persistentName` must be a string literal or nil")
+      })
+  }
+
+  @Test("CompositionField rejects non-property declaration")
+  func compositionFieldRejectsNonPropertyDeclaration() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreDataEvolution
+        @CompositionField(persistentName: "lat")
+        func latitude() {}
+        """
+    )
+    #expect(
+      result.diagnostics.contains {
+        $0.contains("@CompositionField can only be attached to a `var` property declaration")
+      })
+  }
+
   @Test("Ignore accepts stored var property")
   func ignoreAcceptsStoredVarProperty() throws {
     let result = try MacroTestSupport.expand(

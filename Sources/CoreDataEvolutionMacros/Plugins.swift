@@ -16,6 +16,7 @@ struct CoreDataEvolutionMacrosPlugin: CompilerPlugin {
     PersistentModelMacro.self,
     AttributeMacro.self,
     CompositionMacro.self,
+    CompositionFieldMacro.self,
     IgnoreMacro.self,
     PublicRelationshipMacro.self,
     RelationshipMacro.self,

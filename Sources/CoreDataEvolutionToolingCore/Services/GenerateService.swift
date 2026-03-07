@@ -78,6 +78,7 @@ public enum GenerateService {
       typeMappings: request.typeMappings,
       attributeRules: request.attributeRules,
       relationshipRules: request.relationshipRules,
+      compositionRules: request.compositionRules,
       accessLevel: request.accessLevel,
       singleFile: request.singleFile,
       splitByEntity: request.splitByEntity,

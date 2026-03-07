@@ -36,6 +36,7 @@ public enum BootstrapConfigService {
     let relationshipRules = makeRelationshipRules(
       from: loadedModel.model
     )
+    let compositionRules = ToolingCompositionRules()
 
     let template = ToolingConfigTemplate(
       schemaVersion: toolingSupportedSchemaVersion,
@@ -48,6 +49,7 @@ public enum BootstrapConfigService {
         typeMappings: typeMappings,
         attributeRules: attributeRules,
         relationshipRules: relationshipRules,
+        compositionRules: compositionRules,
         accessLevel: .internal,
         singleFile: false,
         splitByEntity: true,
@@ -71,6 +73,7 @@ public enum BootstrapConfigService {
         typeMappings: typeMappings,
         attributeRules: attributeRules,
         relationshipRules: relationshipRules,
+        compositionRules: compositionRules,
         accessLevel: .internal,
         singleFile: false,
         splitByEntity: true,

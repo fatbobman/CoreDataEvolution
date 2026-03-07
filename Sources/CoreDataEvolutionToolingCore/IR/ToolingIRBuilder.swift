@@ -61,7 +61,8 @@ public enum ToolingIRBuilder {
           .compactMap { persistentName, rule in
             buildCompositionPlaceholder(
               persistentName: persistentName,
-              rule: rule
+              rule: rule,
+              request: request
             )
           }
 
@@ -215,7 +216,8 @@ public enum ToolingIRBuilder {
 
   private static func buildCompositionPlaceholder(
     persistentName: String,
-    rule: ToolingAttributeRule
+    rule: ToolingAttributeRule,
+    request: InspectRequest
   ) -> ToolingCompositionIR? {
     guard resolveToolingAttributeStorageMethod(rule) == .composition,
       let swiftType = rule.swiftType
@@ -229,8 +231,30 @@ public enum ToolingIRBuilder {
         rule: rule
       ),
       swiftType: swiftType,
-      persistentFields: [persistentName]
+      persistentFields: [persistentName],
+      fieldRules: makeCompositionFieldRules(
+        compositionTypeName: swiftType,
+        request: request
+      )
     )
+  }
+
+  private static func makeCompositionFieldRules(
+    compositionTypeName: String,
+    request: InspectRequest
+  ) -> [ToolingCompositionFieldIR] {
+    request.compositionRules[type: compositionTypeName]
+      .sorted(by: { $0.key < $1.key })
+      .compactMap { persistentFieldName, rule in
+        let swiftName = rule.swiftName ?? persistentFieldName
+        guard swiftName.isEmpty == false else {
+          return nil
+        }
+        return .init(
+          persistentName: persistentFieldName,
+          swiftName: swiftName
+        )
+      }
   }
 
   private static func resolveSwiftType(

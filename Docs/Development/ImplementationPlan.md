@@ -12,7 +12,7 @@
 
 ### v1 (Must)
 
-- `@PersistentModel` / `@Attribute` / `@Ignore` / `@Composition`
+- `@PersistentModel` / `@Attribute` / `@Ignore` / `@Composition` / `@CompositionField`
 - `StorageMethod`: `.default` `.raw` `.codable` `.transformed` `.composition`
 - 类型安全排序：`Keys + Paths + __cdFieldTable`
 - 查询规范：优先 `NSPredicate`（`%K + key/path 映射`）
@@ -33,11 +33,13 @@
 - 完成 `@PersistentModel` 参数：`generateInit`、`relationshipSetterPolicy`、`relationshipCountPolicy`
 - 完成 `@Attribute` 的 `.default/.raw/.codable/.transformed/.composition` 展开，以及 `.unique/.transient` trait 语义
 - 完成 `@Composition` 宏：解析 struct 成员，生成 `[String: Any]` 字典组装/解构代码（`__cdDecodeComposition` / `__cdEncodeComposition`）
+- 完成 `@CompositionField(persistentName:)` 宏：为 composition leaf 提供持久化字段重命名能力
 - 落实 `@Composition` v1 约束：
   - 仅允许 struct、禁止泛型
   - 仅实例 `var` 存储属性
   - 字段类型仅基础类型（含可选，含 `URL`）
-  - 不支持转换、不支持重命名、不支持嵌套
+  - 不支持转换、不支持嵌套
+  - 字段重命名仅允许通过 `@CompositionField(persistentName: ...)`
   - 生成静态元数据供主宏使用
   - 访问权限继承 + 违规时报编译期诊断
 - 完成 `@Ignore` 行为：仅对 `var` 生效，`let` 默认忽略
@@ -54,6 +56,7 @@
 - 示例模型可成功编译
 - 违反关系声明规则时报编译期错误
 - `@Composition` struct 可正确展开字典读写代码，并可通过运行时 round-trip 测试
+- `@CompositionField(persistentName: ...)` 可正确进入 composition 字段表与 typed path 映射
 - `@Composition` 违反约束时可稳定输出编译期诊断
 - 构造方法正确包含所有非关系实例存储属性参数（含 `@Ignore`）、排除关系参数，且参数无默认值
 

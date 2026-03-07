@@ -14,7 +14,10 @@ import Foundation
 
 @Composition
 struct PathLocationComposition {
+  @CompositionField(persistentName: "lat")
   var x: Double
+
+  @CompositionField(persistentName: "lng")
   var y: Double?
 }
 

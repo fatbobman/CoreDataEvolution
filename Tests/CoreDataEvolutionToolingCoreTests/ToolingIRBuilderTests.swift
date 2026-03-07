@@ -70,6 +70,14 @@ struct ToolingIRBuilderTests {
           ],
         ]
       ),
+      compositionRules: .init(
+        types: [
+          "GeoPayload": [
+            "lat": .init(swiftName: "latitude"),
+            "lng": .init(swiftName: "longitude"),
+          ]
+        ]
+      ),
       defaultDecodeFailurePolicy: .fallbackToDefaultValue
     )
 
@@ -103,6 +111,9 @@ struct ToolingIRBuilderTests {
 
     let composition = try #require(item.compositions.first(where: { $0.swiftName == "geo_blob" }))
     #expect(composition.swiftType == "GeoPayload")
+    #expect(composition.fieldRules.count == 2)
+    #expect(
+      composition.fieldRules.first(where: { $0.persistentName == "lat" })?.swiftName == "latitude")
 
     let tags = try #require(item.relationships.first(where: { $0.persistentName == "tags" }))
     #expect(tags.swiftName == "labels")

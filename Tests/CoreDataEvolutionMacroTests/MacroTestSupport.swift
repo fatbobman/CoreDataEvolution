@@ -56,6 +56,9 @@ enum MacroTestSupport {
       type: CompositionMacro.self,
       conformances: ["CDCompositionPathProviding", "CDCompositionValueCodable"]
     ),
+    "CompositionField": MacroSpec(
+      type: CompositionFieldMacro.self
+    ),
     "Ignore": MacroSpec(
       type: IgnoreMacro.self
     ),
@@ -164,11 +167,13 @@ enum MacroTestSupport {
     }
 
     guard FileManager.default.fileExists(atPath: snapshotURL.path) else {
+      try writeActualSnapshot(actual, for: snapshotURL)
       throw MacroTestSupportError.missingSnapshot(path: snapshotURL.path)
     }
 
     let expected = try String(contentsOf: snapshotURL, encoding: .utf8)
     guard actual == expected else {
+      try writeActualSnapshot(actual, for: snapshotURL)
       throw MacroTestSupportError.snapshotMismatch(snapshotName: snapshotURL.lastPathComponent)
     }
   }
@@ -181,5 +186,17 @@ enum MacroTestSupport {
     source
       .replacingOccurrences(of: #"\A[\n\r]+"#, with: "", options: .regularExpression)
       .replacingOccurrences(of: #"[\n\r]+\z"#, with: "", options: .regularExpression)
+  }
+
+  private static func writeActualSnapshot(_ actual: String, for snapshotURL: URL) throws {
+    let actualURL =
+      snapshotURL
+      .deletingPathExtension()
+      .appendingPathExtension("\(snapshotURL.pathExtension).actual")
+    try FileManager.default.createDirectory(
+      at: actualURL.deletingLastPathComponent(),
+      withIntermediateDirectories: true
+    )
+    try actual.write(to: actualURL, atomically: true, encoding: .utf8)
   }
 }

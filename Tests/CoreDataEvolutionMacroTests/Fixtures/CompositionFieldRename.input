@@ -1,0 +1,10 @@
+import CoreDataEvolution
+
+@Composition
+public struct Coordinate {
+  @CompositionField(persistentName: "lat")
+  public var latitude: Double
+
+  @CompositionField(persistentName: "lng")
+  public var longitude: Double?
+}

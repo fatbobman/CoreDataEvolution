@@ -29,6 +29,7 @@ The macro system works together with these supporting macros:
 - `@Attribute`
 - `@Ignore`
 - `@Composition`
+- `@CompositionField`
 - `@Relationship`
 
 ## Minimal Example
@@ -452,6 +453,28 @@ final class Item: NSManagedObject {
 }
 ```
 
+When a composition leaf needs a different Core Data field name, use
+`@CompositionField(persistentName: ...)`:
+
+```swift
+@Composition
+struct Location {
+  @CompositionField(persistentName: "lat")
+  var latitude: Double = 0
+
+  @CompositionField(persistentName: "lng")
+  var longitude: Double? = nil
+}
+```
+
+This gives composition leaves the same kind of persistent-name mapping that attributes and
+relationships already support:
+
+- Swift-facing code still uses `location.latitude`
+- the generated composition field table maps that leaf to the persistent field `lat`
+- typed paths, sort descriptors, and `%K` predicate interpolation still start from the Swift path
+  and resolve to the persistent path internally
+
 ### Composition Rules in V1
 
 A composition type must be:
@@ -461,7 +484,14 @@ A composition type must be:
 - made of stored `var` properties only
 - limited to supported primitive field types and optionals
 - non-nested
-- free of rename/conversion behavior in v1
+- free of conversion behavior in v1
+
+Additional v1 rules for `@CompositionField`:
+
+- use it only on stored `var` fields inside a `@Composition` struct
+- it only supports `persistentName`
+- it is the only supported way to rename a composition leaf field
+- it does not reuse `@Attribute`
 
 `@Composition` generates metadata used by:
 
@@ -666,6 +696,7 @@ Before using `@PersistentModel`, make sure all of these are true.
 ### Composition Rules
 
 - composition type must use `@Composition`
+- composition leaf renames must use `@CompositionField(persistentName: ...)`
 - composition type must be a non-generic `struct`
 - composition fields must be supported primitive fields
 - nested composition is not supported in v1

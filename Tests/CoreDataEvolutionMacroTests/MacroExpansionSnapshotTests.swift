@@ -43,6 +43,11 @@ struct MacroExpansionSnapshotTests {
     try MacroTestSupport.assertExpansionSnapshot(fixtureName: "CompositionBasic")
   }
 
+  @Test("Composition field rename snapshot")
+  func compositionFieldRenameSnapshot() throws {
+    try MacroTestSupport.assertExpansionSnapshot(fixtureName: "CompositionFieldRename")
+  }
+
   @Test("Ignore marker snapshot")
   func ignoreMarkerSnapshot() throws {
     try MacroTestSupport.assertExpansionSnapshot(fixtureName: "IgnoreMarker")

@@ -55,6 +55,7 @@ public struct GenerateTemplate: Codable, Sendable, Equatable {
   public let typeMappings: ToolingTypeMappings?
   public let attributeRules: ToolingAttributeRules?
   public let relationshipRules: ToolingRelationshipRules?
+  public let compositionRules: ToolingCompositionRules?
   public let accessLevel: ToolingAccessLevel?
   public let singleFile: Bool?
   public let splitByEntity: Bool?
@@ -78,6 +79,7 @@ public struct GenerateTemplate: Codable, Sendable, Equatable {
     typeMappings: ToolingTypeMappings?,
     attributeRules: ToolingAttributeRules?,
     relationshipRules: ToolingRelationshipRules? = nil,
+    compositionRules: ToolingCompositionRules? = nil,
     accessLevel: ToolingAccessLevel?,
     singleFile: Bool?,
     splitByEntity: Bool?,
@@ -100,6 +102,7 @@ public struct GenerateTemplate: Codable, Sendable, Equatable {
     self.typeMappings = typeMappings
     self.attributeRules = attributeRules
     self.relationshipRules = relationshipRules
+    self.compositionRules = compositionRules
     self.accessLevel = accessLevel
     self.singleFile = singleFile
     self.splitByEntity = splitByEntity
@@ -126,6 +129,7 @@ public struct ValidateTemplate: Codable, Sendable, Equatable {
   public let typeMappings: ToolingTypeMappings?
   public let attributeRules: ToolingAttributeRules?
   public let relationshipRules: ToolingRelationshipRules?
+  public let compositionRules: ToolingCompositionRules?
   public let accessLevel: ToolingAccessLevel?
   public let singleFile: Bool?
   public let splitByEntity: Bool?
@@ -150,6 +154,7 @@ public struct ValidateTemplate: Codable, Sendable, Equatable {
     typeMappings: ToolingTypeMappings?,
     attributeRules: ToolingAttributeRules?,
     relationshipRules: ToolingRelationshipRules? = nil,
+    compositionRules: ToolingCompositionRules? = nil,
     accessLevel: ToolingAccessLevel?,
     singleFile: Bool?,
     splitByEntity: Bool?,
@@ -173,6 +178,7 @@ public struct ValidateTemplate: Codable, Sendable, Equatable {
     self.typeMappings = typeMappings
     self.attributeRules = attributeRules
     self.relationshipRules = relationshipRules
+    self.compositionRules = compositionRules
     self.accessLevel = accessLevel
     self.singleFile = singleFile
     self.splitByEntity = splitByEntity
@@ -209,6 +215,7 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         typeMappings: nil,
         attributeRules: nil,
         relationshipRules: nil,
+        compositionRules: nil,
         accessLevel: nil,
         singleFile: nil,
         splitByEntity: nil,
@@ -232,6 +239,7 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         typeMappings: nil,
         attributeRules: nil,
         relationshipRules: nil,
+        compositionRules: nil,
         accessLevel: nil,
         singleFile: nil,
         splitByEntity: nil,
@@ -260,6 +268,7 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         typeMappings: makeDefaultToolingTypeMappings(),
         attributeRules: .init(),
         relationshipRules: .init(),
+        compositionRules: .init(),
         accessLevel: .internal,
         singleFile: false,
         splitByEntity: true,
@@ -283,6 +292,7 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         typeMappings: makeDefaultToolingTypeMappings(),
         attributeRules: .init(),
         relationshipRules: .init(),
+        compositionRules: .init(),
         accessLevel: .internal,
         singleFile: false,
         splitByEntity: true,
@@ -411,6 +421,7 @@ extension InspectRequest {
       typeMappings: mergeToolingTypeMappings(config.typeMappings),
       attributeRules: config.attributeRules ?? .init(),
       relationshipRules: config.relationshipRules ?? .init(),
+      compositionRules: config.compositionRules ?? .init(),
       accessLevel: config.accessLevel ?? .internal,
       singleFile: config.singleFile ?? false,
       splitByEntity: config.splitByEntity ?? true,

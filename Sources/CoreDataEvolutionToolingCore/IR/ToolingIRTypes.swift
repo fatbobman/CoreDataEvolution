@@ -230,23 +230,41 @@ public struct ToolingRelationshipIR: Codable, Sendable, Equatable {
   }
 }
 
-/// Reserved IR for future composition-aware generation.
+/// Reserved IR for composition-aware tooling flows.
 ///
-/// The current tooling pipeline does not infer compositions from raw Core Data models. The type is
-/// defined now so inspect/generate/validate can converge on one representation when composition
-/// rules are added later.
+/// The current tooling pipeline already carries `compositionRules` into inspect/build IR, but it
+/// still does not generate or parse standalone `@Composition` source declarations. Keeping one
+/// shared IR shape here lets inspect, future generation, and future validation converge on the
+/// same composition-field mapping model.
 public struct ToolingCompositionIR: Codable, Sendable, Equatable {
   public let swiftName: String
   public let swiftType: String
   public let persistentFields: [String]
+  public let fieldRules: [ToolingCompositionFieldIR]
 
   public init(
     swiftName: String,
     swiftType: String,
-    persistentFields: [String]
+    persistentFields: [String],
+    fieldRules: [ToolingCompositionFieldIR] = []
   ) {
     self.swiftName = swiftName
     self.swiftType = swiftType
     self.persistentFields = persistentFields
+    self.fieldRules = fieldRules
+  }
+}
+
+/// One composition leaf field mapping supplied by tooling configuration.
+public struct ToolingCompositionFieldIR: Codable, Sendable, Equatable {
+  public let persistentName: String
+  public let swiftName: String
+
+  public init(
+    persistentName: String,
+    swiftName: String
+  ) {
+    self.persistentName = persistentName
+    self.swiftName = swiftName
   }
 }

@@ -44,6 +44,7 @@ public func makeValidateRequest(
     typeMappings: mergeToolingTypeMappings(config.typeMappings),
     attributeRules: config.attributeRules ?? .init(),
     relationshipRules: config.relationshipRules ?? .init(),
+    compositionRules: config.compositionRules ?? .init(),
     accessLevel: overrides.accessLevel ?? config.accessLevel ?? .internal,
     singleFile: overrides.singleFile ?? config.singleFile ?? false,
     splitByEntity: overrides.splitByEntity ?? config.splitByEntity ?? true,

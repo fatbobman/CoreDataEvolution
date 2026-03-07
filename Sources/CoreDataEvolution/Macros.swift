@@ -63,6 +63,11 @@ public macro Composition() =
   #externalMacro(module: "CoreDataEvolutionMacros", type: "CompositionMacro")
 
 @attached(peer)
+public macro CompositionField(
+  persistentName: String? = nil
+) = #externalMacro(module: "CoreDataEvolutionMacros", type: "CompositionFieldMacro")
+
+@attached(peer)
 public macro Ignore() =
   #externalMacro(module: "CoreDataEvolutionMacros", type: "IgnoreMacro")
 

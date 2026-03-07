@@ -62,6 +62,14 @@ struct ConfigLoadingAndMergingTests {
         ]
       ]
     )
+    let compositionRules = ToolingCompositionRules(
+      types: [
+        "ItemLocation": [
+          "lat": .init(swiftName: "latitude"),
+          "lng": .init(swiftName: "longitude"),
+        ]
+      ]
+    )
     let configured = GenerateTemplate(
       modelPath: "Models/AppModel.xcdatamodeld",
       modelVersion: config.generate?.modelVersion,
@@ -71,6 +79,7 @@ struct ConfigLoadingAndMergingTests {
       typeMappings: typeMappings,
       attributeRules: attributeRules,
       relationshipRules: relationshipRules,
+      compositionRules: compositionRules,
       accessLevel: .internal,
       singleFile: false,
       splitByEntity: true,
@@ -101,6 +110,7 @@ struct ConfigLoadingAndMergingTests {
     #expect(request.typeMappings[coreDataType: "UUID"]?.swiftType == "UUID")
     #expect(request.attributeRules == attributeRules)
     #expect(request.relationshipRules == relationshipRules)
+    #expect(request.compositionRules == compositionRules)
     #expect(request.accessLevel == .public)
     #expect(request.overwrite == .all)
     #expect(request.generateInit)
@@ -131,6 +141,13 @@ struct ConfigLoadingAndMergingTests {
         ]
       ]
     )
+    let compositionRules = ToolingCompositionRules(
+      types: [
+        "ItemLocation": [
+          "lat": .init(swiftName: "latitude")
+        ]
+      ]
+    )
     let config = ValidateTemplate(
       modelPath: "Models/AppModel.xcdatamodeld",
       modelVersion: nil,
@@ -140,6 +157,7 @@ struct ConfigLoadingAndMergingTests {
       typeMappings: typeMappings,
       attributeRules: attributeRules,
       relationshipRules: relationshipRules,
+      compositionRules: compositionRules,
       accessLevel: .internal,
       singleFile: false,
       splitByEntity: true,
@@ -165,6 +183,7 @@ struct ConfigLoadingAndMergingTests {
     #expect(request.typeMappings[coreDataType: "Date"]?.swiftType == "Date")
     #expect(request.attributeRules == attributeRules)
     #expect(request.relationshipRules == relationshipRules)
+    #expect(request.compositionRules == compositionRules)
     #expect(request.accessLevel == .internal)
     #expect(request.singleFile == false)
     #expect(request.splitByEntity == true)

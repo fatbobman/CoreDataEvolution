@@ -9,6 +9,7 @@
 //  ------------------------------------------------
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
+import Foundation
 import SwiftSyntax
 import SwiftSyntaxMacros
 
@@ -80,6 +81,11 @@ extension CompositionMacro: MemberMacro {
         continue
       }
 
+      let compositionFieldAttribute = firstAttribute(
+        named: "CompositionField",
+        in: variable.attributes
+      )
+
       if variable.modifiers.contains(where: { $0.name.text == "static" || $0.name.text == "class" })
       {
         MacroDiagnosticReporter.error(
@@ -101,9 +107,9 @@ extension CompositionMacro: MemberMacro {
         hasError = true
       }
 
-      if variable.attributes.isEmpty == false {
+      if hasUnsupportedCompositionFieldAttributes(variable.attributes) {
         MacroDiagnosticReporter.error(
-          "@Composition does not support property wrappers or field attributes in v1.",
+          "@Composition only supports @CompositionField on stored fields in v1.",
           domain: "CoreDataEvolution.CompositionMacro",
           in: context,
           node: variable
@@ -114,6 +120,16 @@ extension CompositionMacro: MemberMacro {
       if variable.bindingSpecifier.tokenKind != .keyword(.var) {
         MacroDiagnosticReporter.error(
           "@Composition only processes `var` stored properties.",
+          domain: "CoreDataEvolution.CompositionMacro",
+          in: context,
+          node: variable
+        )
+        hasError = true
+      }
+
+      if compositionFieldAttribute != nil, variable.bindings.count != 1 {
+        MacroDiagnosticReporter.error(
+          "@CompositionField must be attached to a single stored property declaration.",
           domain: "CoreDataEvolution.CompositionMacro",
           in: context,
           node: variable
@@ -167,6 +183,16 @@ extension CompositionMacro: MemberMacro {
         }
 
         let fieldName = identifierPattern.identifier.text
+        let parsedCompositionField = parseCompositionFieldDeclArguments(
+          from: compositionFieldAttribute,
+          emitDiagnostics: true,
+          context: context
+        )
+        if compositionFieldAttribute != nil, parsedCompositionField == nil {
+          hasError = true
+          continue
+        }
+        let persistentName = parsedCompositionField?.persistentName ?? fieldName
         let typeText = typeAnnotation.type.trimmedDescription
         let isOptional = isOptionalType(typeAnnotation.type)
         let decodeCastType = optionalWrappedTypeName(typeAnnotation.type) ?? typeText
@@ -176,6 +202,7 @@ extension CompositionMacro: MemberMacro {
         fields.append(
           CompositionField(
             name: fieldName,
+            persistentName: persistentName,
             typeName: typeText,
             decodeCastTypeName: decodeCastType,
             isOptional: isOptional,
@@ -184,7 +211,7 @@ extension CompositionMacro: MemberMacro {
         )
         fieldEntries.append(
           """
-          "\(fieldName)": .init(swiftPath: ["\(fieldName)"], persistentPath: ["\(fieldName)"])
+          "\(fieldName)": .init(swiftPath: ["\(fieldName)"], persistentPath: ["\(persistentName)"])
           """
         )
       }
@@ -223,6 +250,7 @@ extension CompositionMacro: MemberMacro {
 
 private struct CompositionField {
   let name: String
+  let persistentName: String
   let typeName: String
   let decodeCastTypeName: String
   let isOptional: Bool
@@ -234,10 +262,11 @@ private func makeDecodeBody(fields: [CompositionField]) -> String {
   for field in fields {
     if field.isOptional {
       lines.append(
-        "  let \(field.name) = dictionary[\"\(field.name)\"] as? \(field.decodeCastTypeName)")
+        "  let \(field.name) = dictionary[\"\(field.persistentName)\"] as? \(field.decodeCastTypeName)"
+      )
     } else {
       lines.append(
-        "  guard let \(field.name) = dictionary[\"\(field.name)\"] as? \(field.typeName) else { return nil }"
+        "  guard let \(field.name) = dictionary[\"\(field.persistentName)\"] as? \(field.typeName) else { return nil }"
       )
     }
   }
@@ -256,9 +285,11 @@ private func makeEncodeBody(fields: [CompositionField]) -> String {
   var lines = ["  var dictionary: [String: Any] = [:]"]
   for field in fields {
     if field.isOptional {
-      lines.append("  if let \(field.name) { dictionary[\"\(field.name)\"] = \(field.name) }")
+      lines.append(
+        "  if let \(field.name) { dictionary[\"\(field.persistentName)\"] = \(field.name) }"
+      )
     } else {
-      lines.append("  dictionary[\"\(field.name)\"] = \(field.name)")
+      lines.append("  dictionary[\"\(field.persistentName)\"] = \(field.name)")
     }
   }
   lines.append("  return dictionary")
@@ -269,7 +300,7 @@ private func makeRuntimeFieldBody(fields: [CompositionField]) -> String {
   fields.map { field in
     """
     .init(
-      persistentName: "\(field.name)",
+      persistentName: "\(field.persistentName)",
       swiftTypeName: "\(field.typeName)",
       primitiveType: \(runtimePrimitiveTypeExpression(typeName: field.decodeCastTypeName)),
       isOptional: \(field.isOptional),
@@ -338,4 +369,125 @@ private func escapeRuntimeLiteral(_ text: String) -> String {
 private func isOptionalType(_ type: TypeSyntax) -> Bool {
   type.as(OptionalTypeSyntax.self) != nil
     || type.as(ImplicitlyUnwrappedOptionalTypeSyntax.self) != nil
+}
+
+private func firstAttribute(named name: String, in attributes: AttributeListSyntax)
+  -> AttributeSyntax?
+{
+  attributes.compactMap { $0.as(AttributeSyntax.self) }.first { attribute in
+    compositionAttributeName(of: attribute) == name
+  }
+}
+
+private func hasUnsupportedCompositionFieldAttributes(_ attributes: AttributeListSyntax) -> Bool {
+  attributes.compactMap { $0.as(AttributeSyntax.self) }.contains { attribute in
+    compositionAttributeName(of: attribute) != "CompositionField"
+  }
+}
+
+private func compositionAttributeName(of attribute: AttributeSyntax) -> String {
+  attribute.attributeName.trimmedDescription
+    .split(separator: ".")
+    .last
+    .map(String.init) ?? attribute.attributeName.trimmedDescription
+}
+
+private struct ParsedCompositionFieldDeclArguments {
+  let persistentName: String?
+}
+
+private func parseCompositionFieldDeclArguments(
+  from attribute: AttributeSyntax?,
+  emitDiagnostics: Bool,
+  context: some MacroExpansionContext
+) -> ParsedCompositionFieldDeclArguments? {
+  guard let attribute else {
+    return .init(persistentName: nil)
+  }
+  guard let list = attribute.arguments?.as(LabeledExprListSyntax.self) else {
+    return .init(persistentName: nil)
+  }
+
+  var persistentName: String?
+  for argument in list {
+    guard let label = argument.label?.text else {
+      if emitDiagnostics {
+        MacroDiagnosticReporter.error(
+          "@CompositionField only supports the `persistentName:` argument.",
+          domain: "CoreDataEvolution.CompositionMacro",
+          in: context,
+          node: argument
+        )
+      }
+      return nil
+    }
+
+    switch label {
+    case "persistentName":
+      if let literal = argument.expression.as(StringLiteralExprSyntax.self),
+        literal.segments.count == 1,
+        let segment = literal.segments.first?.as(StringSegmentSyntax.self)
+      {
+        persistentName = segment.content.text
+      } else if argument.expression.trimmedDescription == "nil" {
+        persistentName = nil
+      } else {
+        if emitDiagnostics {
+          MacroDiagnosticReporter.error(
+            "@CompositionField argument `persistentName` must be a string literal or nil.",
+            domain: "CoreDataEvolution.CompositionMacro",
+            in: context,
+            node: argument.expression
+          )
+        }
+        return nil
+      }
+
+      if let persistentName, isValidCompositionFieldPersistentName(persistentName) == false {
+        if emitDiagnostics {
+          MacroDiagnosticReporter.error(
+            "@CompositionField argument `persistentName` must be a valid Core Data attribute name (letters, numbers, underscore; cannot start with number).",
+            domain: "CoreDataEvolution.CompositionMacro",
+            in: context,
+            node: argument.expression
+          )
+        }
+        return nil
+      }
+    default:
+      if emitDiagnostics {
+        MacroDiagnosticReporter.error(
+          "@CompositionField only supports the `persistentName:` argument.",
+          domain: "CoreDataEvolution.CompositionMacro",
+          in: context,
+          node: argument
+        )
+      }
+      return nil
+    }
+  }
+
+  return .init(persistentName: persistentName)
+}
+
+private func isValidCompositionFieldPersistentName(_ name: String) -> Bool {
+  guard name.isEmpty == false else {
+    return false
+  }
+  let scalars = name.unicodeScalars
+  guard let first = scalars.first else {
+    return false
+  }
+  let letters = CharacterSet.letters
+  let digits = CharacterSet.decimalDigits
+  if letters.contains(first) == false && first != "_" {
+    return false
+  }
+  for scalar in scalars.dropFirst() {
+    if letters.contains(scalar) || digits.contains(scalar) || scalar == "_" {
+      continue
+    }
+    return false
+  }
+  return true
 }

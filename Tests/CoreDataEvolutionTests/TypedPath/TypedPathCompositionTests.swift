@@ -16,22 +16,23 @@ import Testing
 struct TypedPathCompositionTests {
   @Test func compositionTypeProvidesStaticFieldTable() throws {
     #expect(PathLocationComposition.__cdCompositionFieldTable["x"]?.swiftPath == ["x"])
-    #expect(PathLocationComposition.__cdCompositionFieldTable["y"]?.persistentPath == ["y"])
+    #expect(PathLocationComposition.__cdCompositionFieldTable["x"]?.persistentPath == ["lat"])
+    #expect(PathLocationComposition.__cdCompositionFieldTable["y"]?.persistentPath == ["lng"])
   }
 
   @Test func compositionTypeSupportsDictionaryRoundTrip() throws {
     let source = PathLocationComposition(x: 3.2, y: nil)
     let encoded = source.__cdEncodeComposition
-    #expect(encoded["x"] as? Double == 3.2)
-    #expect(encoded["y"] == nil)
+    #expect(encoded["lat"] as? Double == 3.2)
+    #expect(encoded["lng"] == nil)
 
-    let decoded = PathLocationComposition.__cdDecodeComposition(from: ["x": 3.2, "y": 8.8])
+    let decoded = PathLocationComposition.__cdDecodeComposition(from: ["lat": 3.2, "lng": 8.8])
     #expect(decoded?.x == 3.2)
     #expect(decoded?.y == 8.8)
   }
 
   @Test func compositionDecodeFailsWhenRequiredFieldMissing() throws {
-    let decoded = PathLocationComposition.__cdDecodeComposition(from: ["y": 1.0])
+    let decoded = PathLocationComposition.__cdDecodeComposition(from: ["lng": 1.0])
     #expect(decoded == nil)
   }
 
@@ -41,7 +42,8 @@ struct TypedPathCompositionTests {
       modelPersistentPathPrefix: ["location"],
       composition: PathLocationComposition.self
     )
-    #expect(entries["location.x"]?.persistentPath == ["location", "x"])
+    #expect(entries["location.x"]?.persistentPath == ["location", "lat"])
     #expect(entries["location.y"]?.swiftPath == ["location", "y"])
+    #expect(entries["location.y"]?.persistentPath == ["location", "lng"])
   }
 }
