@@ -242,6 +242,11 @@ Every relationship still needs explicit relationship metadata in source:
 - `deleteRule`
 - `persistentName` when the Swift property name differs from the Core Data relationship name
 
+Important:
+
+- `inverse` always points to the relationship name stored in the Core Data model on the other side
+- it does **not** point to the other Swift property name
+
 So a real relationship declaration looks like this:
 
 ```swift
