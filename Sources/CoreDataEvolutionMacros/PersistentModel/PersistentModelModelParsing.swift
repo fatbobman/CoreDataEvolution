@@ -271,6 +271,8 @@ func autoAttachedAttribute(
       relationshipArguments: nil
     ) {
       guard hasMarkerAttribute("Relationship", in: variable) else {
+        // Public relationship metadata is required before attaching @_CDRelationship. Missing
+        // @Relationship(...) is diagnosed later by validateRelationshipAnnotations(...).
         return nil
       }
       if relationship.kind == .toManySet {

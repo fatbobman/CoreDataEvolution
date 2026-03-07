@@ -87,14 +87,14 @@ func parseRelationshipDeclArguments(
       inversePropertyName = value
     case "deleteRule":
       let raw = argument.expression.trimmedDescription.replacingOccurrences(of: " ", with: "")
+      if raw == ".noAction"
+        || raw == "RelationshipDeleteRule.noAction"
+        || raw == "CoreDataEvolution.RelationshipDeleteRule.noAction"
+      {
+        return .failure(.unsupportedDeleteRuleArgument)
+      }
       deleteRule = parseRelationshipDeleteRule(from: raw)
       if deleteRule == nil {
-        if raw == ".noAction"
-          || raw == "RelationshipDeleteRule.noAction"
-          || raw == "CoreDataEvolution.RelationshipDeleteRule.noAction"
-        {
-          return .failure(.unsupportedDeleteRuleArgument)
-        }
         return .failure(.invalidDeleteRuleArgument)
       }
     default:

@@ -279,6 +279,8 @@ func makeRuntimeEntitySchemaDecl(
     guard let inverseName = relationship.inverseName,
       let deleteRule = relationship.deleteRule
     else {
+      // Relationship metadata is validated earlier. Keep runtime schema emission defensive so
+      // partially-invalid analysis does not crash member generation.
       return nil
     }
     return """

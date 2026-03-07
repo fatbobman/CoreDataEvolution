@@ -142,13 +142,13 @@ private func parseRelationshipKindForPublicMacro(
   from type: TypeSyntax
 ) -> CDRawRelationshipKind? {
   if let wrappedType = optionalWrappedTypeSyntax(type) {
-    return isManagedObjectLikeType(wrappedType) ? .toOne : nil
+    return hasNamedRelationshipTargetType(wrappedType) ? .toOne : nil
   }
   if let elementType = setElementTypeName(type) {
-    return isManagedObjectLikeTypeName(elementType) ? .toManySet : nil
+    return hasNamedRelationshipTargetTypeName(elementType) ? .toManySet : nil
   }
   if let elementType = arrayElementTypeName(type) {
-    return isManagedObjectLikeTypeName(elementType) ? .toManyArray : nil
+    return hasNamedRelationshipTargetTypeName(elementType) ? .toManyArray : nil
   }
   return nil
 }
@@ -159,11 +159,13 @@ private enum CDRawRelationshipKind {
   case toManyArray
 }
 
-private func isManagedObjectLikeType(_ type: TypeSyntax) -> Bool {
-  isManagedObjectLikeTypeName(type.trimmedDescription)
+private func hasNamedRelationshipTargetType(_ type: TypeSyntax) -> Bool {
+  hasNamedRelationshipTargetTypeName(type.trimmedDescription)
 }
 
-private func isManagedObjectLikeTypeName(_ name: String) -> Bool {
+// This public marker only needs to reject obviously non-relationship shapes. Deeper target
+// validation still happens later in @PersistentModel / @_CDRelationship analysis.
+private func hasNamedRelationshipTargetTypeName(_ name: String) -> Bool {
   let candidate = name.split(separator: ".").last.map(String.init) ?? name
   return candidate.isEmpty == false
 }
