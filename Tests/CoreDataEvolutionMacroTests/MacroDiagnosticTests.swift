@@ -473,6 +473,24 @@ struct MacroDiagnosticTests {
       })
   }
 
+  @Test("Relationship rejects unsupported noAction delete rule")
+  func relationshipRejectsUnsupportedNoActionDeleteRule() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        final class Document: NSManagedObject {
+          @Relationship(inverse: "author", deleteRule: .noAction)
+          var author: User?
+        }
+        """
+    )
+    #expect(
+      result.diagnostics.contains {
+        $0.contains("does not support `deleteRule: .noAction`")
+      })
+  }
+
   @Test("_CDRelationship rejects manual use outside PersistentModel")
   func relationshipRejectsManualUseOutsidePersistentModel() throws {
     let result = try MacroTestSupport.expand(

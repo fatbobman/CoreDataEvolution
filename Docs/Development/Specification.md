@@ -150,7 +150,8 @@ enum RelationshipGenerationPolicy { case none, warning, plain }
 - `inverse` 必填。
 - `deleteRule` 必填。
 - relationship 属性本身已经提供目标实体类型，因此 `@Relationship` 只需要补充对端属性名与删除策略。
-- `deleteRule` 支持 Core Data 标准枚举值：`.nullify`、`.cascade`、`.deny`、`.noAction`。
+- `deleteRule` 仅支持：`.nullify`、`.cascade`、`.deny`。
+- `.noAction` 在 v1 中明确不支持；tooling 读取到模型里的 `No Action` delete rule 时会直接报错。
 - 不再依赖公开的 `@Inverse` 或结构化关系注释。
 
 ### `@Composition`

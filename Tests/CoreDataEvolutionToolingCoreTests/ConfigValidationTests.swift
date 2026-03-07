@@ -371,6 +371,16 @@ struct ConfigValidationTests {
     }
   }
 
+  @Test("tooling rejects no action delete rule in the model surface")
+  func toolingRejectsNoActionDeleteRule() throws {
+    let model = makeModelWithNoActionDeleteRule()
+    let template = makeGenerateValidationTemplate()
+
+    try expectConfigFailure(template, code: .configInvalid) {
+      try validateToolingConfigTemplate(template, against: model)
+    }
+  }
+
   private func expectConfigFailure(
     _ template: ToolingConfigTemplate,
     code: ToolingErrorCode,
@@ -572,6 +582,42 @@ struct ConfigValidationTests {
 
     item.properties = [ownerRelationship]
     owner.properties = []
+
+    let model = NSManagedObjectModel()
+    model.entities = [item, owner]
+    return model
+  }
+
+  private func makeModelWithNoActionDeleteRule() -> NSManagedObjectModel {
+    let item = NSEntityDescription()
+    item.name = "Item"
+    item.managedObjectClassName = "NSManagedObject"
+
+    let owner = NSEntityDescription()
+    owner.name = "Owner"
+    owner.managedObjectClassName = "NSManagedObject"
+
+    let ownerRelationship = NSRelationshipDescription()
+    ownerRelationship.name = "owner"
+    ownerRelationship.destinationEntity = owner
+    ownerRelationship.minCount = 0
+    ownerRelationship.maxCount = 1
+    ownerRelationship.isOptional = true
+    ownerRelationship.deleteRule = .noActionDeleteRule
+
+    let itemsRelationship = NSRelationshipDescription()
+    itemsRelationship.name = "items"
+    itemsRelationship.destinationEntity = item
+    itemsRelationship.minCount = 0
+    itemsRelationship.maxCount = 0
+    itemsRelationship.isOptional = true
+    itemsRelationship.deleteRule = .nullifyDeleteRule
+
+    ownerRelationship.inverseRelationship = itemsRelationship
+    itemsRelationship.inverseRelationship = ownerRelationship
+
+    item.properties = [ownerRelationship]
+    owner.properties = [itemsRelationship]
 
     let model = NSManagedObjectModel()
     model.entities = [item, owner]

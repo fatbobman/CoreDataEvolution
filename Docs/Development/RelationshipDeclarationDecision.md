@@ -77,6 +77,14 @@ Reason:
 
 Therefore the final source shape requires `deleteRule` to be written out on every relationship.
 
+Supported source values are:
+
+- `.nullify`
+- `.cascade`
+- `.deny`
+
+`.noAction` is intentionally unsupported in v1 and must be rejected by macros and tooling.
+
 ## Runtime Schema Impact
 
 Once `@Relationship(...)` is adopted, runtime schema should carry:

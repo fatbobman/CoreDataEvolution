@@ -294,8 +294,6 @@ public enum CDRuntimeModelBuilder {
       return .cascadeDeleteRule
     case .deny:
       return .denyDeleteRule
-    case .noAction:
-      return .noActionDeleteRule
     }
   }
 

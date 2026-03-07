@@ -141,6 +141,12 @@ private func validateToolingModelConstraints(
           "\(context) requires relationship '\(entityName).\(fieldName)' to declare an inverse relationship."
         )
       }
+
+      if relationship.deleteRule == .noActionDeleteRule {
+        throw configValidationFailure(
+          "\(context) does not support No Action delete rule at '\(entityName).\(fieldName)'."
+        )
+      }
     }
   }
 }
@@ -156,6 +162,14 @@ public func validateSupportedToolingModelSurface(_ model: NSManagedObjectModel) 
       if isDerivedAttribute(attribute) {
         throw configValidationFailure(
           "tooling does not support derived attribute '\(entityName).\(fieldName)'."
+        )
+      }
+    }
+
+    for (fieldName, relationship) in entity.relationshipsByName {
+      if relationship.deleteRule == .noActionDeleteRule {
+        throw configValidationFailure(
+          "tooling does not support No Action delete rule at '\(entityName).\(fieldName)'."
         )
       }
     }

@@ -524,9 +524,6 @@ private func parseRelationshipDeleteRule(from raw: String) -> String? {
     return "cascade"
   case ".deny", "RelationshipDeleteRule.deny", "CoreDataEvolution.RelationshipDeleteRule.deny":
     return "deny"
-  case ".noAction", "RelationshipDeleteRule.noAction",
-    "CoreDataEvolution.RelationshipDeleteRule.noAction":
-    return "noAction"
   default:
     return nil
   }

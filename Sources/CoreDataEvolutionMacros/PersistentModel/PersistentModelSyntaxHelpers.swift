@@ -39,7 +39,6 @@ enum ParsedRelationshipDeleteRule: String, Equatable {
   case nullify
   case cascade
   case deny
-  case noAction
 }
 
 enum RelationshipDeclArgumentsParseError: Error, Equatable {
@@ -47,6 +46,7 @@ enum RelationshipDeclArgumentsParseError: Error, Equatable {
   case invalidInverseArgument
   case missingDeleteRuleArgument
   case invalidDeleteRuleArgument
+  case unsupportedDeleteRuleArgument
   case invalidShape
 }
 
@@ -89,6 +89,12 @@ func parseRelationshipDeclArguments(
       let raw = argument.expression.trimmedDescription.replacingOccurrences(of: " ", with: "")
       deleteRule = parseRelationshipDeleteRule(from: raw)
       if deleteRule == nil {
+        if raw == ".noAction"
+          || raw == "RelationshipDeleteRule.noAction"
+          || raw == "CoreDataEvolution.RelationshipDeleteRule.noAction"
+        {
+          return .failure(.unsupportedDeleteRuleArgument)
+        }
         return .failure(.invalidDeleteRuleArgument)
       }
     default:
@@ -121,9 +127,6 @@ func parseRelationshipDeleteRule(from raw: String) -> ParsedRelationshipDeleteRu
     return .cascade
   case ".deny", "RelationshipDeleteRule.deny", "CoreDataEvolution.RelationshipDeleteRule.deny":
     return .deny
-  case ".noAction", "RelationshipDeleteRule.noAction",
-    "CoreDataEvolution.RelationshipDeleteRule.noAction":
-    return .noAction
   default:
     return nil
   }

@@ -479,8 +479,6 @@ private func runtimeRelationshipDeleteRuleExpression(_ rule: ParsedRelationshipD
     return ".cascade"
   case .deny:
     return ".deny"
-  case .noAction:
-    return ".noAction"
   }
 }
 

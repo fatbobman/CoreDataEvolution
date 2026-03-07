@@ -37,7 +37,6 @@ public enum RelationshipDeleteRule: String, Sendable, Codable {
   case nullify
   case cascade
   case deny
-  case noAction
 }
 
 @attached(member, names: named(modelExecutor), named(modelContainer), named(init))

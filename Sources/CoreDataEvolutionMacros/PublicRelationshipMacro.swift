@@ -110,6 +110,14 @@ public enum PublicRelationshipMacro: PeerMacro {
         node: node
       )
       return []
+    case .failure(.unsupportedDeleteRuleArgument):
+      MacroDiagnosticReporter.error(
+        "@Relationship does not support `deleteRule: .noAction` in v1. Use `.nullify`, `.cascade`, or `.deny`.",
+        domain: "CoreDataEvolution.PublicRelationshipMacro",
+        in: context,
+        node: node
+      )
+      return []
     case .failure(.missingDeleteRuleArgument), .failure(.invalidDeleteRuleArgument):
       MacroDiagnosticReporter.error(
         "@Relationship requires `deleteRule:` in the form @Relationship(inverse: \"property\", deleteRule: .nullify).",
