@@ -580,6 +580,7 @@ v1 的版本与发行策略分为两层：
   - `conformance`: 规则符合模式。只做结构级 source/model/config 对比，不要求 tool-managed 文件与当前生成结果逐字一致。
   - `exact`: 精确一致模式。在 `conformance` 之上，对带 managed marker 的生成文件做精确漂移比对。
   - `exact` 不是默认推荐模式。它更适合 CI / 防漂移场景，而不是会对 generated file 继续运行 formatter/linter rewrite 的日常工作流。
+  - `exact` 不会替你编译下游 generated target。它校验的是源码规则与 tool-managed 文件一致性，而不是“另一个 target 一定能成功编译这些生成文件”。
 
 ### 5.3 输出与退出码
 
@@ -657,6 +658,7 @@ v1 的版本与发行策略分为两层：
 - 报告缺失文件、多余 managed file、内容漂移
 - v1 的 `exact` 仍是静态验证，不自动执行真实 SQLite / Core Data fetch 级运行时检查
 - 当前已实现并接入 `cde-tool validate`
+- `exact` 不自动执行下游 generated target 的真实编译检查；如果项目依赖这条保证，应在 CI 中额外加入 `swift build` 或等价构建步骤
 - `exact` 当前比较的是最终文本内容，而不是 AST / 语义等价
 - 因此如果 formatter、linter 或其他工具会改写 tool-managed 文件，即使语义不变，也会被判定为 drift
 - 使用 `exact` 时，必须让 tool-managed 文件跳过格式化与自动修复，或确保 generate 与 validate 看到的最终文本完全一致

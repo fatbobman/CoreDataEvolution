@@ -388,6 +388,12 @@ Use `conformance` when:
 It first performs `conformance`, then additionally verifies that tool-managed files match the
 current generator output exactly.
 
+`exact` does not compile downstream generated targets for you.
+
+It is a source/output consistency check, not a guarantee that another package target consuming the
+generated files has been compiled successfully. If your workflow depends on generated models being
+buildable as a separate target, keep an explicit `swift build` step in CI or local verification.
+
 That means:
 
 - managed file paths must match
