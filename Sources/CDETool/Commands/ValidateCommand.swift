@@ -18,7 +18,11 @@ struct ValidateCommand: ParsableCommand {
     abstract: "Validate model/code mapping drift."
   )
 
-  @Option(name: .long, help: "Path to source model (.xcdatamodeld/.xcdatamodel).")
+  @Option(
+    name: .long,
+    help:
+      "Path to source model (.xcdatamodeld/.xcdatamodel). Compiled .mom/.momd inputs are not supported."
+  )
   var modelPath: String?
 
   @Option(name: .long, help: "Specific model version name. Defaults to current/latest.")
@@ -86,7 +90,11 @@ struct ValidateCommand: ParsableCommand {
   @Option(name: .long, help: "Maximum issues to report.")
   var maxIssues: Int?
 
-  @Option(name: .long, help: "Path to JSON config file.")
+  @Option(
+    name: .long,
+    help:
+      "Path to JSON config file. Reads the validate section; direct CLI options override config values."
+  )
   var config: String?
 
   mutating func run() throws {

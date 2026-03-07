@@ -18,7 +18,11 @@ struct GenerateCommand: ParsableCommand {
     abstract: "Generate Swift model code from Core Data models."
   )
 
-  @Option(name: .long, help: "Path to source model (.xcdatamodeld/.xcdatamodel).")
+  @Option(
+    name: .long,
+    help:
+      "Path to source model (.xcdatamodeld/.xcdatamodel). Compiled .mom/.momd inputs are not supported."
+  )
   var modelPath: String?
 
   @Option(name: .long, help: "Specific model version name. Defaults to current/latest.")
@@ -77,7 +81,11 @@ struct GenerateCommand: ParsableCommand {
   @Option(name: .long, help: "Decode failure policy: fallbackToDefaultValue/debugAssertNil.")
   var defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy?
 
-  @Option(name: .long, help: "Path to JSON config file.")
+  @Option(
+    name: .long,
+    help:
+      "Path to JSON config file. Reads the generate section; direct CLI options override config values."
+  )
   var config: String?
 
   mutating func run() throws {

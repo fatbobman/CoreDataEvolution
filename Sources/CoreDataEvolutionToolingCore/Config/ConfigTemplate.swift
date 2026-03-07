@@ -385,12 +385,19 @@ extension InspectRequest {
     config: GenerateTemplate,
     modelPathOverride: String? = nil,
     modelVersionOverride: String? = nil,
-    momcBinOverride: String? = nil
+    momcBinOverride: String? = nil,
+    configDirectory: URL? = nil
   ) {
     self.init(
-      modelPath: modelPathOverride ?? config.modelPath,
+      modelPath: resolvePathValue(
+        modelPathOverride ?? config.modelPath,
+        relativeTo: configDirectory
+      ),
       modelVersion: modelVersionOverride ?? config.modelVersion,
-      momcBin: momcBinOverride ?? config.momcBin,
+      momcBin: resolveOptionalPathValue(
+        momcBinOverride ?? config.momcBin,
+        relativeTo: configDirectory
+      ),
       typeMappings: mergeToolingTypeMappings(config.typeMappings),
       attributeRules: config.attributeRules ?? .init(),
       accessLevel: config.accessLevel ?? .internal,

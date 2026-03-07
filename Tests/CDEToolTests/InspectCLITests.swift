@@ -69,4 +69,59 @@ struct InspectCLITests {
     #expect(result.exitCode == 1)
     #expect(result.stderr.contains("error[TOOL-CONFIG-INVALID]"))
   }
+
+  @Test("inspect resolves config-relative model paths from generate section")
+  func inspectResolvesConfigRelativeModelPaths() throws {
+    let modelURL = try makeMinimalSourceModelFixture(entityName: "Item")
+    defer { try? FileManager.default.removeItem(at: modelURL.deletingLastPathComponent()) }
+
+    let configDirectory = FileManager.default.temporaryDirectory
+      .appendingPathComponent("CDEToolTests", isDirectory: true)
+      .appendingPathComponent(UUID().uuidString, isDirectory: true)
+      .appendingPathComponent("Configs", isDirectory: true)
+    try FileManager.default.createDirectory(at: configDirectory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: configDirectory.deletingLastPathComponent()) }
+
+    let modelRelativePath = makeRelativePath(
+      from: configDirectory,
+      to: modelURL
+    )
+    let configURL = configDirectory.appendingPathComponent("inspect.json")
+    let template = ToolingConfigTemplate(
+      schemaVersion: toolingSupportedSchemaVersion,
+      generate: GenerateTemplate(
+        modelPath: modelRelativePath,
+        modelVersion: nil,
+        momcBin: nil,
+        outputDir: "Generated/CoreDataEvolution",
+        moduleName: "AppModels",
+        typeMappings: makeDefaultToolingTypeMappings(),
+        attributeRules: .init(),
+        accessLevel: .internal,
+        singleFile: false,
+        splitByEntity: true,
+        overwrite: ToolingOverwriteMode.none,
+        cleanStale: false,
+        dryRun: false,
+        format: ToolingFormatMode.none,
+        headerTemplate: nil,
+        emitExtensionStubs: false,
+        generateInit: false,
+        relationshipSetterPolicy: ToolingRelationshipSetterPolicy.warning,
+        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
+        defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy.fallbackToDefaultValue
+      ),
+      validate: nil
+    )
+    try encodeToolingJSON(template).write(to: configURL)
+
+    let result = try runTool([
+      "inspect",
+      "--model-path", modelRelativePath,
+      "--config", configURL.path,
+    ])
+
+    #expect(result.exitCode == 0)
+    #expect(result.stdout.contains("\"Item\""))
+  }
 }

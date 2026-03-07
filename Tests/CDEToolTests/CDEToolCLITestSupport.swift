@@ -258,6 +258,23 @@ func writeToolingConfig(
   return configURL
 }
 
+func makeRelativePath(from baseDirectory: URL, to targetURL: URL) -> String {
+  let baseComponents = baseDirectory.standardizedFileURL.pathComponents
+  let targetComponents = targetURL.standardizedFileURL.pathComponents
+  let sharedCount = zip(baseComponents, targetComponents)
+    .prefix { $0 == $1 }
+    .count
+  let relativeComponents =
+    Array(repeating: "..", count: baseComponents.count - sharedCount)
+    + targetComponents.dropFirst(sharedCount)
+
+  guard relativeComponents.isEmpty == false else {
+    return "."
+  }
+
+  return NSString.path(withComponents: relativeComponents)
+}
+
 func rewriteEntityFile(
   named fileName: String,
   in sourceDirectory: URL,

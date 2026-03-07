@@ -23,11 +23,6 @@ CLI v1 先解决两件事：
 - `overwrite` / `clean-stale` / `dry-run`
 - 单文件与按 entity 拆分输出
 
-当前仍未完成：
-
-- `validate` 引擎
-- `generate` 的插件/GUI 适配层
-
 ### `cde-tool validate`
 
 用途：检查“模型文件 + 已有代码”是否一致，不写文件。
@@ -41,6 +36,7 @@ CLI v1 先解决两件事：
 - 读取模型并输出结构化 IR JSON。
 - 默认使用内建 `typeMappings` / 空 `attributeRules`。
 - 如果提供 `--config`，则读取其中 `generate` 节点的规则来解析属性名、存储方式、类型映射。
+- `inspect --config` 与 `generate/validate` 一样，按配置文件所在目录解析相对路径。
 - 对于尚未补完的字段，`inspect` 会输出 diagnostics，但仍尽量产出可读 IR。
 
 ### `cde-tool init-config`
@@ -169,6 +165,7 @@ CLI v1 先解决两件事：
 
 - 运行 `cde-tool generate` 时读取 `generate` 节点。
 - 运行 `cde-tool validate` 时读取 `validate` 节点。
+- 运行 `cde-tool inspect --config` 时读取 `generate` 节点。
 - 命令行显式传入参数优先覆盖配置文件同名字段。
 
 `typeMappings` 约定：
@@ -307,6 +304,7 @@ CLI v1 先解决两件事：
 
 - `init-config` 是“通用模板”，不依赖具体模型。
 - `bootstrap-config` 是“模型驱动草案”，依赖具体模型。
+- 当 `bootstrap-config` 将配置写入文件时，会把路径字段重写为相对于配置文件位置的路径，保证后续 `generate/validate/inspect` 可复现。
 - 两者不合并，避免命令语义混淆。
 
 ## 4. `generate` 参数设计（v1）

@@ -157,6 +157,47 @@ public enum ToolingModelLoader {
     }
   }
 
+  /// Source-model-only entry point used by generate/bootstrap/inspect/validate.
+  ///
+  /// This resolves the source model once, enforces the source-only/codegen contract, then compiles
+  /// and loads the selected version.
+  public static func loadValidatedSourceModel(
+    modelPath: String,
+    modelVersion: String?,
+    momcBin: String? = nil
+  ) throws -> ToolingLoadedModel {
+    let resolvedInput = try resolveModelInput(
+      modelPath: modelPath,
+      modelVersion: modelVersion
+    )
+
+    switch resolvedInput.kind {
+    case .momd, .mom:
+      throw ToolingFailure.user(
+        .modelUnsupported,
+        "tooling commands require a source model path. Use .xcdatamodeld or .xcdatamodel instead of '\(resolvedInput.originalURL.path)'."
+      )
+    case .xcdatamodeld, .xcdatamodel:
+      try validateSourceModelCodeGeneration(selectedSourceURL: resolvedInput.selectedSourceURL)
+      let momcURL = try discoverMomcBinary(preferredPath: momcBin)
+      let temporaryArtifactsRootURL = resolvedInput.compiledModelURL.deletingLastPathComponent()
+      do {
+        try compileModel(
+          sourceURL: resolvedInput.selectedSourceURL,
+          outputURL: resolvedInput.compiledModelURL,
+          momcURL: momcURL
+        )
+        return try loadCompiledModel(
+          from: resolvedInput,
+          temporaryArtifactToken: .init(rootURL: temporaryArtifactsRootURL)
+        )
+      } catch {
+        try? FileManager.default.removeItem(at: temporaryArtifactsRootURL)
+        throw error
+      }
+    }
+  }
+
   /// Validates the repository's source-model input contract before the expensive load path begins.
   ///
   /// Tooling commands are intentionally source-model-only. They reject compiled `.mom` / `.momd`

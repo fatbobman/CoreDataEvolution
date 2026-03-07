@@ -9,6 +9,7 @@
 //  ------------------------------------------------
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
+import CoreDataEvolutionToolingCore
 import Foundation
 import Testing
 
@@ -61,5 +62,49 @@ struct BootstrapConfigCLITests {
     #expect(result.exitCode == 1)
     #expect(result.stderr.contains("error[TOOL-CONFIG-INVALID]"))
     #expect(result.stderr.contains("must not use Xcode code generation mode"))
+  }
+
+  @Test("bootstrap-config rewrites generated path fields relative to output config")
+  func bootstrapConfigRewritesPathsRelativeToOutputConfig() throws {
+    let modelURL = try makeToolingSourceModelFixture()
+    defer { try? FileManager.default.removeItem(at: modelURL.deletingLastPathComponent()) }
+
+    let outputDirectory = FileManager.default.temporaryDirectory
+      .appendingPathComponent("CDEToolTests", isDirectory: true)
+      .appendingPathComponent(UUID().uuidString, isDirectory: true)
+      .appendingPathComponent("Configs", isDirectory: true)
+    try FileManager.default.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: outputDirectory.deletingLastPathComponent()) }
+
+    let configURL = outputDirectory.appendingPathComponent("cde-tool.json")
+    let result = try runTool([
+      "bootstrap-config",
+      "--model-path", modelURL.path,
+      "--output-dir", "Generated/CoreDataEvolution",
+      "--source-dir", "Sources/AppModels",
+      "--output", configURL.path,
+    ])
+
+    #expect(result.exitCode == 0)
+
+    let template = try JSONDecoder().decode(
+      ToolingConfigTemplate.self,
+      from: Data(contentsOf: configURL)
+    )
+    let generate = try #require(template.generate)
+    let validate = try #require(template.validate)
+    let repositoryURL = try repositoryRoot()
+    let generatedOutputURL = repositoryURL.appendingPathComponent(
+      "Generated/CoreDataEvolution",
+      isDirectory: true
+    )
+    let sourceOutputURL = repositoryURL.appendingPathComponent(
+      "Sources/AppModels",
+      isDirectory: true
+    )
+
+    #expect(generate.modelPath == makeRelativePath(from: outputDirectory, to: modelURL))
+    #expect(generate.outputDir == makeRelativePath(from: outputDirectory, to: generatedOutputURL))
+    #expect(validate.sourceDir == makeRelativePath(from: outputDirectory, to: sourceOutputURL))
   }
 }

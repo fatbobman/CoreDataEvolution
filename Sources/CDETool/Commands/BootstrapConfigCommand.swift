@@ -19,7 +19,11 @@ struct BootstrapConfigCommand: ParsableCommand {
     abstract: "Generate an editable config scaffold from a Core Data model."
   )
 
-  @Option(name: .long, help: "Path to source model (.xcdatamodeld/.xcdatamodel).")
+  @Option(
+    name: .long,
+    help:
+      "Path to source model (.xcdatamodeld/.xcdatamodel). Compiled .mom/.momd inputs are not supported."
+  )
   var modelPath: String
 
   @Option(name: .long, help: "Specific model version name. Defaults to current/latest.")
@@ -101,9 +105,19 @@ struct BootstrapConfigCommand: ParsableCommand {
       )
     }
 
+    let templateForOutput = relocateBootstrapTemplate(
+      result.template,
+      outputURL: url,
+      currentDirectoryURL: URL(
+        fileURLWithPath: FileManager.default.currentDirectoryPath, isDirectory: true)
+    )
+
     do {
-      try result.jsonData.write(to: url, options: [.atomic])
+      let data = try encodeToolingJSON(templateForOutput)
+      try data.write(to: url, options: [.atomic])
       emitWriteSuccess(kind: "bootstrap config", path: url.path)
+    } catch let failure as ToolingFailure {
+      try fail(failure)
     } catch {
       try failUser(
         code: .writeDenied,
@@ -111,4 +125,140 @@ struct BootstrapConfigCommand: ParsableCommand {
       )
     }
   }
+}
+
+private func relocateBootstrapTemplate(
+  _ template: ToolingConfigTemplate,
+  outputURL: URL,
+  currentDirectoryURL: URL
+) -> ToolingConfigTemplate {
+  let configDirectoryURL = outputURL.deletingLastPathComponent()
+
+  return .init(
+    schemaVersion: template.schemaVersion,
+    generate: template.generate.map { generate in
+      .init(
+        modelPath: relativizeBootstrapPath(
+          generate.modelPath,
+          configDirectoryURL: configDirectoryURL,
+          currentDirectoryURL: currentDirectoryURL
+        ),
+        modelVersion: generate.modelVersion,
+        momcBin: relativizeOptionalBootstrapPath(
+          generate.momcBin,
+          configDirectoryURL: configDirectoryURL,
+          currentDirectoryURL: currentDirectoryURL
+        ),
+        outputDir: relativizeBootstrapPath(
+          generate.outputDir,
+          configDirectoryURL: configDirectoryURL,
+          currentDirectoryURL: currentDirectoryURL
+        ),
+        moduleName: generate.moduleName,
+        typeMappings: generate.typeMappings,
+        attributeRules: generate.attributeRules,
+        accessLevel: generate.accessLevel,
+        singleFile: generate.singleFile,
+        splitByEntity: generate.splitByEntity,
+        overwrite: generate.overwrite,
+        cleanStale: generate.cleanStale,
+        dryRun: generate.dryRun,
+        format: generate.format,
+        headerTemplate: relativizeOptionalBootstrapPath(
+          generate.headerTemplate,
+          configDirectoryURL: configDirectoryURL,
+          currentDirectoryURL: currentDirectoryURL
+        ),
+        emitExtensionStubs: generate.emitExtensionStubs,
+        generateInit: generate.generateInit,
+        relationshipSetterPolicy: generate.relationshipSetterPolicy,
+        relationshipCountPolicy: generate.relationshipCountPolicy,
+        defaultDecodeFailurePolicy: generate.defaultDecodeFailurePolicy
+      )
+    },
+    validate: template.validate.map { validate in
+      .init(
+        modelPath: relativizeBootstrapPath(
+          validate.modelPath,
+          configDirectoryURL: configDirectoryURL,
+          currentDirectoryURL: currentDirectoryURL
+        ),
+        modelVersion: validate.modelVersion,
+        momcBin: relativizeOptionalBootstrapPath(
+          validate.momcBin,
+          configDirectoryURL: configDirectoryURL,
+          currentDirectoryURL: currentDirectoryURL
+        ),
+        sourceDir: relativizeBootstrapPath(
+          validate.sourceDir,
+          configDirectoryURL: configDirectoryURL,
+          currentDirectoryURL: currentDirectoryURL
+        ),
+        moduleName: validate.moduleName,
+        typeMappings: validate.typeMappings,
+        attributeRules: validate.attributeRules,
+        accessLevel: validate.accessLevel,
+        singleFile: validate.singleFile,
+        splitByEntity: validate.splitByEntity,
+        headerTemplate: relativizeOptionalBootstrapPath(
+          validate.headerTemplate,
+          configDirectoryURL: configDirectoryURL,
+          currentDirectoryURL: currentDirectoryURL
+        ),
+        generateInit: validate.generateInit,
+        relationshipSetterPolicy: validate.relationshipSetterPolicy,
+        relationshipCountPolicy: validate.relationshipCountPolicy,
+        defaultDecodeFailurePolicy: validate.defaultDecodeFailurePolicy,
+        include: validate.include,
+        exclude: validate.exclude,
+        level: validate.level,
+        report: validate.report,
+        failOnWarning: validate.failOnWarning,
+        maxIssues: validate.maxIssues
+      )
+    }
+  )
+}
+
+private func relativizeBootstrapPath(
+  _ path: String,
+  configDirectoryURL: URL,
+  currentDirectoryURL: URL
+) -> String {
+  let absoluteURL: URL
+  if (path as NSString).isAbsolutePath {
+    absoluteURL = URL(fileURLWithPath: path)
+  } else {
+    absoluteURL = currentDirectoryURL.appendingPathComponent(path)
+  }
+
+  let normalizedAbsoluteURL = absoluteURL.standardizedFileURL
+  let normalizedConfigDirectoryURL = configDirectoryURL.standardizedFileURL
+  let absoluteComponents = normalizedAbsoluteURL.pathComponents
+  let baseComponents = normalizedConfigDirectoryURL.pathComponents
+  let sharedCount = zip(absoluteComponents, baseComponents)
+    .prefix { $0 == $1 }
+    .count
+  let relativeComponents =
+    Array(repeating: "..", count: baseComponents.count - sharedCount)
+    + absoluteComponents.dropFirst(sharedCount)
+
+  guard relativeComponents.isEmpty == false else {
+    return "."
+  }
+
+  return NSString.path(withComponents: relativeComponents)
+}
+
+private func relativizeOptionalBootstrapPath(
+  _ path: String?,
+  configDirectoryURL: URL,
+  currentDirectoryURL: URL
+) -> String? {
+  guard let path else { return nil }
+  return relativizeBootstrapPath(
+    path,
+    configDirectoryURL: configDirectoryURL,
+    currentDirectoryURL: currentDirectoryURL
+  )
 }

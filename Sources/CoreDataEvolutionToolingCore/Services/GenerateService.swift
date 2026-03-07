@@ -17,12 +17,7 @@ import Foundation
 /// The service stops at disk writes. External formatter execution still belongs to CLI/adapters.
 public enum GenerateService {
   public static func run(_ request: GenerateRequest) throws -> GenerateResult {
-    try ToolingModelLoader.validateSourceModelLayout(
-      modelPath: request.modelPath,
-      modelVersion: request.modelVersion
-    )
-
-    let loadedModel = try ToolingModelLoader.loadModel(
+    let loadedModel = try ToolingModelLoader.loadValidatedSourceModel(
       modelPath: request.modelPath,
       modelVersion: request.modelVersion,
       momcBin: request.momcBin

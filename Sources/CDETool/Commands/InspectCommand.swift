@@ -16,10 +16,14 @@ import Foundation
 struct InspectCommand: ParsableCommand {
   static let configuration = CommandConfiguration(
     commandName: "inspect",
-    abstract: "Inspect parsed model IR (work in progress)."
+    abstract: "Inspect parsed model IR and resolved generation rules."
   )
 
-  @Option(name: .long, help: "Path to source model (.xcdatamodeld/.xcdatamodel).")
+  @Option(
+    name: .long,
+    help:
+      "Path to source model (.xcdatamodeld/.xcdatamodel). Compiled .mom/.momd inputs are not supported."
+  )
   var modelPath: String
 
   @Option(name: .long, help: "Specific model version name. Defaults to current/latest.")
@@ -28,7 +32,11 @@ struct InspectCommand: ParsableCommand {
   @Option(name: .long, help: "Path to momc binary.")
   var momcBin: String?
 
-  @Option(name: .long, help: "Path to JSON config file.")
+  @Option(
+    name: .long,
+    help:
+      "Path to JSON config file. Reads the generate section and resolves relative paths from the config directory."
+  )
   var config: String?
 
   mutating func run() throws {
@@ -36,8 +44,9 @@ struct InspectCommand: ParsableCommand {
 
     do {
       if let config {
+        let configURL = URL(fileURLWithPath: config)
         let template = try loadToolingConfigTemplate(
-          at: URL(fileURLWithPath: config)
+          at: configURL
         )
         guard let generate = template.generate else {
           try failUser(
@@ -49,7 +58,8 @@ struct InspectCommand: ParsableCommand {
           config: generate,
           modelPathOverride: modelPath,
           modelVersionOverride: modelVersion,
-          momcBinOverride: momcBin
+          momcBinOverride: momcBin,
+          configDirectory: configURL.deletingLastPathComponent()
         )
       } else {
         request = .init(

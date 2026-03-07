@@ -91,7 +91,7 @@ public struct ValidateResult: Codable, Sendable, Equatable {
   }
 }
 
-/// Placeholder result model for future inspect engine output.
+/// Result for `inspect`.
 public struct InspectResult: Sendable, Equatable {
   public let modelIR: ToolingModelIR
   public let jsonData: Data

@@ -15,7 +15,8 @@ import ArgumentParser
 struct CDETool: ParsableCommand {
   static let configuration = CommandConfiguration(
     commandName: "cde-tool",
-    abstract: "CoreDataEvolution tooling CLI.",
+    abstract:
+      "CoreDataEvolution tooling CLI for source-model generation, validation, and inspection.",
     subcommands: [
       GenerateCommand.self,
       ValidateCommand.self,
