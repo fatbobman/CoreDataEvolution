@@ -108,7 +108,7 @@
 - 为 `@PersistentModel` 生成静态 runtime schema metadata
 - 提供从 `[PersistentModel.Type]` 组装 `NSManagedObjectModel` 的 builder / helper
 - 支持普通 attribute、relationship、composition 展平
-- 支持显式 `@Relationship(inverse:deleteRule:)` relationship metadata
+- 支持显式 `@Relationship(persistentName:inverse:deleteRule:)` relationship metadata
 - 支持 `@Attribute(.unique)` 产生单字段 uniqueness metadata
 - 约束 `@Attribute(.transient)`：
   - 表示 transient Core Data attribute

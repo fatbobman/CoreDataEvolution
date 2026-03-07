@@ -307,20 +307,21 @@ Example:
 @objc(Item)
 @PersistentModel
 final class Item: NSManagedObject {
-  @Relationship(inverse: "items", deleteRule: .nullify)
+  @Relationship(persistentName: "owner", inverse: "books", deleteRule: .nullify)
   var tag: Tag?
 }
 
 @objc(Tag)
 @PersistentModel
 final class Tag: NSManagedObject {
-  @Relationship(inverse: "tag", deleteRule: .nullify)
+  @Relationship(persistentName: "books", inverse: "owner", deleteRule: .nullify)
   var items: Set<Item>
 }
 ```
 
 `@Relationship(...)` always carries:
 
+- `persistentName` when the Swift property name differs from the Core Data relationship name
 - `inverse`
 - `deleteRule`
 
@@ -352,6 +353,31 @@ that relationship shape:
 Write them only when the model declares non-default minimum or maximum counts.
 
 There is no source-level inverse inference in the current model DSL.
+
+#### `inverse` uses the persistent relationship name
+
+When a relationship uses `persistentName`, the `inverse` argument still points to the relationship
+name stored in the Core Data model on the other side.
+
+It does not point to the other Swift property name.
+
+Example:
+
+```swift
+@objc(Item)
+@PersistentModel
+final class Item: NSManagedObject {
+  @Relationship(persistentName: "owner", inverse: "books", deleteRule: .nullify)
+  var tag: Tag?
+}
+
+@objc(Tag)
+@PersistentModel
+final class Tag: NSManagedObject {
+  @Relationship(persistentName: "books", inverse: "owner", deleteRule: .nullify)
+  var items: Set<Item>
+}
+```
 
 Supported delete rules in v1:
 
@@ -631,7 +657,7 @@ Before using `@PersistentModel`, make sure all of these are true.
 - to-many relationships must use `Set<T>` or `[T]`
 - to-many relationships cannot be optional
 - relationships must have inverses in the Core Data model
-- every relationship must declare `@Relationship(inverse:deleteRule:)`
+- every relationship must declare `@Relationship(persistentName:inverse:deleteRule:)`
 - relationship count bounds are optional source metadata and should only be written when the model
   declares non-default min/max values
 - supported relationship delete rules are `.nullify`, `.cascade`, and `.deny`

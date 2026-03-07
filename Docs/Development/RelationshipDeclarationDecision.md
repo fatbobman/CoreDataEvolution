@@ -28,25 +28,26 @@ Introduce a single public `@Relationship(...)` macro as the canonical relationsh
 Target source form:
 
 ```swift
-@Relationship(inverse: "items", deleteRule: .nullify)
+@Relationship(persistentName: "owner", inverse: "books", deleteRule: .nullify)
 var tag: Tag?
 
-@Relationship(inverse: "tag", deleteRule: .cascade)
+@Relationship(persistentName: "books", inverse: "owner", deleteRule: .cascade)
 var items: Set<Item>
 ```
 
 ## Canonical Rules
 
 1. Every relationship property must be explicitly annotated with `@Relationship(...)`.
-2. `inverse` is required.
+2. `inverse` is required and always names the other side's persistent relationship name.
 3. `deleteRule` is required.
-4. The property type still determines cardinality:
+4. `persistentName` is optional and renames the current relationship's stored Core Data key.
+5. The property type still determines cardinality:
    - `Entity?` -> to-one
    - `Set<Entity>` -> unordered to-many
    - `[Entity]` -> ordered to-many
-5. Optional to-many remains invalid.
-6. Relationship properties remain stored instance `var` declarations only.
-7. The system does not infer inverse names or delete rules from source declarations.
+6. Optional to-many remains invalid.
+7. Relationship properties remain stored instance `var` declarations only.
+8. The system does not infer inverse names or delete rules from source declarations.
 
 ## Why This Direction
 
@@ -89,6 +90,7 @@ Supported source values are:
 
 Once `@Relationship(...)` is adopted, runtime schema should carry:
 
+- persistent relationship name
 - inverse property name
 - delete rule
 - ordered/unordered kind

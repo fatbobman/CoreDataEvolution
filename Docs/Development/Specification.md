@@ -26,7 +26,7 @@ Runtime schema / runtime model builder 的 v1 边界：
 - 仅用于测试/调试，不替代 `xcdatamodeld`
 - 假定宏生成的静态 metadata 为唯一输入，不做运行时反射
 - 同一组模型类型应复用缓存后的 `NSManagedObjectModel`
-- 关系元数据最终以 `@Relationship(inverse:deleteRule:)` 为源码真值，不依赖 inverse 推断
+- 关系元数据最终以 `@Relationship(persistentName:inverse:deleteRule:)` 为源码真值，不依赖 inverse 推断
 - primitive 默认值仅支持可稳定翻译到 Core Data 默认值的表达式子集；不支持时直接报错
 - composition 在 runtime 路径中按单个 transformable dictionary payload 建模，不追求与 xcdatamodeld 的展平字段布局一致
 - 纯代码模型当前不支持声明以下低优先级模型元数据：
@@ -153,14 +153,16 @@ enum RelationshipGenerationPolicy { case none, warning, plain }
 ### `@Relationship`
 
 - 仅用于 relationship 属性。
-- 语法：`@Relationship(inverse: "property", deleteRule: .nullify, minimumModelCount: nil, maximumModelCount: nil)`
+- 语法：`@Relationship(persistentName: nil, inverse: "property", deleteRule: .nullify, minimumModelCount: nil, maximumModelCount: nil)`
+- `persistentName` 为可选参数，表示当前 Swift relationship 对应的持久化关系名。
 - `inverse` 必填。
 - `deleteRule` 必填。
 - `minimumModelCount` / `maximumModelCount` 为可选参数：
   - 对 to-many relationship，Core Data 中 `maxCount == 0` 表示“无上限”，不是“最多 0 个”
   - 仅在模型声明了非默认关系计数约束时才需要出现在源码中
   - 默认关系界限由 Core Data relationship 形态决定（例如可选 to-one 为 `0...1`）
-- relationship 属性本身已经提供目标实体类型，因此 `@Relationship` 只需要补充对端属性名与删除策略。
+- relationship 属性本身已经提供目标实体类型，因此 `@Relationship` 只需要补充当前关系的持久化名、对端持久化关系名与删除策略。
+- `inverse` 指向的是对端 relationship 在 Core Data 模型中的名字，不是对端 Swift 属性名。
 - `deleteRule` 仅支持：`.nullify`、`.cascade`、`.deny`。
 - `.noAction` 在 v1 中明确不支持；tooling 读取到模型里的 `No Action` delete rule 时会直接报错。
 - 不再依赖公开的 `@Inverse` 或结构化关系注释。
@@ -205,7 +207,8 @@ v1 声明约束（硬性）：
 relationship declaration 规则：
 
 - 每个 relationship 属性都必须显式声明 `@Relationship(...)`
-- `inverse` 必须写出对端 relationship 的属性名
+- `persistentName` 若存在，表示当前 relationship 在模型中的名字
+- `inverse` 必须写出对端 relationship 在模型中的持久化关系名
 - `deleteRule` 必须显式写出，不做源码层推断
 - 自连接按同一规则处理
 - 缺少 `@Relationship(...)` 时，主宏应在编译期报错并拒绝展开
@@ -329,7 +332,7 @@ NSPredicate(format: "%K == %@", Item.Keys.status.rawValue, status.rawValue)
 1. 不依赖运行时反射；仅消费宏生成的静态 schema metadata。
 2. 调用方必须显式提供所有相关实体类型，例如 `makeRuntimeModel([Item.self, Tag.self])`。
 3. relationship 解析要求目标类型与 inverse 两端都在输入集合中。
-4. relationship 需要源码通过 `@Relationship(inverse:deleteRule:)` 提供显式 metadata；不依赖 inverse 推断。
+4. relationship 需要源码通过 `@Relationship(persistentName:inverse:deleteRule:)` 提供显式 metadata；不依赖 inverse 推断。
 5. composition 仍按已生成的字段表展开为底层 attribute 集合。
 6. 由于当前范式已强约束“attribute 必须可选或有默认值、relationship 必须 optional 且有 inverse”，这些信息足以用于测试模型构建。
 
