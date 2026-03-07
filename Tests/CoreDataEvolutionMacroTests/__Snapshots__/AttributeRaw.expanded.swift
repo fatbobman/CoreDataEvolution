@@ -20,9 +20,7 @@ struct Item {
     }
   }
 
-  private static let __cd_attribute_validate_status_nonrelationship: Void = CoreDataEvolution
-    ._CDAttributeMacroValidation.requireNonRelationship(Status?.self)
+  private static let __cd_attribute_validate_status_nonrelationship: Void = CoreDataEvolution._CDAttributeMacroValidation.requireNonRelationship(Status?.self)
 
-  private static let __cd_attribute_validate_status_raw: Void = CoreDataEvolution
-    ._CDAttributeMacroValidation.requireRawRepresentable(Status.self)
+  private static let __cd_attribute_validate_status_raw: Void = CoreDataEvolution._CDAttributeMacroValidation.requireRawRepresentable(Status.self)
 }

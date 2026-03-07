@@ -11,8 +11,7 @@ struct Item {
     }
   }
 
-  private static let __cd_attribute_validate_date_nonrelationship: Void = CoreDataEvolution
-    ._CDAttributeMacroValidation.requireNonRelationship(Date?.self)
+  private static let __cd_attribute_validate_date_nonrelationship: Void = CoreDataEvolution._CDAttributeMacroValidation.requireNonRelationship(Date?.self)
   var count: Int? {
     get {
       guard let number = value(forKey: "count") as? NSNumber else {
@@ -29,6 +28,5 @@ struct Item {
     }
   }
 
-  private static let __cd_attribute_validate_count_nonrelationship: Void = CoreDataEvolution
-    ._CDAttributeMacroValidation.requireNonRelationship(Int?.self)
+  private static let __cd_attribute_validate_count_nonrelationship: Void = CoreDataEvolution._CDAttributeMacroValidation.requireNonRelationship(Int?.self)
 }

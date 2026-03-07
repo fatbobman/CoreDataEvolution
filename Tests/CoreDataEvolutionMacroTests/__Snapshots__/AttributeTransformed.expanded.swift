@@ -7,8 +7,7 @@ struct Item {
   var color: String? {
     get {
       let transformer = ColorTransformer.self.init()
-      guard let value = transformer.reverseTransformedValue(value(forKey: "color")) as? String
-      else {
+      guard let value = transformer.reverseTransformedValue(value(forKey: "color")) as? String else {
         return nil
       }
       return value
@@ -33,9 +32,7 @@ struct Item {
     }
   }
 
-  private static let __cd_attribute_validate_color_nonrelationship: Void = CoreDataEvolution
-    ._CDAttributeMacroValidation.requireNonRelationship(String?.self)
+  private static let __cd_attribute_validate_color_nonrelationship: Void = CoreDataEvolution._CDAttributeMacroValidation.requireNonRelationship(String?.self)
 
-  private static let __cd_attribute_validate_color_transformed: Void = CoreDataEvolution
-    ._CDAttributeMacroValidation.requireTransformer(ColorTransformer.self.self)
+  private static let __cd_attribute_validate_color_transformed: Void = CoreDataEvolution._CDAttributeMacroValidation.requireTransformer(ColorTransformer.self.self)
 }

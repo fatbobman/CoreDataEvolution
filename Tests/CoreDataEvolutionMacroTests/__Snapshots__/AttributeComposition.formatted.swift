@@ -1,5 +1,4 @@
 import CoreDataEvolution
-
 struct Magnitude {
   var richter: Double
 
@@ -8,13 +7,13 @@ struct Magnitude {
   ]
 
   static let __cdRuntimeCompositionFields: [CoreDataEvolution.CDRuntimeCompositionFieldSchema] = [
-    .init(
-      persistentName: "richter",
-      swiftTypeName: "Double",
-      primitiveType: .double,
-      isOptional: false,
-      defaultValueExpression: nil
-    )
+  .init(
+    persistentName: "richter",
+    swiftTypeName: "Double",
+    primitiveType: .double,
+    isOptional: false,
+    defaultValueExpression: nil
+  )
   ]
 
   static func __cdDecodeComposition(from dictionary: [String: Any]) -> Self? {
@@ -44,14 +43,10 @@ struct Item {
     }
   }
 
-  private static let __cd_attribute_validate_magnitude_nonrelationship: Void = CoreDataEvolution
-    ._CDAttributeMacroValidation.requireNonRelationship(Magnitude?.self)
+  private static let __cd_attribute_validate_magnitude_nonrelationship: Void = CoreDataEvolution._CDAttributeMacroValidation.requireNonRelationship(Magnitude?.self)
 
-  private static let __cd_attribute_validate_magnitude_composition: Void = CoreDataEvolution
-    ._CDAttributeMacroValidation.requireComposition(Magnitude.self)
+  private static let __cd_attribute_validate_magnitude_composition: Void = CoreDataEvolution._CDAttributeMacroValidation.requireComposition(Magnitude.self)
 }
 
-extension Magnitude: CoreDataEvolution.CDCompositionPathProviding, CoreDataEvolution
-    .CDCompositionValueCodable
-{
+extension Magnitude: CoreDataEvolution.CDCompositionPathProviding, CoreDataEvolution.CDCompositionValueCodable {
 }

@@ -42,6 +42,13 @@ fi
 # 格式化每个文件
 FORMATTED_COUNT=0
 for file in $SWIFT_FILES; do
+    case "$file" in
+        */__Snapshots__/*.swift)
+            echo "  ⏭️  跳过快照: $file"
+            continue
+            ;;
+    esac
+
     if [ -f "$file" ]; then
         echo "  📝 格式化: $file"
 

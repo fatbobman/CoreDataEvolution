@@ -35,9 +35,7 @@ struct Item {
     }
   }
 
-  private static let __cd_attribute_validate_config_nonrelationship: Void = CoreDataEvolution
-    ._CDAttributeMacroValidation.requireNonRelationship(Config?.self)
+  private static let __cd_attribute_validate_config_nonrelationship: Void = CoreDataEvolution._CDAttributeMacroValidation.requireNonRelationship(Config?.self)
 
-  private static let __cd_attribute_validate_config_codable: Void = CoreDataEvolution
-    ._CDAttributeMacroValidation.requireCodable(Config.self)
+  private static let __cd_attribute_validate_config_codable: Void = CoreDataEvolution._CDAttributeMacroValidation.requireCodable(Config.self)
 }
