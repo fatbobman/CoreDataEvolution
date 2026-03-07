@@ -123,6 +123,12 @@
   - 不作为生产建模能力
   - 不处理历史版本模型
   - entity inheritance 延期到后续版本单独设计
+  - 不覆盖低优先级模型元数据：
+    - `allowsExternalBinaryDataStorage`
+    - `spotlight`
+    - `preserveValueOnDeletion`
+    - `valueRange`
+    - `dateRange`
 
 验收标准：
 

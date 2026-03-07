@@ -29,6 +29,13 @@ Runtime schema / runtime model builder 的 v1 边界：
 - 关系元数据最终以 `@Relationship(inverse:deleteRule:)` 为源码真值，不依赖 inverse 推断
 - primitive 默认值仅支持可稳定翻译到 Core Data 默认值的表达式子集；不支持时直接报错
 - composition 在 runtime 路径中按单个 transformable dictionary payload 建模，不追求与 xcdatamodeld 的展平字段布局一致
+- 纯代码模型当前不支持声明以下低优先级模型元数据：
+  - `allowsExternalBinaryDataStorage`
+  - `spotlight`
+  - `preserveValueOnDeletion`
+  - `valueRange`
+  - `dateRange`
+- 这些限制只作用于 runtime schema / pure-code model 路径，不影响正常的 `xcdatamodeld` 工作流
 
 ## 2. Hard Rules
 

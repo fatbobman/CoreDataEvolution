@@ -47,6 +47,16 @@ SwiftData 采用纯代码声明模型，看似更符合 Swift 习惯，但在模
 - primitive 默认值只支持一组可稳定翻译到 `NSAttributeDescription.defaultValue` 的表达式子集；无法稳定翻译时直接报错，不做静默降级。
 - composition 在 runtime schema / runtime builder 中按单个 transformable dictionary payload 建模，遵循宏生成的 composition accessor 契约，不等价于 xcdatamodeld 的展平字段布局。
 
+另外，以下 Core Data 模型元数据当前不支持通过源码声明进入 pure-code model：
+
+- `allowsExternalBinaryDataStorage`
+- `spotlight`
+- `preserveValueOnDeletion`
+- `valueRange`
+- `dateRange`
+
+这些限制只影响 runtime schema / pure-code test model，不影响正式的 `xcdatamodeld` 工作流。
+
 之所以可以这样设计，是因为当前范式已经主动收紧了模型表达范围：
 
 - 持久化 attribute 必须“可选或有默认值”
