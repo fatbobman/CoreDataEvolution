@@ -186,15 +186,21 @@ public struct ToolingSourceRelationshipAnnotationIR: Codable, Sendable, Equatabl
   public let range: ToolingTextRange
   public let inversePropertyName: String
   public let deleteRule: String
+  public let minimumModelCount: Int?
+  public let maximumModelCount: Int?
 
   public init(
     range: ToolingTextRange,
     inversePropertyName: String,
-    deleteRule: String
+    deleteRule: String,
+    minimumModelCount: Int? = nil,
+    maximumModelCount: Int? = nil
   ) {
     self.range = range
     self.inversePropertyName = inversePropertyName
     self.deleteRule = deleteRule
+    self.minimumModelCount = minimumModelCount
+    self.maximumModelCount = maximumModelCount
   }
 }
 

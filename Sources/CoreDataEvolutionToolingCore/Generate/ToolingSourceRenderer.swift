@@ -327,12 +327,44 @@ public enum ToolingSourceRenderer {
       )
     }
     lines.append(
-      "  @Relationship(inverse: \"\(inverseRelationshipName)\", deleteRule: .\(relationship.deleteRule))"
+      "  \(renderRelationshipAnnotation(relationship, inverseRelationshipName: inverseRelationshipName))"
     )
     lines.append(
       "  \(memberAccessModifierPrefix(for: accessLevel))var \(relationship.swiftName): \(typeName)")
     lines.append("")
     return lines
+  }
+
+  private static func renderRelationshipAnnotation(
+    _ relationship: ToolingRelationshipIR,
+    inverseRelationshipName: String
+  ) -> String {
+    var arguments = [
+      #"inverse: "\#(inverseRelationshipName)""#,
+      "deleteRule: .\(relationship.deleteRule)",
+    ]
+
+    if relationship.minCount != defaultMinimumModelCount(for: relationship) {
+      arguments.append("minimumModelCount: \(relationship.minCount)")
+    }
+    if relationship.maxCount != defaultMaximumModelCount(for: relationship) {
+      arguments.append("maximumModelCount: \(relationship.maxCount)")
+    }
+
+    return "@Relationship(\(arguments.joined(separator: ", ")))"
+  }
+
+  private static func defaultMinimumModelCount(for relationship: ToolingRelationshipIR) -> Int {
+    relationship.isOptional ? 0 : 1
+  }
+
+  private static func defaultMaximumModelCount(for relationship: ToolingRelationshipIR) -> Int {
+    switch relationship.cardinality {
+    case .toOne:
+      return 1
+    case .toManyUnordered, .toManyOrdered:
+      return 0
+    }
   }
 
   private static func renderGeneratedInitializer(

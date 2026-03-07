@@ -534,6 +534,38 @@ public enum ToolingValidateComparator {
         )
       )
     }
+
+    let expectedMinimumModelCount = defaultMinimumModelCount(for: relationship)
+    let actualMinimumModelCount =
+      relationshipAnnotation.minimumModelCount ?? expectedMinimumModelCount
+    if actualMinimumModelCount != relationship.minCount {
+      diagnostics.append(
+        error(
+          "validate found minimumModelCount mismatch for '\(entityName).\(relationship.swiftName)'. Expected '\(relationship.minCount)', found '\(actualMinimumModelCount)'.",
+          fix: makeRelationshipAnnotationFix(
+            entityName: entityName,
+            relationship: relationship,
+            sourceProperty: sourceProperty
+          )
+        )
+      )
+    }
+
+    let expectedMaximumModelCount = defaultMaximumModelCount(for: relationship)
+    let actualMaximumModelCount =
+      relationshipAnnotation.maximumModelCount ?? expectedMaximumModelCount
+    if actualMaximumModelCount != relationship.maxCount {
+      diagnostics.append(
+        error(
+          "validate found maximumModelCount mismatch for '\(entityName).\(relationship.swiftName)'. Expected '\(relationship.maxCount)', found '\(actualMaximumModelCount)'.",
+          fix: makeRelationshipAnnotationFix(
+            entityName: entityName,
+            relationship: relationship,
+            sourceProperty: sourceProperty
+          )
+        )
+      )
+    }
   }
 
   private static func resolveRelationshipShape(
@@ -606,8 +638,10 @@ public enum ToolingValidateComparator {
       return nil
     }
 
-    let annotationText =
-      #"@Relationship(inverse: "\#(inverseName)", deleteRule: .\#(relationship.deleteRule))"#
+    let annotationText = renderExpectedRelationshipAnnotation(
+      inverseName: inverseName,
+      relationship: relationship
+    )
 
     let edit: ToolingTextEdit
     if let actualRelationship = sourceProperty.relationship {
@@ -629,10 +663,42 @@ public enum ToolingValidateComparator {
 
     return .init(
       summary:
-        "rewrite @Relationship for '\(entityName).\(relationship.swiftName)' to match inverse and deleteRule",
+        "rewrite @Relationship for '\(entityName).\(relationship.swiftName)' to match relationship metadata",
       isSafeAutofix: true,
       edits: [edit]
     )
+  }
+
+  private static func renderExpectedRelationshipAnnotation(
+    inverseName: String,
+    relationship: ToolingRelationshipIR
+  ) -> String {
+    var arguments = [
+      #"inverse: "\#(inverseName)""#,
+      "deleteRule: .\(relationship.deleteRule)",
+    ]
+
+    if relationship.minCount != defaultMinimumModelCount(for: relationship) {
+      arguments.append("minimumModelCount: \(relationship.minCount)")
+    }
+    if relationship.maxCount != defaultMaximumModelCount(for: relationship) {
+      arguments.append("maximumModelCount: \(relationship.maxCount)")
+    }
+
+    return "@Relationship(\(arguments.joined(separator: ", ")))"
+  }
+
+  private static func defaultMinimumModelCount(for relationship: ToolingRelationshipIR) -> Int {
+    relationship.isOptional ? 0 : 1
+  }
+
+  private static func defaultMaximumModelCount(for relationship: ToolingRelationshipIR) -> Int {
+    switch relationship.cardinality {
+    case .toOne:
+      return 1
+    case .toManyUnordered, .toManyOrdered:
+      return 0
+    }
   }
 
   private static func makeDefaultValueFix(

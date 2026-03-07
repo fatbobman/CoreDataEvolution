@@ -324,6 +324,32 @@ final class Tag: NSManagedObject {
 - `inverse`
 - `deleteRule`
 
+It can also carry optional count bounds when the Core Data model declares them:
+
+- `minimumModelCount`
+- `maximumModelCount`
+
+Example:
+
+```swift
+@Relationship(
+  inverse: "documents",
+  deleteRule: .deny,
+  minimumModelCount: 1,
+  maximumModelCount: 3
+)
+var owner: Owner?
+```
+
+You do not need to write these count arguments when the model uses Core Data's default bounds for
+that relationship shape:
+
+- optional to-one: `0...1`
+- non-optional to-one: `1...1`
+- to-many: `0...0` unless the model explicitly constrains it
+
+Write them only when the model declares non-default minimum or maximum counts.
+
 There is no source-level inverse inference in the current model DSL.
 
 Supported delete rules in v1:
@@ -605,6 +631,8 @@ Before using `@PersistentModel`, make sure all of these are true.
 - to-many relationships cannot be optional
 - relationships must have inverses in the Core Data model
 - every relationship must declare `@Relationship(inverse:deleteRule:)`
+- relationship count bounds are optional source metadata and should only be written when the model
+  declares non-default min/max values
 - supported relationship delete rules are `.nullify`, `.cascade`, and `.deny`
 - `.noAction` is not supported
 

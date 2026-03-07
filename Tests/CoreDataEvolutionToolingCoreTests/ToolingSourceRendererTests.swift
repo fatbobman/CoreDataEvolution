@@ -205,6 +205,59 @@ struct ToolingSourceRendererTests {
       rendered.contains(#"@Relationship(inverse: "editedDocuments", deleteRule: .nullify)"#))
   }
 
+  @Test("renderer emits explicit relationship min/max counts when model differs from defaults")
+  func rendererEmitsRelationshipModelCounts() throws {
+    let modelIR = ToolingModelIR(
+      source: .init(
+        originalPath: "/virtual/AppModel.xcdatamodeld",
+        selectedSourcePath: "/virtual/AppModel.xcdatamodeld/V1.xcdatamodel",
+        compiledModelPath: "/virtual/AppModel.momd",
+        inputKind: .xcdatamodeld,
+        selectedVersionName: "V1.xcdatamodel"
+      ),
+      generationPolicy: .init(
+        accessLevel: .internal,
+        singleFile: false,
+        splitByEntity: true,
+        generateInit: false,
+        relationshipSetterPolicy: .warning,
+        relationshipCountPolicy: .none,
+        defaultDecodeFailurePolicy: .fallbackToDefaultValue
+      ),
+      entities: [
+        .init(
+          name: "Owner",
+          managedObjectClassName: "NSManagedObject",
+          representedClassName: "Owner",
+          attributes: [],
+          relationships: [
+            .init(
+              persistentName: "documents",
+              swiftName: "documents",
+              destinationEntityName: "Document",
+              inverseRelationshipName: "owner",
+              cardinality: .toManyUnordered,
+              isOptional: true,
+              minCount: 1,
+              maxCount: 3,
+              deleteRule: "deny"
+            )
+          ],
+          compositions: []
+        )
+      ]
+    )
+
+    let source = try ToolingSourceRenderer.renderSources(from: modelIR).first?.contents
+    let rendered = try #require(source)
+
+    #expect(
+      rendered.contains(
+        #"@Relationship(inverse: "owner", deleteRule: .deny, minimumModelCount: 1, maximumModelCount: 3)"#
+      )
+    )
+  }
+
   @Test("renderer rejects non-optional custom storage without a synthesizeable default")
   func rendererRejectsUnsupportedNonOptionalDefault() throws {
     let modelIR = ToolingModelIR(

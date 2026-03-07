@@ -180,12 +180,12 @@ private final class ToolingSourceEntityCollector: SyntaxVisitor {
       name: identifier.identifier.text,
       typeName: typeName,
       nonOptionalTypeName: nonOptionalTypeName,
-      declarationRange: textRange(for: variable),
+      declarationRange: toolingTextRange(for: variable),
       declarationIndent: indentation(
         before: variable.positionAfterSkippingLeadingTrivia.utf8Offset),
       isOptional: isOptional,
       defaultValueLiteral: binding.initializer?.value.trimmedDescription,
-      defaultValueRange: binding.initializer.map { textRange(for: $0.value) },
+      defaultValueRange: binding.initializer.map { toolingTextRange(for: $0.value) },
       isStored: binding.accessorBlock == nil,
       isStatic: variable.modifiers.contains(where: { ["static", "class"].contains($0.name.text) }),
       hasIgnore: firstAttribute(named: "Ignore", in: variable.attributes) != nil,
@@ -227,13 +227,6 @@ private final class ToolingSourceEntityCollector: SyntaxVisitor {
         validate does not support declaring multiple stored properties in one `var` declaration inside @PersistentModel class '\(className)'. Split them into separate declarations.
         """
       )
-    )
-  }
-
-  private func textRange(for syntax: some SyntaxProtocol) -> ToolingTextRange {
-    .init(
-      startUTF8Offset: syntax.positionAfterSkippingLeadingTrivia.utf8Offset,
-      endUTF8Offset: syntax.endPositionBeforeTrailingTrivia.utf8Offset
     )
   }
 
@@ -304,7 +297,7 @@ private func parseAttributeAnnotation(
 ) -> ToolingSourceAttributeAnnotationIR {
   guard let list = attribute.arguments?.as(LabeledExprListSyntax.self) else {
     return .init(
-      range: textRange(for: attribute),
+      range: toolingTextRange(for: attribute),
       isUnique: false,
       isTransient: false,
       persistentName: nil,
@@ -354,7 +347,7 @@ private func parseAttributeAnnotation(
   }
 
   return .init(
-    range: textRange(for: attribute),
+    range: toolingTextRange(for: attribute),
     isUnique: isUnique,
     isTransient: isTransient,
     persistentName: persistentName,
@@ -373,6 +366,8 @@ private func parseRelationshipAnnotation(
 
   var inversePropertyName: String?
   var deleteRule: String?
+  var minimumModelCount: Int?
+  var maximumModelCount: Int?
 
   for argument in list {
     guard let label = argument.label?.text else {
@@ -383,6 +378,10 @@ private func parseRelationshipAnnotation(
       inversePropertyName = parseStringLiteral(argument.expression)
     case "deleteRule":
       deleteRule = parseRelationshipDeleteRule(from: normalizedExpression(argument.expression))
+    case "minimumModelCount":
+      minimumModelCount = parseRelationshipCountLiteral(from: argument.expression)
+    case "maximumModelCount":
+      maximumModelCount = parseRelationshipCountLiteral(from: argument.expression)
     default:
       return nil
     }
@@ -393,13 +392,25 @@ private func parseRelationshipAnnotation(
   }
 
   return .init(
-    range: textRange(for: attribute),
+    range: toolingTextRange(for: attribute),
     inversePropertyName: inversePropertyName,
-    deleteRule: deleteRule
+    deleteRule: deleteRule,
+    minimumModelCount: minimumModelCount,
+    maximumModelCount: maximumModelCount
   )
 }
 
-private func textRange(for syntax: some SyntaxProtocol) -> ToolingTextRange {
+private func parseRelationshipCountLiteral(from expression: ExprSyntax) -> Int? {
+  guard let literal = expression.as(IntegerLiteralExprSyntax.self) else {
+    return nil
+  }
+  guard let value = Int(literal.literal.text), value >= 0 else {
+    return nil
+  }
+  return value
+}
+
+private func toolingTextRange(for syntax: some SyntaxProtocol) -> ToolingTextRange {
   .init(
     startUTF8Offset: syntax.positionAfterSkippingLeadingTrivia.utf8Offset,
     endUTF8Offset: syntax.endPositionBeforeTrailingTrivia.utf8Offset

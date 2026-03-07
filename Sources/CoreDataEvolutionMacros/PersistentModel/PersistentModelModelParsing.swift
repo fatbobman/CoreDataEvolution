@@ -314,6 +314,8 @@ private func parseRelationshipProperty(
       targetTypeName: element,
       inverseName: relationshipArguments?.inversePropertyName,
       deleteRule: relationshipArguments?.deleteRule,
+      minimumModelCount: relationshipArguments?.minimumModelCount,
+      maximumModelCount: relationshipArguments?.maximumModelCount,
       kind: .toManySet
     )
   }
@@ -323,6 +325,8 @@ private func parseRelationshipProperty(
       targetTypeName: element,
       inverseName: relationshipArguments?.inversePropertyName,
       deleteRule: relationshipArguments?.deleteRule,
+      minimumModelCount: relationshipArguments?.minimumModelCount,
+      maximumModelCount: relationshipArguments?.maximumModelCount,
       kind: .toManyArray
     )
   }
@@ -338,6 +342,8 @@ private func parseRelationshipProperty(
         targetTypeName: wrapped,
         inverseName: relationshipArguments?.inversePropertyName,
         deleteRule: relationshipArguments?.deleteRule,
+        minimumModelCount: relationshipArguments?.minimumModelCount,
+        maximumModelCount: relationshipArguments?.maximumModelCount,
         kind: .toOne
       )
     }

@@ -123,16 +123,17 @@ public enum CDRuntimeModelBuilder {
       for relationship in schema.relationships {
         let description = NSRelationshipDescription()
         description.name = relationship.persistentName
-        description.minCount = relationship.isOptional ? 0 : 1
+        description.minCount =
+          relationship.minimumModelCount ?? defaultMinimumCount(for: relationship)
         switch relationship.kind {
         case .toOne:
-          description.maxCount = 1
+          description.maxCount = relationship.maximumModelCount ?? 1
           description.isOrdered = false
         case .toManySet:
-          description.maxCount = 0
+          description.maxCount = relationship.maximumModelCount ?? 0
           description.isOrdered = false
         case .toManyArray:
-          description.maxCount = 0
+          description.maxCount = relationship.maximumModelCount ?? 0
           description.isOrdered = true
         }
         description.isOptional = relationship.isOptional
@@ -295,6 +296,10 @@ public enum CDRuntimeModelBuilder {
     case .deny:
       return .denyDeleteRule
     }
+  }
+
+  private static func defaultMinimumCount(for relationship: CDRuntimeRelationshipSchema) -> Int {
+    relationship.isOptional ? 0 : 1
   }
 
   private static func primitiveType(

@@ -221,6 +221,91 @@ struct ToolingValidateComparatorTests {
         == #"  @Relationship(inverse: "authoredDocuments", deleteRule: .nullify)"# + "\n"
     )
   }
+
+  @Test("comparator emits relationship count fixes when source omits non-default model counts")
+  func comparatorEmitsRelationshipCountFixes() {
+    let model = ToolingModelIR(
+      source: ambiguousRelationshipModelIR().source,
+      generationPolicy: ambiguousRelationshipModelIR().generationPolicy,
+      entities: [
+        .init(
+          name: "Owner",
+          managedObjectClassName: "NSManagedObject",
+          representedClassName: "Owner",
+          attributes: [],
+          relationships: [
+            .init(
+              persistentName: "documents",
+              swiftName: "documents",
+              destinationEntityName: "Document",
+              inverseRelationshipName: "owner",
+              cardinality: .toManyUnordered,
+              isOptional: true,
+              minCount: 1,
+              maxCount: 3,
+              deleteRule: "nullify"
+            )
+          ],
+          compositions: []
+        )
+      ]
+    )
+    let source = ToolingSourceModelIR(
+      sourceDirectory: "/virtual/Sources",
+      entities: [
+        .init(
+          filePath: "/virtual/Sources/Owner.swift",
+          className: "Owner",
+          objcEntityName: "Owner",
+          persistentModelArguments: .init(
+            generateInit: false,
+            relationshipSetterPolicy: .warning,
+            relationshipCountPolicy: .none
+          ),
+          properties: [
+            .init(
+              filePath: "/virtual/Sources/Owner.swift",
+              name: "documents",
+              typeName: "Set<Document>",
+              nonOptionalTypeName: "Set<Document>",
+              declarationRange: dummyRange(40, 60),
+              declarationIndent: "  ",
+              isOptional: false,
+              defaultValueLiteral: nil,
+              defaultValueRange: nil,
+              isStored: true,
+              isStatic: false,
+              hasIgnore: false,
+              attribute: nil,
+              relationship: .init(
+                range: dummyRange(0, 39),
+                inversePropertyName: "owner",
+                deleteRule: "nullify"
+              ),
+              relationshipShape: .toManyUnordered
+            )
+          ],
+          customMembers: []
+        )
+      ]
+    )
+
+    let diagnostics = ToolingValidateComparator.compareQuick(
+      expected: model,
+      actual: source,
+      level: .conformance
+    )
+
+    let diagnostic = diagnostics.first {
+      $0.message.contains("minimumModelCount mismatch")
+    }
+    let fix = diagnostic?.fix
+    #expect(fix?.isSafeAutofix == true)
+    #expect(
+      fix?.edits.first?.replacement
+        == #"@Relationship(inverse: "owner", deleteRule: .nullify, minimumModelCount: 1, maximumModelCount: 3)"#
+    )
+  }
 }
 
 private func ambiguousRelationshipModelIR() -> ToolingModelIR {

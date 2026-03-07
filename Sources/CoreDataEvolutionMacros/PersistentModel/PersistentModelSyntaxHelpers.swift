@@ -33,6 +33,8 @@ func preferredAttributeForParsing(named name: String, in variable: VariableDeclS
 struct ParsedRelationshipDeclArguments: Equatable {
   let inversePropertyName: String
   let deleteRule: ParsedRelationshipDeleteRule
+  let minimumModelCount: Int?
+  let maximumModelCount: Int?
 }
 
 enum ParsedRelationshipDeleteRule: String, Equatable {
@@ -47,6 +49,8 @@ enum RelationshipDeclArgumentsParseError: Error, Equatable {
   case missingDeleteRuleArgument
   case invalidDeleteRuleArgument
   case unsupportedDeleteRuleArgument
+  case invalidMinimumModelCountArgument
+  case invalidMaximumModelCountArgument
   case invalidShape
 }
 
@@ -66,6 +70,8 @@ func parseRelationshipDeclArguments(
 
   var inversePropertyName: String?
   var deleteRule: ParsedRelationshipDeleteRule?
+  var minimumModelCount: Int?
+  var maximumModelCount: Int?
 
   for argument in list {
     guard let label = argument.label?.text else {
@@ -97,6 +103,16 @@ func parseRelationshipDeclArguments(
       if deleteRule == nil {
         return .failure(.invalidDeleteRuleArgument)
       }
+    case "minimumModelCount":
+      guard let value = parseRelationshipCountLiteral(from: argument.expression) else {
+        return .failure(.invalidMinimumModelCountArgument)
+      }
+      minimumModelCount = value
+    case "maximumModelCount":
+      guard let value = parseRelationshipCountLiteral(from: argument.expression) else {
+        return .failure(.invalidMaximumModelCountArgument)
+      }
+      maximumModelCount = value
     default:
       return .failure(.invalidShape)
     }
@@ -112,9 +128,21 @@ func parseRelationshipDeclArguments(
   return .success(
     .init(
       inversePropertyName: inversePropertyName,
-      deleteRule: deleteRule
+      deleteRule: deleteRule,
+      minimumModelCount: minimumModelCount,
+      maximumModelCount: maximumModelCount
     )
   )
+}
+
+private func parseRelationshipCountLiteral(from expression: ExprSyntax) -> Int? {
+  guard let literal = expression.as(IntegerLiteralExprSyntax.self) else {
+    return nil
+  }
+  guard let value = Int(literal.literal.text), value >= 0 else {
+    return nil
+  }
+  return value
 }
 
 func parseRelationshipDeleteRule(from raw: String) -> ParsedRelationshipDeleteRule? {

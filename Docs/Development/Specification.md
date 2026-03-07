@@ -146,9 +146,12 @@ enum RelationshipGenerationPolicy { case none, warning, plain }
 ### `@Relationship`
 
 - 仅用于 relationship 属性。
-- 语法：`@Relationship(inverse: "property", deleteRule: .nullify)`
+- 语法：`@Relationship(inverse: "property", deleteRule: .nullify, minimumModelCount: nil, maximumModelCount: nil)`
 - `inverse` 必填。
 - `deleteRule` 必填。
+- `minimumModelCount` / `maximumModelCount` 为可选参数：
+  - 仅在模型声明了非默认关系计数约束时才需要出现在源码中
+  - 默认关系界限由 Core Data relationship 形态决定（例如可选 to-one 为 `0...1`）
 - relationship 属性本身已经提供目标实体类型，因此 `@Relationship` 只需要补充对端属性名与删除策略。
 - `deleteRule` 仅支持：`.nullify`、`.cascade`、`.deny`。
 - `.noAction` 在 v1 中明确不支持；tooling 读取到模型里的 `No Action` delete rule 时会直接报错。

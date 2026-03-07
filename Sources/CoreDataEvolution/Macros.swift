@@ -69,7 +69,9 @@ public macro Ignore() =
 @attached(peer)
 public macro Relationship(
   inverse: String,
-  deleteRule: RelationshipDeleteRule
+  deleteRule: RelationshipDeleteRule,
+  minimumModelCount: Int? = nil,
+  maximumModelCount: Int? = nil
 ) = #externalMacro(module: "CoreDataEvolutionMacros", type: "PublicRelationshipMacro")
 
 @attached(accessor)

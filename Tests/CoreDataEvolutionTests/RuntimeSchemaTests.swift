@@ -99,6 +99,24 @@ struct RuntimeSchemaTests {
       ])
     }
   }
+
+  @Test("runtime model builder respects explicit relationship count overrides")
+  func runtimeModelBuilderRespectsExplicitRelationshipCounts() throws {
+    let model = try NSManagedObjectModel.makeRuntimeModel([
+      ManualRuntimeSchemaCountBoundOwner.self,
+      ManualRuntimeSchemaCountBoundDocument.self,
+    ])
+
+    let owner = try #require(model.entitiesByName["CountBoundOwner"])
+    let documents = try #require(owner.relationshipsByName["documents"])
+    #expect(documents.minCount == 1)
+    #expect(documents.maxCount == 3)
+
+    let document = try #require(model.entitiesByName["CountBoundDocument"])
+    let ownerRef = try #require(document.relationshipsByName["owner"])
+    #expect(ownerRef.minCount == 0)
+    #expect(ownerRef.maxCount == 1)
+  }
 }
 
 private final class ManualRuntimeSchemaItem: NSManagedObject, CDRuntimeSchemaProviding {
@@ -266,6 +284,47 @@ private final class ManualRuntimeSchemaUser: NSManagedObject, CDRuntimeSchemaPro
         kind: .toManySet,
         isOptional: true
       ),
+    ]
+  )
+}
+
+private final class ManualRuntimeSchemaCountBoundOwner: NSManagedObject, CDRuntimeSchemaProviding {
+  static let __cdRuntimeEntitySchema = CDRuntimeEntitySchema(
+    entityName: "CountBoundOwner",
+    managedObjectClassName: NSStringFromClass(ManualRuntimeSchemaCountBoundOwner.self),
+    attributes: [],
+    relationships: [
+      CDRuntimeRelationshipSchema(
+        swiftName: "documents",
+        persistentName: "documents",
+        targetTypeName: "ManualRuntimeSchemaCountBoundDocument",
+        inverseName: "owner",
+        deleteRule: .deny,
+        minimumModelCount: 1,
+        maximumModelCount: 3,
+        kind: .toManySet,
+        isOptional: true
+      )
+    ]
+  )
+}
+
+private final class ManualRuntimeSchemaCountBoundDocument: NSManagedObject, CDRuntimeSchemaProviding
+{
+  static let __cdRuntimeEntitySchema = CDRuntimeEntitySchema(
+    entityName: "CountBoundDocument",
+    managedObjectClassName: NSStringFromClass(ManualRuntimeSchemaCountBoundDocument.self),
+    attributes: [],
+    relationships: [
+      CDRuntimeRelationshipSchema(
+        swiftName: "owner",
+        persistentName: "owner",
+        targetTypeName: "ManualRuntimeSchemaCountBoundOwner",
+        inverseName: "documents",
+        deleteRule: .nullify,
+        kind: .toOne,
+        isOptional: true
+      )
     ]
   )
 }

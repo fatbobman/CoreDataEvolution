@@ -455,6 +455,30 @@ struct MacroDiagnosticTests {
     #expect(result.expandedSource.contains(#"deleteRule: .nullify"#))
   }
 
+  @Test("Relationship accepts explicit min/max model counts")
+  func relationshipAcceptsExplicitModelCounts() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        @objc(Document)
+        @PersistentModel
+        final class Document: NSManagedObject {
+          @Relationship(
+            inverse: "authors",
+            deleteRule: .deny,
+            minimumModelCount: 1,
+            maximumModelCount: 3
+          )
+          var contributors: [User]
+        }
+        """
+    )
+    #expect(result.diagnostics.isEmpty)
+    #expect(result.expandedSource.contains(#"minimumModelCount: 1"#))
+    #expect(result.expandedSource.contains(#"maximumModelCount: 3"#))
+  }
+
   @Test("Relationship rejects invalid argument shapes")
   func relationshipRejectsInvalidArgumentShapes() throws {
     let result = try MacroTestSupport.expand(
@@ -488,6 +512,24 @@ struct MacroDiagnosticTests {
     #expect(
       result.diagnostics.contains {
         $0.contains("does not support `deleteRule: .noAction`")
+      })
+  }
+
+  @Test("Relationship rejects invalid minimumModelCount")
+  func relationshipRejectsInvalidMinimumModelCount() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        final class Document: NSManagedObject {
+          @Relationship(inverse: "author", deleteRule: .nullify, minimumModelCount: -1)
+          var author: User?
+        }
+        """
+    )
+    #expect(
+      result.diagnostics.contains {
+        $0.contains("minimumModelCount:` to be a non-negative integer literal")
       })
   }
 

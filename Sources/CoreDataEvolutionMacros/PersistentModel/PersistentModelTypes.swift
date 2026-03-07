@@ -71,6 +71,8 @@ struct PersistentRelationshipProperty {
   let targetTypeName: String
   let inverseName: String?
   let deleteRule: ParsedRelationshipDeleteRule?
+  let minimumModelCount: Int?
+  let maximumModelCount: Int?
   let kind: Kind
 }
 

@@ -148,7 +148,11 @@ enum MacroTestSupport {
   }
 
   static func assertSnapshot(actual: String, snapshotURL: URL) throws {
-    let shouldUpdateSnapshots = ProcessInfo.processInfo.environment["UPDATE_SNAPSHOTS"] == "1"
+    #if UPDATE_SNAPSHOTS
+      let shouldUpdateSnapshots = true
+    #else
+      let shouldUpdateSnapshots = ProcessInfo.processInfo.environment["UPDATE_SNAPSHOTS"] == "1"
+    #endif
 
     if shouldUpdateSnapshots {
       try FileManager.default.createDirectory(

@@ -275,7 +275,7 @@ func makeRuntimeEntitySchemaDecl(
       """
   }.joined(separator: ",\n")
 
-  let relationshipRows = model.relationships.compactMap { relationship in
+  let relationshipRows = model.relationships.compactMap { relationship -> String? in
     guard let inverseName = relationship.inverseName,
       let deleteRule = relationship.deleteRule
     else {
@@ -283,13 +283,23 @@ func makeRuntimeEntitySchemaDecl(
       // partially-invalid analysis does not crash member generation.
       return nil
     }
+    let minimumModelCountArgument =
+      relationship.minimumModelCount.map {
+        ",\n        minimumModelCount: \($0)"
+      } ?? ""
+    let maximumModelCountArgument =
+      relationship.maximumModelCount.map {
+        ",\n        maximumModelCount: \($0)"
+      } ?? ""
+    let deleteRuleLine =
+      "deleteRule: \(runtimeRelationshipDeleteRuleExpression(deleteRule))\(minimumModelCountArgument)\(maximumModelCountArgument)"
     return """
       CoreDataEvolution.CDRuntimeRelationshipSchema(
         swiftName: "\(relationship.propertyName)",
         persistentName: "\(relationship.propertyName)",
         targetTypeName: "\(relationship.targetTypeName)",
         inverseName: "\(inverseName)",
-        deleteRule: \(runtimeRelationshipDeleteRuleExpression(deleteRule)),
+        \(deleteRuleLine),
         kind: \(runtimeRelationshipKindExpression(relationship.kind)),
         isOptional: true
       )

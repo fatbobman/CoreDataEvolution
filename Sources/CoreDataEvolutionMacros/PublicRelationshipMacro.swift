@@ -126,9 +126,25 @@ public enum PublicRelationshipMacro: PeerMacro {
         node: node
       )
       return []
+    case .failure(.invalidMinimumModelCountArgument):
+      MacroDiagnosticReporter.error(
+        "@Relationship requires `minimumModelCount:` to be a non-negative integer literal.",
+        domain: "CoreDataEvolution.PublicRelationshipMacro",
+        in: context,
+        node: node
+      )
+      return []
+    case .failure(.invalidMaximumModelCountArgument):
+      MacroDiagnosticReporter.error(
+        "@Relationship requires `maximumModelCount:` to be a non-negative integer literal.",
+        domain: "CoreDataEvolution.PublicRelationshipMacro",
+        in: context,
+        node: node
+      )
+      return []
     case .failure(.invalidShape):
       MacroDiagnosticReporter.error(
-        "@Relationship must use the form @Relationship(inverse: \"property\", deleteRule: .nullify).",
+        "@Relationship must use the form @Relationship(inverse: \"property\", deleteRule: .nullify). Optional minimumModelCount/maximumModelCount may be added when needed.",
         domain: "CoreDataEvolution.PublicRelationshipMacro",
         in: context,
         node: node

@@ -115,6 +115,8 @@ public struct CDRuntimeRelationshipSchema: Sendable, Equatable {
   public let targetTypeName: String
   public let inverseName: String
   public let deleteRule: RelationshipDeleteRule
+  public let minimumModelCount: Int?
+  public let maximumModelCount: Int?
   public let kind: CDRuntimeRelationshipKind
   public let isOptional: Bool
 
@@ -124,6 +126,8 @@ public struct CDRuntimeRelationshipSchema: Sendable, Equatable {
     targetTypeName: String,
     inverseName: String,
     deleteRule: RelationshipDeleteRule,
+    minimumModelCount: Int? = nil,
+    maximumModelCount: Int? = nil,
     kind: CDRuntimeRelationshipKind,
     isOptional: Bool
   ) {
@@ -132,6 +136,8 @@ public struct CDRuntimeRelationshipSchema: Sendable, Equatable {
     self.targetTypeName = targetTypeName
     self.inverseName = inverseName
     self.deleteRule = deleteRule
+    self.minimumModelCount = minimumModelCount
+    self.maximumModelCount = maximumModelCount
     self.kind = kind
     self.isOptional = isOptional
   }

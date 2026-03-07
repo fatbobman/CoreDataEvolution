@@ -26,9 +26,10 @@ public enum ToolingFixApplier {
     let rawEdits = diagnostics.compactMap(\.fix)
       .filter(\.isSafeAutofix)
       .flatMap(\.edits)
+    let safeFixCount = diagnostics.compactMap(\.fix).filter(\.isSafeAutofix).count
     let edits = deduplicated(rawEdits)
     guard edits.isEmpty == false else {
-      return .init(appliedFixCount: 0, appliedEditCount: 0, touchedFiles: [])
+      return .init(safeFixCount: 0, appliedEditCount: 0, touchedFiles: [])
     }
 
     let editsByFile = Dictionary(grouping: edits, by: \.filePath)
@@ -41,7 +42,7 @@ public enum ToolingFixApplier {
     }
 
     return .init(
-      appliedFixCount: diagnostics.compactMap(\.fix).filter(\.isSafeAutofix).count,
+      safeFixCount: safeFixCount,
       appliedEditCount: edits.count,
       touchedFiles: editsByFile.keys.sorted()
     )
@@ -115,16 +116,20 @@ public enum ToolingFixApplier {
 }
 
 public struct ToolingFixApplyResult: Sendable, Equatable {
-  public let appliedFixCount: Int
+  /// Number of diagnostics that carried a safe autofix suggestion before edit deduplication.
+  ///
+  /// This can be greater than `appliedEditCount` because multiple diagnostics may point at the
+  /// same underlying source rewrite.
+  public let safeFixCount: Int
   public let appliedEditCount: Int
   public let touchedFiles: [String]
 
   public init(
-    appliedFixCount: Int,
+    safeFixCount: Int,
     appliedEditCount: Int,
     touchedFiles: [String]
   ) {
-    self.appliedFixCount = appliedFixCount
+    self.safeFixCount = safeFixCount
     self.appliedEditCount = appliedEditCount
     self.touchedFiles = touchedFiles
   }
