@@ -17,12 +17,29 @@ struct CDETool: ParsableCommand {
     commandName: "cde-tool",
     abstract:
       "CoreDataEvolution tooling CLI for source-model generation, validation, and inspection.",
+    version: ToolVersionInfo.version,
     subcommands: [
       GenerateCommand.self,
       ValidateCommand.self,
       InspectCommand.self,
       BootstrapConfigCommand.self,
       InitConfigCommand.self,
+      VersionCommand.self,
     ]
   )
+
+  @Flag(
+    name: [.customShort("v"), .customLong("tool-version")],
+    help: "Print cde-tool version and build metadata."
+  )
+  var showDetailedVersion = false
+
+  mutating func run() throws {
+    if showDetailedVersion {
+      print(ToolVersionInfo.detailedDescription)
+      return
+    }
+
+    print(Self.helpMessage())
+  }
 }

@@ -57,6 +57,12 @@ swift test --filter WithContextTests
 swift test --filter IntegrationModel
 ```
 
+Tooling CLI build:
+
+```bash
+bash Scripts/build-cde-tool.sh
+```
+
 Formatting, if `swift-format` is installed:
 
 ```bash

@@ -54,6 +54,45 @@ CLI v1 先解决两件事：
 3. `generate` 根据“模型 + 配置”生成代码。
 4. `validate` 使用同一份配置做校验。
 
+### `cde-tool version`
+
+用途：输出当前 `cde-tool` 的版本和构建元数据。
+
+支持三种入口：
+
+- `cde-tool --version`
+  - 输出简洁版本号，适合脚本或 CI 读取。
+- `cde-tool -v`
+  - 输出详细版本信息（tag / commit / describe / dirty）。
+- `cde-tool version`
+  - 输出与 `-v` 相同的详细版本信息。
+
+版本策略：
+
+- `cde-tool` 版本应与当前 `CoreDataEvolution` tag 保持一致。
+- 如果通过 `Scripts/build-cde-tool.sh` 构建，脚本会在构建时注入当前 tag / commit / dirty 信息。
+- 直接 `swift build` / `swift run` 的源码构建默认显示开发占位版本（例如 `0.0.0-dev`）。
+
+### `Scripts/build-cde-tool.sh`
+
+用途：以 release 模式构建 `cde-tool`，并在构建产物中注入当前仓库的 tag / commit 元数据。
+
+用法：
+
+```bash
+bash Scripts/build-cde-tool.sh
+bash Scripts/build-cde-tool.sh --copy-to ~/bin
+bash Scripts/build-cde-tool.sh --copy-to ~/bin --force
+```
+
+行为：
+
+- 使用 `swift build -c release --product cde-tool` 构建。
+- 默认只打印最终产物路径。
+- 通过 `--copy-to <dir>` 可将二进制复制到指定目录。
+- 不默认写入系统全局路径。
+- 构建脚本会暂时重写内部版本元数据文件，并在结束后恢复，避免把版本注入结果留在工作区。
+
 ## 3. 配置文件（JSON）
 
 为避免每次传入大量参数，CLI 支持：
