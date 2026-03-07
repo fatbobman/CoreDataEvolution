@@ -296,24 +296,18 @@ private func makeRelationshipAccessors(from info: RelationshipInfo) -> [Accessor
     ]
 
     if info.setterPolicy != .none {
-      if info.setterPolicy == .warning {
-        accessors.append(
-          """
-          @available(*, deprecated, message: "Bulk to-many setter may hide relationship mutation costs. Prefer add/remove helpers.")
-          set {
-            setValue(NSSet(set: newValue), forKey: "\(raw: key)")
-          }
-          """
-        )
-      } else {
-        accessors.append(
-          """
-          set {
-            setValue(NSSet(set: newValue), forKey: "\(raw: key)")
-          }
-          """
-        )
-      }
+      // Keep the property setter plain even when the policy is `.warning`.
+      //
+      // The warning mode is surfaced through `@PersistentModel`-generated bulk helper methods
+      // (`replaceX(with:)`). Using a deprecated accessor setter here has triggered frontend
+      // crashes in real-world public generated targets.
+      accessors.append(
+        """
+        set {
+          setValue(NSSet(set: newValue), forKey: "\(raw: key)")
+        }
+        """
+      )
     }
     return accessors
 

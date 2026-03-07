@@ -15,6 +15,16 @@ import Testing
 
 @Suite("Tooling Core Validate Service Tests")
 struct ValidateServiceTests {
+  private func replacingFinalTypeBrace(
+    in contents: String,
+    with replacement: String
+  ) -> String {
+    let finalBraceRange = try! #require(contents.range(of: "\n}", options: .backwards))
+    var updated = contents
+    updated.replaceSubrange(finalBraceRange, with: replacement)
+    return updated
+  }
+
   @Test("validate conformance accepts generated sources")
   func validateConformanceAcceptsGeneratedSources() throws {
     let fixture = try makeValidationFixture()
@@ -79,15 +89,13 @@ struct ValidateServiceTests {
       named: "CDEItem+CoreDataEvolution.swift",
       in: fixture.sourceDirectory
     ) { contents in
-      contents.replacingOccurrences(
-        of: "\n}\n\nextension CDEItem: PersistentEntity {}",
+      replacingFinalTypeBrace(
+        in: contents,
         with: """
 
             @Ignore
             var scratch: String = ""
           }
-
-          extension CDEItem: PersistentEntity {}
           """
       )
     }
@@ -110,14 +118,12 @@ struct ValidateServiceTests {
       named: "CDEItem+CoreDataEvolution.swift",
       in: fixture.sourceDirectory
     ) { contents in
-      contents.replacingOccurrences(
-        of: "\n}\n\nextension CDEItem: PersistentEntity {}",
+      replacingFinalTypeBrace(
+        in: contents,
         with: """
 
             var scratch: String = ""
           }
-
-          extension CDEItem: PersistentEntity {}
           """
       )
     }
@@ -272,16 +278,14 @@ struct ValidateServiceTests {
       named: "CDEItem+CoreDataEvolution.swift",
       in: fixture.sourceDirectory
     ) { contents in
-      contents.replacingOccurrences(
-        of: "\n}\n\nextension CDEItem: PersistentEntity {}",
+      replacingFinalTypeBrace(
+        in: contents,
         with: """
 
             var displayTitle: String { title }
 
             func configureForUI() {}
           }
-
-          extension CDEItem: PersistentEntity {}
           """
       )
     }

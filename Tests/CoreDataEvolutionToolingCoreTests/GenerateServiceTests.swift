@@ -94,6 +94,7 @@ struct GenerateServiceTests {
     #expect(itemSource.contents.contains("var config: CDEItemConfig? = nil"))
     #expect(itemSource.contents.contains(#"@Attribute(storageMethod: .composition)"#))
     #expect(itemSource.contents.contains("var location: CDEItemLocation? = nil"))
+    #expect(itemSource.contents.contains("extension CDEItem: PersistentEntity {}") == false)
     #expect(
       itemSource.contents.contains(
         #"@Attribute(persistentName: "keywords_payload", storageMethod: .transformed(CDEStringListTransformer.self), decodeFailurePolicy: .fallbackToDefaultValue)"#

@@ -194,8 +194,6 @@ public enum ToolingSourceRenderer {
     }
 
     lines.append("}")
-    lines.append("")
-    lines.append("extension \(entity.name): PersistentEntity {}")
     return lines
   }
 

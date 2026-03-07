@@ -101,6 +101,28 @@ struct MacroDiagnosticTests {
     #expect(result.expandedSource.contains("fileprivate static let __cdFieldTable"))
   }
 
+  @Test("PersistentModel public type keeps public typed path members")
+  func persistentModelPublicKeepsPublicTypedPathMembers() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        @objc(PublicItem)
+        @PersistentModel
+        public final class PublicItem: NSManagedObject {
+          public var title: String = ""
+        }
+        """
+    )
+    #expect(result.diagnostics.isEmpty)
+    #expect(result.expandedSource.contains("public enum Keys: String"))
+    #expect(result.expandedSource.contains("public enum Paths"))
+    #expect(result.expandedSource.contains("public static let title = CoreDataEvolution.CDPath"))
+    #expect(result.expandedSource.contains("public struct PathRoot: Sendable"))
+    #expect(result.expandedSource.contains("public var title: CoreDataEvolution.CDPath"))
+    #expect(result.expandedSource.contains("public static var path: PathRoot"))
+  }
+
   @Test("PersistentModel rejects non-class declaration")
   func persistentModelRejectsNonClassDeclaration() throws {
     let result = try MacroTestSupport.expand(
@@ -187,6 +209,7 @@ struct MacroDiagnosticTests {
     #expect(
       result.expandedSource.contains(
         "Bulk to-many setter may hide relationship mutation costs. Prefer add/remove helpers."))
+    #expect(result.expandedSource.contains("\\nfunc replaceTags") == false)
     #expect(result.expandedSource.contains("setValue(NSSet(set: newValue), forKey: \"tags\")"))
   }
 

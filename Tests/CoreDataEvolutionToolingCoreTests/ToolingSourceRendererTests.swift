@@ -139,7 +139,7 @@ struct ToolingSourceRendererTests {
     #expect(rendered.contains("var location: ItemLocation? = nil"))
     #expect(rendered.contains("var tags: Set<Tag>"))
     #expect(rendered.contains("convenience init("))
-    #expect(rendered.contains("extension Item: PersistentEntity {}"))
+    #expect(rendered.contains("extension Item: PersistentEntity {}") == false)
   }
 
   @Test("renderer emits relationship metadata for relationships")

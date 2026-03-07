@@ -43,7 +43,7 @@ func makePathsDecl(
   for attribute in model.attributes {
     lines.append(
       """
-      static let \(attribute.propertyName) = CoreDataEvolution.CDPath<\(modelTypeName), \(attribute.typeName)>(
+      \(accessModifier)static let \(attribute.propertyName) = CoreDataEvolution.CDPath<\(modelTypeName), \(attribute.typeName)>(
         swiftPath: ["\(attribute.propertyName)"],
         persistentPath: ["\(attribute.persistentName)"],
         storageMethod: \(storageMethodExpression(attribute.storageMethod))
@@ -57,7 +57,7 @@ func makePathsDecl(
     case .toOne:
       lines.append(
         """
-        static let \(relation.propertyName) = CoreDataEvolution.CDToOneRelationPath<\(modelTypeName), \(relation.targetTypeName)>(
+        \(accessModifier)static let \(relation.propertyName) = CoreDataEvolution.CDToOneRelationPath<\(modelTypeName), \(relation.targetTypeName)>(
           swiftPath: ["\(relation.propertyName)"],
           persistentPath: ["\(relation.persistentName)"]
         )
@@ -66,7 +66,7 @@ func makePathsDecl(
     case .toManySet, .toManyArray:
       lines.append(
         """
-        static let \(relation.propertyName) = CoreDataEvolution.CDToManyRelationPath<\(modelTypeName), \(relation.targetTypeName)>(
+        \(accessModifier)static let \(relation.propertyName) = CoreDataEvolution.CDToManyRelationPath<\(modelTypeName), \(relation.targetTypeName)>(
           swiftPath: ["\(relation.propertyName)"],
           persistentPath: ["\(relation.persistentName)"]
         )
@@ -92,7 +92,7 @@ func makePathRootDecl(
   let props = model.attributes.map(\.propertyName) + model.relationships.map(\.propertyName)
   let impl = props.map { propertyName -> String in
     """
-    var \(propertyName): \(pathTypeReference(for: propertyName, in: model, modelTypeName: modelTypeName)) {
+    \(accessModifier)var \(propertyName): \(pathTypeReference(for: propertyName, in: model, modelTypeName: modelTypeName)) {
       Paths.\(propertyName)
     }
     """
@@ -394,17 +394,24 @@ func makeToManyHelpers(
         """
       )
       if setterPolicy != .none {
-        let maybeDeprecated =
-          setterPolicy == .warning
-          ? "@available(*, deprecated, message: \"Bulk to-many setter may hide relationship mutation costs. Prefer add/remove helpers.\")\\n"
-          : ""
-        result.append(
-          """
-          \(raw: maybeDeprecated)\(raw: accessModifier)func replace\(raw: suffix)(with values: Set<\(raw: type)>) {
-            setValue(NSSet(set: values), forKey: "\(raw: key)")
-          }
-          """
-        )
+        if setterPolicy == .warning {
+          result.append(
+            """
+            @available(*, deprecated, message: "Bulk to-many setter may hide relationship mutation costs. Prefer add/remove helpers.")
+            \(raw: accessModifier)func replace\(raw: suffix)(with values: Set<\(raw: type)>) {
+              setValue(NSSet(set: values), forKey: "\(raw: key)")
+            }
+            """
+          )
+        } else {
+          result.append(
+            """
+            \(raw: accessModifier)func replace\(raw: suffix)(with values: Set<\(raw: type)>) {
+              setValue(NSSet(set: values), forKey: "\(raw: key)")
+            }
+            """
+          )
+        }
       }
     case .toManyArray:
       result.append(
