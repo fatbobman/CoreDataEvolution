@@ -16,6 +16,7 @@ In plain Core Data, developers often end up writing manual bridging code to get 
 
 Typical examples:
 
+- expose `Double?`, `Float?`, or other optional scalar values without falling back to `NSNumber?`
 - expose an enum instead of a raw string or integer
 - expose a custom `Codable` value instead of raw `Data`
 - expose a richer value type instead of a transformable payload
@@ -28,6 +29,17 @@ The traditional solution is usually:
 3. manually encode, decode, or transform in the getter and setter
 
 That works, but it has two recurring problems.
+
+One important pain point comes from the classic `NSManagedObject + @NSManaged` style itself:
+
+- non-optional scalar properties are usually straightforward
+- optional scalar properties are much less pleasant to express directly
+- developers often fall back to `NSNumber?` or hand-written bridging for values that should really
+  be modeled in Swift as `Double?`, `Float?`, `Int?`, and similar types
+
+SwiftData improved this experience by making Swift-facing model declarations feel more natural.
+CoreDataEvolution addresses the same problem for Core Data by generating the KVC/KVO-facing access
+layer for you, so your source model can stay closer to the Swift types you actually want to use.
 
 ### Problem 1: repeated boilerplate
 
@@ -263,6 +275,9 @@ other payloads as `Transformable`.
 
 `.composition` is for structured value types that should participate in the macro-generated path
 system as a single logical property.
+
+In CoreDataEvolution, `composition` is the source-level term. It corresponds to Core Data's
+`composite attribute` concept at the model layer.
 
 Example:
 
