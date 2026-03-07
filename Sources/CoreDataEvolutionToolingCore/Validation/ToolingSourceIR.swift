@@ -105,8 +105,11 @@ public struct ToolingSourcePropertyIR: Codable, Sendable, Equatable {
   public let name: String
   public let typeName: String?
   public let nonOptionalTypeName: String?
+  public let declarationRange: ToolingTextRange
+  public let declarationIndent: String
   public let isOptional: Bool
   public let defaultValueLiteral: String?
+  public let defaultValueRange: ToolingTextRange?
   public let isStored: Bool
   public let isStatic: Bool
   public let hasIgnore: Bool
@@ -119,8 +122,11 @@ public struct ToolingSourcePropertyIR: Codable, Sendable, Equatable {
     name: String,
     typeName: String?,
     nonOptionalTypeName: String?,
+    declarationRange: ToolingTextRange,
+    declarationIndent: String,
     isOptional: Bool,
     defaultValueLiteral: String?,
+    defaultValueRange: ToolingTextRange?,
     isStored: Bool,
     isStatic: Bool,
     hasIgnore: Bool,
@@ -132,8 +138,11 @@ public struct ToolingSourcePropertyIR: Codable, Sendable, Equatable {
     self.name = name
     self.typeName = typeName
     self.nonOptionalTypeName = nonOptionalTypeName
+    self.declarationRange = declarationRange
+    self.declarationIndent = declarationIndent
     self.isOptional = isOptional
     self.defaultValueLiteral = defaultValueLiteral
+    self.defaultValueRange = defaultValueRange
     self.isStored = isStored
     self.isStatic = isStatic
     self.hasIgnore = hasIgnore
@@ -145,6 +154,7 @@ public struct ToolingSourcePropertyIR: Codable, Sendable, Equatable {
 
 /// Parsed `@Attribute(...)` arguments from source.
 public struct ToolingSourceAttributeAnnotationIR: Codable, Sendable, Equatable {
+  public let range: ToolingTextRange
   public let isUnique: Bool
   public let isTransient: Bool
   public let persistentName: String?
@@ -153,6 +163,7 @@ public struct ToolingSourceAttributeAnnotationIR: Codable, Sendable, Equatable {
   public let decodeFailurePolicy: ToolingDecodeFailurePolicy?
 
   public init(
+    range: ToolingTextRange,
     isUnique: Bool = false,
     isTransient: Bool = false,
     persistentName: String?,
@@ -160,6 +171,7 @@ public struct ToolingSourceAttributeAnnotationIR: Codable, Sendable, Equatable {
     transformerType: String?,
     decodeFailurePolicy: ToolingDecodeFailurePolicy?
   ) {
+    self.range = range
     self.isUnique = isUnique
     self.isTransient = isTransient
     self.persistentName = persistentName
@@ -171,13 +183,16 @@ public struct ToolingSourceAttributeAnnotationIR: Codable, Sendable, Equatable {
 
 /// Parsed `@Relationship(...)` metadata from source.
 public struct ToolingSourceRelationshipAnnotationIR: Codable, Sendable, Equatable {
+  public let range: ToolingTextRange
   public let inversePropertyName: String
   public let deleteRule: String
 
   public init(
+    range: ToolingTextRange,
     inversePropertyName: String,
     deleteRule: String
   ) {
+    self.range = range
     self.inversePropertyName = inversePropertyName
     self.deleteRule = deleteRule
   }

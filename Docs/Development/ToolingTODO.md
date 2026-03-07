@@ -172,8 +172,11 @@
 - `[x]` validate `@Ignore` 规则测试
 - `[x]` validate 默认值不一致测试
 - `[x]` validate 自定义成员提醒测试
+- `[x]` validate fix suggestion 数据结构
+- `[x]` validate 安全 autofix（关系元数据、属性注解、可确定默认值）
 - `[x]` companion extension stub 测试
 - `[x]` validate CLI 报告与 exit code 集成测试
+- `[x]` validate CLI `--fix / --dry-run` 集成测试
 - `[x]` CLI `init-config` 集成测试
 - `[x]` CLI 参数解析测试
 - `[x]` CLI exit code 测试（`init-config` / `bootstrap-config` / `generate` / `inspect` / `validate`）
@@ -200,5 +203,6 @@
 - `[ ]` generate 当前只会直接使用模型默认值；对于非可选自定义 raw/codable/composition/transformed 类型，仍缺少未来的显式代码默认值规则。
 - `[ ]` validate 当前只校验 composition 属性声明，不校验 composition 子路径/字段展开细节；该能力需要先有 tooling 层的 composition field mapping 描述模型。
 - `[ ]` validate v1 将以“符合当前 tool 生成约定”为准，不尝试判断任意语义等价默认值写法。
+- `[ ]` validate autofix 当前只应用可确定的文本修复；涉及 storage strategy 迁移、复杂默认值表达式、属性重命名与 `@Ignore` 推断的场景仍只提供诊断，不自动改写。
 - `[ ]` `GenerateService.validateGenerateRequest` 仍通过 `GenerateRequest -> GenerateTemplate` 的中转来复用校验逻辑；后续可提取为直接接受已解析参数的共享验证入口，降低字段漂移风险。
 - `[ ]` 只有在未来宏语义允许“代码默认值覆盖模型默认值”时，tool 才会引入默认值配置，并用该值参与代码生成。

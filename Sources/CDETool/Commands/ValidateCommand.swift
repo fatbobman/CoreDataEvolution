@@ -97,7 +97,26 @@ struct ValidateCommand: ParsableCommand {
   )
   var config: String?
 
+  @Flag(
+    name: .long,
+    help: "Apply safe, deterministic source fixes for validate diagnostics when available."
+  )
+  var fix = false
+
+  @Flag(
+    name: .long,
+    help: "Preview safe validate fixes without writing files. Only valid together with --fix."
+  )
+  var dryRun = false
+
   mutating func run() throws {
+    if dryRun && fix == false {
+      try failUser(
+        code: .configInvalid,
+        message: "--dry-run is only supported together with --fix."
+      )
+    }
+
     let request: ValidateRequest
     do {
       request = try ValidateCommandSupport.makeRequest(from: self)
@@ -105,11 +124,34 @@ struct ValidateCommand: ParsableCommand {
       try fail(failure)
     }
 
-    let result: ValidateResult
+    var result: ValidateResult
     do {
       result = try ValidateService.run(request)
     } catch let failure as ToolingFailure {
       try fail(failure)
+    }
+
+    if fix {
+      do {
+        let applyResult = try ValidateCommandSupport.applySafeFixes(
+          from: result,
+          dryRun: dryRun
+        )
+        let statusMessage =
+          dryRun
+          ? "validate planned \(applyResult.appliedEditCount) safe edit(s) across \(applyResult.touchedFiles.count) file(s)."
+          : "validate applied \(applyResult.appliedEditCount) safe edit(s) across \(applyResult.touchedFiles.count) file(s)."
+        if request.report == .text {
+          emitInfo(statusMessage)
+        } else {
+          emitInfoToErrorStream(statusMessage)
+        }
+        if dryRun == false, applyResult.appliedEditCount > 0 {
+          result = try ValidateService.run(request)
+        }
+      } catch let failure as ToolingFailure {
+        try fail(failure)
+      }
     }
 
     do {

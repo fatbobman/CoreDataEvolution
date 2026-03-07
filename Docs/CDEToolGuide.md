@@ -15,6 +15,7 @@ This guide explains:
 - when you should use it
 - how to choose between `generate`, `validate`, and `inspect`
 - how `conformance` and `exact` validation differ
+- how fix suggestions and safe autofix fit into validation
 - how to build and use the CLI in practice
 
 ## Mental Model
@@ -31,6 +32,7 @@ Think of the tool as a schema companion:
 
 - `generate` helps you create source that matches the model
 - `validate` checks that existing source still matches the model
+- `validate --fix` can apply a conservative subset of deterministic fixes
 - `inspect` shows how the tool currently understands the model and rules
 - `bootstrap-config` helps you create an editable project config from an existing model
 - `init-config` gives you a default config template
@@ -105,6 +107,19 @@ Then:
 2. run `generate`
 3. add your hand-written extension files
 4. run `validate`
+
+If validate reports only deterministic annotation or literal drift, you can optionally apply safe
+fixes:
+
+```bash
+swift run --skip-build cde-tool validate --config cde-tool.json --fix
+```
+
+Or preview those edits without writing files:
+
+```bash
+swift run --skip-build cde-tool validate --config cde-tool.json --fix --dry-run
+```
 
 ## Building the CLI
 
@@ -257,6 +272,34 @@ That is true for:
 - `momcBin`
 - output/source directories
 - header template paths
+
+## Validate Fix Suggestions
+
+`validate` diagnostics can carry fix suggestions.
+
+These suggestions are model-derived. They are intended to show:
+
+- what source shape the tool expects
+- whether the mismatch is deterministic enough to rewrite automatically
+- which edits belong to the safe autofix set
+
+Safe autofix currently targets only cases that the tool can rewrite without guessing, such as:
+
+- inserting a missing `@Relationship(inverse: ..., deleteRule: ...)`
+- correcting `inverse` or `deleteRule` inside an existing `@Relationship`
+- correcting `@Attribute(...)` metadata such as `persistentName`, `.unique`, `.transient`,
+  `storageMethod`, transformer type, or decode failure policy
+- correcting a direct default-value literal when the model already defines the expected literal
+
+Autofix intentionally does **not** rewrite higher-risk cases such as:
+
+- broader renames that would require updates outside the property declaration
+- `@Ignore` inference
+- storage-strategy migrations that need developer review
+- complex default-value expressions that are not already represented as a direct literal
+
+This keeps `--fix` conservative. The tool only rewrites what it can determine from the model and
+current generation rules without introducing new assumptions.
 
 ## `generate`
 

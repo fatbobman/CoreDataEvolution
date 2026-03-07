@@ -17,6 +17,10 @@ func emitInfo(_ message: String) {
   print(message)
 }
 
+func emitInfoToErrorStream(_ message: String) {
+  fputs("\(message)\n", stderr)
+}
+
 func emitWriteSuccess(kind: String, path: String) {
   emitInfo("wrote \(kind) to \(path)")
 }
@@ -59,5 +63,9 @@ func emitDiagnostic(_ diagnostic: ToolingDiagnostic) {
   fputs("\(prefix): \(diagnostic.message)\n", stderr)
   if let hint = diagnostic.hint {
     fputs("hint: \(hint)\n", stderr)
+  }
+  if let fix = diagnostic.fix {
+    let mode = fix.isSafeAutofix ? "safe autofix" : "suggested fix"
+    fputs("\(mode): \(fix.summary)\n", stderr)
   }
 }

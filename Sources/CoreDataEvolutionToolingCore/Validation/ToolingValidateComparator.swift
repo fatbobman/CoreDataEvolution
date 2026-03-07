@@ -242,7 +242,13 @@ public enum ToolingValidateComparator {
     if expectedPersistentName != actualPersistentName {
       diagnostics.append(
         error(
-          "validate found persistentName mismatch for '\(entityName).\(expectedPropertyName)'. Expected '\(expectedPersistentName ?? "<none>")', found '\(actualPersistentName ?? "<none>")'."
+          "validate found persistentName mismatch for '\(entityName).\(expectedPropertyName)'. Expected '\(expectedPersistentName ?? "<none>")', found '\(actualPersistentName ?? "<none>")'.",
+          fix: makeAttributeAnnotationFix(
+            entityName: entityName,
+            propertyName: expectedPropertyName,
+            attribute: attribute,
+            sourceProperty: sourceProperty
+          )
         )
       )
     }
@@ -251,7 +257,13 @@ public enum ToolingValidateComparator {
     if actualStorageMethod != attribute.storage.method {
       diagnostics.append(
         error(
-          "validate found storageMethod mismatch for '\(entityName).\(expectedPropertyName)'. Expected '\(attribute.storage.method.rawValue)', found '\(actualStorageMethod.rawValue)'."
+          "validate found storageMethod mismatch for '\(entityName).\(expectedPropertyName)'. Expected '\(attribute.storage.method.rawValue)', found '\(actualStorageMethod.rawValue)'.",
+          fix: makeAttributeAnnotationFix(
+            entityName: entityName,
+            propertyName: expectedPropertyName,
+            attribute: attribute,
+            sourceProperty: sourceProperty
+          )
         )
       )
     }
@@ -260,7 +272,13 @@ public enum ToolingValidateComparator {
     if actualUnique != attribute.isUnique {
       diagnostics.append(
         error(
-          "validate found unique mismatch for '\(entityName).\(expectedPropertyName)'. Expected '\(attribute.isUnique)', found '\(actualUnique)'."
+          "validate found unique mismatch for '\(entityName).\(expectedPropertyName)'. Expected '\(attribute.isUnique)', found '\(actualUnique)'.",
+          fix: makeAttributeAnnotationFix(
+            entityName: entityName,
+            propertyName: expectedPropertyName,
+            attribute: attribute,
+            sourceProperty: sourceProperty
+          )
         )
       )
     }
@@ -271,7 +289,13 @@ public enum ToolingValidateComparator {
       let actualState = actualTransient ? "transient" : "non-transient"
       diagnostics.append(
         error(
-          "validate found transient mismatch for '\(entityName).\(expectedPropertyName)'. Expected \(expectedState) source annotation, found \(actualState)."
+          "validate found transient mismatch for '\(entityName).\(expectedPropertyName)'. Expected \(expectedState) source annotation, found \(actualState).",
+          fix: makeAttributeAnnotationFix(
+            entityName: entityName,
+            propertyName: expectedPropertyName,
+            attribute: attribute,
+            sourceProperty: sourceProperty
+          )
         )
       )
     }
@@ -281,7 +305,13 @@ public enum ToolingValidateComparator {
     {
       diagnostics.append(
         error(
-          "validate found transformer mismatch for '\(entityName).\(expectedPropertyName)'. Expected '\(attribute.storage.transformerType ?? "<none>")', found '\(sourceProperty.attribute?.transformerType ?? "<none>")'."
+          "validate found transformer mismatch for '\(entityName).\(expectedPropertyName)'. Expected '\(attribute.storage.transformerType ?? "<none>")', found '\(sourceProperty.attribute?.transformerType ?? "<none>")'.",
+          fix: makeAttributeAnnotationFix(
+            entityName: entityName,
+            propertyName: expectedPropertyName,
+            attribute: attribute,
+            sourceProperty: sourceProperty
+          )
         )
       )
     }
@@ -292,7 +322,13 @@ public enum ToolingValidateComparator {
       if actualPolicy != expectedPolicy {
         diagnostics.append(
           error(
-            "validate found decodeFailurePolicy mismatch for '\(entityName).\(expectedPropertyName)'. Expected '\(expectedPolicy.rawValue)', found '\(actualPolicy.rawValue)'."
+            "validate found decodeFailurePolicy mismatch for '\(entityName).\(expectedPropertyName)'. Expected '\(expectedPolicy.rawValue)', found '\(actualPolicy.rawValue)'.",
+            fix: makeAttributeAnnotationFix(
+              entityName: entityName,
+              propertyName: expectedPropertyName,
+              attribute: attribute,
+              sourceProperty: sourceProperty
+            )
           )
         )
       }
@@ -304,7 +340,13 @@ public enum ToolingValidateComparator {
       {
         diagnostics.append(
           error(
-            "validate only allows optional persistent property '\(entityName).\(expectedPropertyName)' to omit a default or use nil."
+            "validate only allows optional persistent property '\(entityName).\(expectedPropertyName)' to omit a default or use nil.",
+            fix: makeDefaultValueFix(
+              entityName: entityName,
+              propertyName: expectedPropertyName,
+              sourceProperty: sourceProperty,
+              replacementLiteral: "nil"
+            )
           )
         )
       }
@@ -318,7 +360,15 @@ public enum ToolingValidateComparator {
       if actualDefault != expectedDefault {
         diagnostics.append(
           error(
-            "validate found default value mismatch for '\(entityName).\(expectedPropertyName)'. Expected '\(attribute.modelDefaultValueLiteral ?? "<missing>")', found '\(sourceProperty.defaultValueLiteral ?? "<missing>")'."
+            "validate found default value mismatch for '\(entityName).\(expectedPropertyName)'. Expected '\(attribute.modelDefaultValueLiteral ?? "<missing>")', found '\(sourceProperty.defaultValueLiteral ?? "<missing>")'.",
+            fix: attribute.modelDefaultValueLiteral.flatMap {
+              makeDefaultValueFix(
+                entityName: entityName,
+                propertyName: expectedPropertyName,
+                sourceProperty: sourceProperty,
+                replacementLiteral: $0
+              )
+            }
           )
         )
       }
@@ -401,7 +451,12 @@ public enum ToolingValidateComparator {
     guard let relationshipAnnotation = sourceProperty.relationship else {
       diagnostics.append(
         error(
-          "validate requires explicit @Relationship(inverse:deleteRule:) for relationship '\(entityName).\(relationship.swiftName)'."
+          "validate requires explicit @Relationship(inverse:deleteRule:) for relationship '\(entityName).\(relationship.swiftName)'.",
+          fix: makeRelationshipAnnotationFix(
+            entityName: entityName,
+            relationship: relationship,
+            sourceProperty: sourceProperty
+          )
         )
       )
       return
@@ -410,6 +465,7 @@ public enum ToolingValidateComparator {
     compareRelationshipAnnotation(
       entityName: entityName,
       relationship: relationship,
+      sourceProperty: sourceProperty,
       relationshipAnnotation: relationshipAnnotation,
       diagnostics: &diagnostics
     )
@@ -437,6 +493,7 @@ public enum ToolingValidateComparator {
   private static func compareRelationshipAnnotation(
     entityName: String,
     relationship: ToolingRelationshipIR,
+    sourceProperty: ToolingSourcePropertyIR,
     relationshipAnnotation: ToolingSourceRelationshipAnnotationIR,
     diagnostics: inout [ToolingDiagnostic]
   ) {
@@ -455,7 +512,12 @@ public enum ToolingValidateComparator {
     if relationshipAnnotation.inversePropertyName != expectedInverseName {
       diagnostics.append(
         error(
-          "validate found inverse name mismatch for '\(entityName).\(relationship.swiftName)'. Expected '\(expectedInverseName)', found '\(relationshipAnnotation.inversePropertyName)'."
+          "validate found inverse name mismatch for '\(entityName).\(relationship.swiftName)'. Expected '\(expectedInverseName)', found '\(relationshipAnnotation.inversePropertyName)'.",
+          fix: makeRelationshipAnnotationFix(
+            entityName: entityName,
+            relationship: relationship,
+            sourceProperty: sourceProperty
+          )
         )
       )
     }
@@ -463,7 +525,12 @@ public enum ToolingValidateComparator {
     if relationshipAnnotation.deleteRule != relationship.deleteRule {
       diagnostics.append(
         error(
-          "validate found deleteRule mismatch for '\(entityName).\(relationship.swiftName)'. Expected '\(relationship.deleteRule)', found '\(relationshipAnnotation.deleteRule)'."
+          "validate found deleteRule mismatch for '\(entityName).\(relationship.swiftName)'. Expected '\(relationship.deleteRule)', found '\(relationshipAnnotation.deleteRule)'.",
+          fix: makeRelationshipAnnotationFix(
+            entityName: entityName,
+            relationship: relationship,
+            sourceProperty: sourceProperty
+          )
         )
       )
     }
@@ -489,7 +556,156 @@ public enum ToolingValidateComparator {
     return .toOne
   }
 
-  private static func error(_ message: String) -> ToolingDiagnostic {
-    .init(severity: .error, code: .validationFailed, message: message)
+  private static func makeAttributeAnnotationFix(
+    entityName: String,
+    propertyName: String,
+    attribute: ToolingAttributeIR,
+    sourceProperty: ToolingSourcePropertyIR
+  ) -> ToolingFixSuggestion? {
+    guard
+      let annotationText = renderExpectedAttributeAnnotation(
+        expectedPropertyName: propertyName,
+        attribute: attribute
+      )
+    else {
+      return nil
+    }
+
+    let edit: ToolingTextEdit
+    if let actualAttribute = sourceProperty.attribute {
+      edit = .init(
+        filePath: sourceProperty.filePath,
+        range: actualAttribute.range,
+        replacement: annotationText
+      )
+    } else {
+      edit = .init(
+        filePath: sourceProperty.filePath,
+        range: .init(
+          startUTF8Offset: sourceProperty.declarationRange.startUTF8Offset,
+          endUTF8Offset: sourceProperty.declarationRange.startUTF8Offset
+        ),
+        replacement: "\(sourceProperty.declarationIndent)\(annotationText)\n"
+      )
+    }
+
+    return .init(
+      summary:
+        "rewrite @Attribute for '\(entityName).\(propertyName)' to match model storage metadata",
+      isSafeAutofix: true,
+      edits: [edit]
+    )
+  }
+
+  private static func makeRelationshipAnnotationFix(
+    entityName: String,
+    relationship: ToolingRelationshipIR,
+    sourceProperty: ToolingSourcePropertyIR
+  ) -> ToolingFixSuggestion? {
+    guard let inverseName = relationship.inverseRelationshipName else {
+      return nil
+    }
+
+    let annotationText =
+      #"@Relationship(inverse: "\#(inverseName)", deleteRule: .\#(relationship.deleteRule))"#
+
+    let edit: ToolingTextEdit
+    if let actualRelationship = sourceProperty.relationship {
+      edit = .init(
+        filePath: sourceProperty.filePath,
+        range: actualRelationship.range,
+        replacement: annotationText
+      )
+    } else {
+      edit = .init(
+        filePath: sourceProperty.filePath,
+        range: .init(
+          startUTF8Offset: sourceProperty.declarationRange.startUTF8Offset,
+          endUTF8Offset: sourceProperty.declarationRange.startUTF8Offset
+        ),
+        replacement: "\(sourceProperty.declarationIndent)\(annotationText)\n"
+      )
+    }
+
+    return .init(
+      summary:
+        "rewrite @Relationship for '\(entityName).\(relationship.swiftName)' to match inverse and deleteRule",
+      isSafeAutofix: true,
+      edits: [edit]
+    )
+  }
+
+  private static func makeDefaultValueFix(
+    entityName: String,
+    propertyName: String,
+    sourceProperty: ToolingSourcePropertyIR,
+    replacementLiteral: String
+  ) -> ToolingFixSuggestion? {
+    guard let range = sourceProperty.defaultValueRange else {
+      return nil
+    }
+
+    return .init(
+      summary: "rewrite default value for '\(entityName).\(propertyName)'",
+      isSafeAutofix: true,
+      edits: [
+        .init(
+          filePath: sourceProperty.filePath,
+          range: range,
+          replacement: replacementLiteral
+        )
+      ]
+    )
+  }
+
+  private static func renderExpectedAttributeAnnotation(
+    expectedPropertyName: String,
+    attribute: ToolingAttributeIR
+  ) -> String? {
+    let persistentName =
+      attribute.persistentName == expectedPropertyName ? nil : attribute.persistentName
+
+    var arguments: [String] = []
+    if attribute.isUnique {
+      arguments.append(".unique")
+    }
+    if attribute.isTransient {
+      arguments.append(".transient")
+    }
+    if let persistentName {
+      arguments.append(#"persistentName: "\#(persistentName)""#)
+    }
+
+    switch attribute.storage.method {
+    case .default:
+      break
+    case .raw:
+      arguments.append("storageMethod: .raw")
+    case .codable:
+      arguments.append("storageMethod: .codable")
+    case .composition:
+      arguments.append("storageMethod: .composition")
+    case .transformed:
+      guard let transformerType = attribute.storage.transformerType else {
+        return nil
+      }
+      arguments.append("storageMethod: .transformed(\(transformerType).self)")
+    }
+
+    if let decodeFailurePolicy = attribute.storage.decodeFailurePolicy {
+      arguments.append("decodeFailurePolicy: .\(decodeFailurePolicy.rawValue)")
+    }
+
+    guard arguments.isEmpty == false else {
+      return nil
+    }
+    return "@Attribute(\(arguments.joined(separator: ", ")))"
+  }
+
+  private static func error(
+    _ message: String,
+    fix: ToolingFixSuggestion? = nil
+  ) -> ToolingDiagnostic {
+    .init(severity: .error, code: .validationFailed, message: message, fix: fix)
   }
 }

@@ -27,6 +27,12 @@ CLI v1 先解决两件事：
 
 用途：检查“模型文件 + 已有代码”是否一致，不写文件。
 
+补充能力：
+
+- diagnostics 可携带 fix suggestion
+- `validate --fix` 可应用安全、可确定的文本修复
+- `validate --fix --dry-run` 只预览这些修复，不写文件
+
 ### `cde-tool inspect`
 
 用途：输出解析后的中间模型（IR），便于调试和 GUI 展示。
@@ -642,6 +648,29 @@ v1 的版本与发行策略分为两层：
 - optional 持久化属性允许显式 `= nil`，也允许省略默认值
 - 非 optional 的自定义 `raw` / `codable` / `composition` / `transformed` 仍按当前工具规则视为不合法
 - v1 以“符合当前 tool 生成约定”为准，不尝试判断任意语义等价写法
+
+autofix 边界：
+
+- 当前 `validate` 会为一部分 diagnostics 附带 fix suggestion。
+- 当前安全 autofix 只覆盖：
+  - 缺失的 `@Relationship(inverse: ..., deleteRule: ...)`
+  - `@Relationship` 中错误的 `inverse` / `deleteRule`
+  - `@Attribute(...)` 中错误的 `persistentName` / `.unique` / `.transient`
+  - `@Attribute(...)` 中错误的 `storageMethod` / `transformerType` / `decodeFailurePolicy`
+  - 与模型 literal 完全不一致的直接默认值表达式
+- 当前不会自动修复：
+  - `@Ignore` 推断
+  - broader rename
+  - storage strategy 迁移
+  - complex default-value expressions
+  - composition 子路径展开
+
+CLI 用法：
+
+```bash
+cde-tool validate --config cde-tool.json --fix
+cde-tool validate --config cde-tool.json --fix --dry-run
+```
 
 composition 边界：
 

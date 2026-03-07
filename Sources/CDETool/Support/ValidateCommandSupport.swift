@@ -112,6 +112,16 @@ enum ValidateCommandSupport {
     }
   }
 
+  static func applySafeFixes(
+    from result: ValidateResult,
+    dryRun: Bool
+  ) throws -> ToolingFixApplyResult {
+    try ToolingFixApplier.applySafeFixes(
+      from: result.diagnostics,
+      dryRun: dryRun
+    )
+  }
+
   static func failureIfNeeded(
     for result: ValidateResult,
     failOnWarning: Bool

@@ -35,6 +35,7 @@ struct HelpCLITests {
     #expect(result.exitCode == 0)
     #expect(result.stdout.contains("conformance/exact"))
     #expect(result.stdout.contains("direct CLI options override config values"))
+    #expect(result.stdout.contains("Apply safe, deterministic source fixes"))
   }
 
   @Test("inspect help explains generate-section config behavior")

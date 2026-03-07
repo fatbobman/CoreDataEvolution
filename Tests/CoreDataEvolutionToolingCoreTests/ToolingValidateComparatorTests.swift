@@ -37,8 +37,11 @@ struct ToolingValidateComparatorTests {
                 name: "author",
                 typeName: "User?",
                 nonOptionalTypeName: "User",
+                declarationRange: dummyRange(0, 0),
+                declarationIndent: "  ",
                 isOptional: true,
                 defaultValueLiteral: "nil",
+                defaultValueRange: dummyRange(0, 0),
                 isStored: true,
                 isStatic: false,
                 hasIgnore: false,
@@ -50,8 +53,11 @@ struct ToolingValidateComparatorTests {
                 name: "editor",
                 typeName: "User?",
                 nonOptionalTypeName: "User",
+                declarationRange: dummyRange(0, 0),
+                declarationIndent: "  ",
                 isOptional: true,
                 defaultValueLiteral: "nil",
+                defaultValueRange: dummyRange(0, 0),
                 isStored: true,
                 isStatic: false,
                 hasIgnore: false,
@@ -100,13 +106,17 @@ struct ToolingValidateComparatorTests {
                 name: "author",
                 typeName: "User?",
                 nonOptionalTypeName: "User",
+                declarationRange: dummyRange(0, 0),
+                declarationIndent: "  ",
                 isOptional: true,
                 defaultValueLiteral: "nil",
+                defaultValueRange: dummyRange(0, 0),
                 isStored: true,
                 isStatic: false,
                 hasIgnore: false,
                 attribute: nil,
                 relationship: .init(
+                  range: dummyRange(0, 0),
                   inversePropertyName: "authoredDocuments",
                   deleteRule: "nullify"
                 ),
@@ -117,13 +127,17 @@ struct ToolingValidateComparatorTests {
                 name: "editor",
                 typeName: "User?",
                 nonOptionalTypeName: "User",
+                declarationRange: dummyRange(0, 0),
+                declarationIndent: "  ",
                 isOptional: true,
                 defaultValueLiteral: "nil",
+                defaultValueRange: dummyRange(0, 0),
                 isStored: true,
                 isStatic: false,
                 hasIgnore: false,
                 attribute: nil,
                 relationship: .init(
+                  range: dummyRange(0, 0),
                   inversePropertyName: "editedDocuments",
                   deleteRule: "nullify"
                 ),
@@ -138,6 +152,74 @@ struct ToolingValidateComparatorTests {
     )
 
     #expect(diagnostics.isEmpty)
+  }
+
+  @Test("comparator emits safe fix for missing relationship annotation")
+  func comparatorEmitsSafeFixForMissingRelationshipAnnotation() {
+    let diagnostics = ToolingValidateComparator.compareQuick(
+      expected: ambiguousRelationshipModelIR(),
+      actual: .init(
+        sourceDirectory: "/virtual/Sources",
+        entities: [
+          .init(
+            filePath: "/virtual/Sources/Document.swift",
+            className: "Document",
+            objcEntityName: "Document",
+            persistentModelArguments: .init(
+              generateInit: false,
+              relationshipSetterPolicy: .warning,
+              relationshipCountPolicy: .none
+            ),
+            properties: [
+              .init(
+                filePath: "/virtual/Sources/Document.swift",
+                name: "author",
+                typeName: "User?",
+                nonOptionalTypeName: "User",
+                declarationRange: dummyRange(10, 10),
+                declarationIndent: "  ",
+                isOptional: true,
+                defaultValueLiteral: "nil",
+                defaultValueRange: dummyRange(20, 23),
+                isStored: true,
+                isStatic: false,
+                hasIgnore: false,
+                attribute: nil,
+                relationshipShape: .toOne
+              ),
+              .init(
+                filePath: "/virtual/Sources/Document.swift",
+                name: "editor",
+                typeName: "User?",
+                nonOptionalTypeName: "User",
+                declarationRange: dummyRange(30, 30),
+                declarationIndent: "  ",
+                isOptional: true,
+                defaultValueLiteral: "nil",
+                defaultValueRange: dummyRange(40, 43),
+                isStored: true,
+                isStatic: false,
+                hasIgnore: false,
+                attribute: nil,
+                relationshipShape: .toOne
+              ),
+            ],
+            customMembers: []
+          )
+        ]
+      ),
+      level: .conformance
+    )
+
+    let diagnostic = diagnostics.first {
+      $0.message.contains("relationship 'Document.author'")
+    }
+    let fix = diagnostic?.fix
+    #expect(fix?.isSafeAutofix == true)
+    #expect(
+      fix?.edits.first?.replacement
+        == #"  @Relationship(inverse: "authoredDocuments", deleteRule: .nullify)"# + "\n"
+    )
   }
 }
 
@@ -193,4 +275,8 @@ private func ambiguousRelationshipModelIR() -> ToolingModelIR {
       )
     ]
   )
+}
+
+private func dummyRange(_ start: Int, _ end: Int) -> ToolingTextRange {
+  .init(startUTF8Offset: start, endUTF8Offset: end)
 }

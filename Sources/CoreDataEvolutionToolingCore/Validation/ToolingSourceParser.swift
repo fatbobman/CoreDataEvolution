@@ -68,7 +68,7 @@ public enum ToolingSourceParser {
     }
 
     let fileSyntax = Parser.parse(source: source)
-    let collector = ToolingSourceEntityCollector(filePath: fileURL.path)
+    let collector = ToolingSourceEntityCollector(filePath: fileURL.path, source: source)
     collector.walk(fileSyntax)
     if let failure = collector.failures.first {
       throw failure
@@ -114,11 +114,13 @@ public enum ToolingSourceParser {
 
 private final class ToolingSourceEntityCollector: SyntaxVisitor {
   private let filePath: String
+  private let source: String
   private(set) var entities: [ToolingSourceEntityIR] = []
   private(set) var failures: [ToolingFailure] = []
 
-  init(filePath: String) {
+  init(filePath: String, source: String) {
     self.filePath = filePath
+    self.source = source
     super.init(viewMode: .sourceAccurate)
   }
 
@@ -178,8 +180,12 @@ private final class ToolingSourceEntityCollector: SyntaxVisitor {
       name: identifier.identifier.text,
       typeName: typeName,
       nonOptionalTypeName: nonOptionalTypeName,
+      declarationRange: textRange(for: variable),
+      declarationIndent: indentation(
+        before: variable.positionAfterSkippingLeadingTrivia.utf8Offset),
       isOptional: isOptional,
       defaultValueLiteral: binding.initializer?.value.trimmedDescription,
+      defaultValueRange: binding.initializer.map { textRange(for: $0.value) },
       isStored: binding.accessorBlock == nil,
       isStatic: variable.modifiers.contains(where: { ["static", "class"].contains($0.name.text) }),
       hasIgnore: firstAttribute(named: "Ignore", in: variable.attributes) != nil,
@@ -222,6 +228,21 @@ private final class ToolingSourceEntityCollector: SyntaxVisitor {
         """
       )
     )
+  }
+
+  private func textRange(for syntax: some SyntaxProtocol) -> ToolingTextRange {
+    .init(
+      startUTF8Offset: syntax.positionAfterSkippingLeadingTrivia.utf8Offset,
+      endUTF8Offset: syntax.endPositionBeforeTrailingTrivia.utf8Offset
+    )
+  }
+
+  private func indentation(before utf8Offset: Int) -> String {
+    let prefix = String(decoding: source.utf8.prefix(utf8Offset), as: UTF8.self)
+    let lineStartIndex =
+      prefix.lastIndex(of: "\n").map { prefix.index(after: $0) } ?? prefix.startIndex
+    let linePrefix = String(prefix[lineStartIndex...])
+    return String(linePrefix.prefix { $0 == " " || $0 == "\t" })
   }
 }
 
@@ -283,6 +304,7 @@ private func parseAttributeAnnotation(
 ) -> ToolingSourceAttributeAnnotationIR {
   guard let list = attribute.arguments?.as(LabeledExprListSyntax.self) else {
     return .init(
+      range: textRange(for: attribute),
       isUnique: false,
       isTransient: false,
       persistentName: nil,
@@ -332,6 +354,7 @@ private func parseAttributeAnnotation(
   }
 
   return .init(
+    range: textRange(for: attribute),
     isUnique: isUnique,
     isTransient: isTransient,
     persistentName: persistentName,
@@ -370,8 +393,16 @@ private func parseRelationshipAnnotation(
   }
 
   return .init(
+    range: textRange(for: attribute),
     inversePropertyName: inversePropertyName,
     deleteRule: deleteRule
+  )
+}
+
+private func textRange(for syntax: some SyntaxProtocol) -> ToolingTextRange {
+  .init(
+    startUTF8Offset: syntax.positionAfterSkippingLeadingTrivia.utf8Offset,
+    endUTF8Offset: syntax.endPositionBeforeTrailingTrivia.utf8Offset
   )
 }
 
