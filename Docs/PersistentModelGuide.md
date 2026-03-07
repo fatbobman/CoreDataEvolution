@@ -564,15 +564,15 @@ This runtime schema path is intentionally limited:
 Example:
 
 ```swift
-let model = try NSManagedObjectModel.makeRuntimeModel(
-  Item.self,
-  Tag.self
-)
+let model = try NSManagedObjectModel.makeRuntimeModel(Item.self, Tag.self)
 
 let container = try NSPersistentContainer.makeRuntimeTest(
   modelTypes: Item.self, Tag.self
 )
 ```
+
+`makeRuntimeModel` and `makeRuntimeTest` intentionally use slightly different call shapes, but both
+consume the same runtime schema provider types.
 
 ## PersistentModel Rules Checklist
 
@@ -590,7 +590,7 @@ Before using `@PersistentModel`, make sure all of these are true.
 - every persisted attribute must be optional or have a default value
 - `.unique` is supported
 - `.transient` is supported only with `.default`
-- Derived Attribute is not supported
+- derived attributes are not supported
 - renamed attributes use `persistentName:`
 
 ### Relationship Rules

@@ -10,6 +10,9 @@ This guide focuses on one specific feature:
 - when this feature solves a real problem
 - when you can safely ignore it
 
+It does not try to document every generated member on `@PersistentModel`; it focuses only on the
+typed key/path surface relevant to sort and predicate construction.
+
 ## Why This Exists
 
 Core Data and SwiftData both have a practical long-term pain point:

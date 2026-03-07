@@ -280,6 +280,9 @@ That is required so the synthesized conformance extension can still see the witn
 - if you disable init generation, assign `modelContainer` yourself
 - the type always uses `viewContext`
 
+`@MainActor` remains a source-level requirement. The macro does not silently rewrite the attached
+type's isolation attributes for you.
+
 ## Common Mistakes
 
 ### Forgetting `@MainActor` on `@NSMainModelActor`
@@ -300,7 +303,7 @@ final class ItemViewModel {}
 ```
 
 The macro does not currently enforce `@MainActor` itself. This is still a source-level rule you
-should follow.
+should follow rather than something the macro silently rewrites on your behalf.
 
 ### Disabling init generation without assigning generated members
 

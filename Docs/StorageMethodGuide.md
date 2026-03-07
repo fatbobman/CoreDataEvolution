@@ -132,6 +132,13 @@ V1 supports:
 - `.transformed(...)`
 - `.composition`
 
+General v1 rule for custom storage:
+
+- `.raw`, `.codable`, `.transformed(...)`, and `.composition` are custom storage methods
+- non-optional custom storage is intentionally restricted in v1
+- if you need custom storage, prefer optional declarations unless the package explicitly documents a
+  safe non-optional case
+
 ## `.default`
 
 `.default` means the Swift property maps directly to a Core Data primitive attribute.
@@ -152,10 +159,10 @@ V1 allows these types for `.default`:
 
 - `String`
 - `Bool`
-- `Int`
 - `Int16`
 - `Int32`
 - `Int64`
+- `Int`
 - `Float`
 - `Double`
 - `Decimal`
@@ -164,6 +171,13 @@ V1 allows these types for `.default`:
 - `UUID`
 - `URL`
 - optionals of the above
+
+Note about `Int`:
+
+- Core Data does not have a native `Int` attribute kind
+- `Int` is supported here as a Swift-facing convenience type
+- the underlying Core Data integer storage is still `Integer 16`, `Integer 32`, or `Integer 64`
+- if integer width matters, prefer `Int16`, `Int32`, or `Int64` explicitly
 
 ### Restrictions
 
@@ -203,8 +217,9 @@ Use this when:
 
 ### Current boundary
 
-In v1, non-optional custom storage is intentionally restricted. If you need a custom stored type,
-prefer making it optional or design the model so the default/fallback behavior stays explicit.
+This follows the general v1 custom-storage rule: non-optional custom storage is intentionally
+restricted. If you need a custom stored type, prefer making it optional or design the model so the
+default/fallback behavior stays explicit.
 
 ## `.codable`
 
@@ -232,6 +247,7 @@ Use this when:
 - the type must conform to `Codable`
 - `.codable` is not inferred automatically
 - the property should usually be optional in v1
+- this follows the same general v1 custom-storage restriction as `.raw`
 
 ### Why explicit `.codable` matters
 
@@ -265,6 +281,7 @@ Use this when:
 - you must pass a transformer metatype
 - the declaration must look like `.transformed(MyTransformer.self)`
 - decode failure behavior can be customized with `decodeFailurePolicy`
+- the property should usually be optional in v1
 
 ### Existing-model compatibility
 
@@ -278,6 +295,8 @@ system as a single logical property.
 
 In CoreDataEvolution, `composition` is the source-level term. It corresponds to Core Data's
 `composite attribute` concept at the model layer.
+
+Like the other custom storage methods in v1, `.composition` should usually be declared as optional.
 
 Example:
 

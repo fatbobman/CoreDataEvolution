@@ -222,6 +222,15 @@ archives outside a git checkout.
 
 The CLI supports JSON config files so you do not need to repeat long argument lists.
 
+Quick distinction:
+
+- `init-config`
+  - skeleton-only
+  - does not read a model
+- `bootstrap-config`
+  - model-driven
+  - requires a real Core Data source model
+
 Create a default template:
 
 ```bash
