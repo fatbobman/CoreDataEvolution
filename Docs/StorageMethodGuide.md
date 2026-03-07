@@ -7,7 +7,7 @@ This guide explains:
 - why the feature exists
 - what each storage method means
 - which types each method supports
-- what restrictions are intentional in v1
+- what restrictions are intentional in the current implementation
 - how this feature relates to `PersistentModel` and typed path mapping
 
 ## Why This Exists
@@ -124,7 +124,7 @@ This gives you:
 
 ## The Available Storage Methods
 
-V1 supports:
+Currently supported:
 
 - `.default`
 - `.raw`
@@ -132,10 +132,10 @@ V1 supports:
 - `.transformed(...)`
 - `.composition`
 
-General v1 rule for custom storage:
+General rule for custom storage:
 
 - `.raw`, `.codable`, `.transformed(...)`, and `.composition` are custom storage methods
-- non-optional custom storage is intentionally restricted in v1
+- non-optional custom storage is intentionally restricted in the current implementation
 - if you need custom storage, prefer optional declarations unless the package explicitly documents a
   safe non-optional case
 
@@ -155,7 +155,7 @@ var createdAt: Date? = nil
 
 ### Allowed primitive types
 
-V1 allows these types for `.default`:
+Currently supported types for `.default`:
 
 - `String`
 - `Bool`
@@ -217,7 +217,7 @@ Use this when:
 
 ### Current boundary
 
-This follows the general v1 custom-storage rule: non-optional custom storage is intentionally
+This follows the general custom-storage rule: non-optional custom storage is intentionally
 restricted. If you need a custom stored type, prefer making it optional or design the model so the
 default/fallback behavior stays explicit.
 
@@ -246,8 +246,8 @@ Use this when:
 
 - the type must conform to `Codable`
 - `.codable` is not inferred automatically
-- the property should usually be optional in v1
-- this follows the same general v1 custom-storage restriction as `.raw`
+- the property should usually be optional in the current implementation
+- this follows the same general custom-storage restriction as `.raw`
 
 ### Why explicit `.codable` matters
 
@@ -281,12 +281,39 @@ Use this when:
 - you must pass a transformer metatype
 - the declaration must look like `.transformed(MyTransformer.self)`
 - decode failure behavior can be customized with `decodeFailurePolicy`
-- the property should usually be optional in v1
+- the property should usually be optional in the current implementation
 
 ### Existing-model compatibility
 
 This path is especially useful for existing schemas that already store arrays, dictionaries, or
 other payloads as `Transformable`.
+
+For collection payloads such as:
+
+- `[Int]`
+- `[String]`
+- `[String: String]`
+
+do not treat them as plain primitive storage.
+
+They should be modeled as `Transformable` values backed by the system secure-unarchive transformer,
+or by a custom `ValueTransformer` that intentionally mirrors that behavior.
+
+In practice, that means:
+
+- the Core Data model should explicitly use the system `NSSecureUnarchiveFromData` transformer (or
+  an equivalent custom transformer)
+- the Swift declaration should mirror that choice with `.transformed(...)`
+
+Example:
+
+```swift
+@Attribute(storageMethod: .transformed(NSSecureUnarchiveFromDataTransformer.self))
+var numbers: [Int]? = nil
+```
+
+If you need tighter control over allowed classes or a pre-existing transformer name, prefer a
+dedicated transformer subclass instead of relying on implicit transformable behavior.
 
 ## `.composition`
 
@@ -296,7 +323,7 @@ system as a single logical property.
 In CoreDataEvolution, `composition` is the source-level term. It corresponds to Core Data's
 `composite attribute` concept at the model layer.
 
-Like the other custom storage methods in v1, `.composition` should usually be declared as optional.
+Like the other custom storage methods, `.composition` should usually be declared as optional.
 
 Example:
 
@@ -380,7 +407,7 @@ This keeps the storage strategy visible in source and makes later maintenance ea
 
 The type must be a `@Composition` struct.
 
-V1 composition rules:
+Current composition rules:
 
 - only `struct`
 - no generics
@@ -426,7 +453,7 @@ var cachedSummary: String = ""
 
 It still matters here because it changes how the attribute participates in the Core Data model.
 
-Current v1 rule:
+Current rule:
 
 - `transient` only supports `.default`
 

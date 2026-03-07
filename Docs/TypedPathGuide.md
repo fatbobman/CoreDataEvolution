@@ -163,11 +163,24 @@ If `title` is stored as `"name"`, the descriptor still sorts by the persisted fi
 If you have:
 
 ```swift
-@Attribute(storageMethod: .composition)
-var location: GeoPoint? = nil
+@Composition
+struct GeoPoint {
+  @CompositionField(persistentName: "lat")
+  var latitude: Double = 0
+
+  @CompositionField(persistentName: "lng")
+  var longitude: Double = 0
+}
+
+@objc(Item)
+@PersistentModel
+final class Item: NSManagedObject {
+  @Attribute(storageMethod: .composition)
+  var location: GeoPoint? = nil
+}
 ```
 
-and `GeoPoint` exposes fields like `latitude` and `longitude`, you can write:
+you can write:
 
 ```swift
 let sort = try NSSortDescriptor(
@@ -179,11 +192,37 @@ let sort = try NSSortDescriptor(
 
 The macro-generated metadata resolves that to the correct persistent field path.
 
+So even though source code uses:
+
+- `location.latitude`
+
+the generated path can still resolve to a persistent field path like:
+
+- `location.lat`
+
 ### Relationship Paths
 
 To-one relationship subpaths also work:
 
 ```swift
+@objc(Category)
+@PersistentModel
+final class Category: NSManagedObject {
+  @Attribute(persistentName: "display_name")
+  var name: String = ""
+}
+
+@objc(Item)
+@PersistentModel
+final class Item: NSManagedObject {
+  @Relationship(
+    persistentName: "primary_category",
+    inverse: "items",
+    deleteRule: .nullify
+  )
+  var category: Category?
+}
+
 let sort = try NSSortDescriptor(
   Item.self,
   path: Item.path.category.name,
@@ -191,7 +230,7 @@ let sort = try NSSortDescriptor(
 )
 ```
 
-Current v1 rule:
+Current rule:
 
 - to-one relationship paths are supported for sorting
 - to-many relationship paths are **not** supported for sorting
@@ -203,6 +242,14 @@ Item.path.tags.name
 ```
 
 is fine for predicate building through quantifiers, but not for `NSSortDescriptor`.
+
+With the example above, the source path:
+
+- `Item.path.category.name`
+
+can resolve internally to a persistent key path like:
+
+- `primary_category.display_name`
 
 ## `%K`-Based NSPredicate
 
@@ -258,7 +305,7 @@ let predicate = Item.path.status.equals(Status.published)
 
 The helper converts the enum to its `rawValue` before building the predicate.
 
-Current v1 boundary:
+Current boundary:
 
 - `.raw` supports `equals` and `notEquals` with `RawRepresentable` values
 - `.codable` and `.transformed` do not expose store-backed typed predicate helpers
@@ -346,7 +393,7 @@ This keeps:
 
 ## Current Boundaries
 
-In v1:
+Currently:
 
 - flat key sort is supported
 - to-one relationship path sort is supported

@@ -200,7 +200,7 @@ The current release strategy is split into two layers.
 
 ### Local / Development Builds
 
-For v1, local builds keep the fallback mechanism:
+For local builds, the tool keeps the fallback mechanism:
 
 - `cde-tool --version`
   - concise version string

@@ -152,7 +152,7 @@ For a dedicated guide to this mapping layer, including the motivation, `NSSortDe
 var slug: String = ""
 ```
 
-In v1, `.unique` is a simple trait. It represents a single-field uniqueness constraint.
+`.unique` is a simple trait. It represents a single-field uniqueness constraint.
 
 ### Transient Attribute
 
@@ -167,7 +167,7 @@ var cachedSummary: String = ""
 - the value is not persisted to the store
 - it is different from `@Ignore`
 
-V1 restrictions for `transient`:
+Current restrictions for `transient`:
 
 - only supported with `.default` storage
 - cannot be combined with `.unique`
@@ -222,31 +222,44 @@ Supported policies:
 - `.fallbackToDefaultValue`
 - `.debugAssertNil`
 
-For a dedicated guide to storage choices, tradeoffs, and v1 limits of `.default`, `.raw`,
+For a dedicated guide to storage choices, tradeoffs, and current limits of `.default`, `.raw`,
 `.codable`, `.transformed`, and `.composition`, see
 [StorageMethodGuide.md](./StorageMethodGuide.md).
 
 ## Declaring Relationships
 
-There is no separate public relationship macro in v1.
+Relationship shape is still inferred from the Swift property type:
 
-Relationships are inferred from the property type:
+- `Tag?` -> to-one relationship
+- `Set<Tag>` -> unordered to-many relationship
+- `[Tag]` -> ordered to-many relationship
+
+That only answers the cardinality question.
+
+Every relationship still needs explicit relationship metadata in source:
+
+- `inverse`
+- `deleteRule`
+- `persistentName` when the Swift property name differs from the Core Data relationship name
+
+So a real relationship declaration looks like this:
 
 ```swift
 @objc(Item)
 @PersistentModel
 final class Item: NSManagedObject {
+  @Relationship(inverse: "items", deleteRule: .nullify)
   var tag: Tag?
+
+  @Relationship(inverse: "owner", deleteRule: .nullify)
   var tags: Set<Tag>
+
+  @Relationship(inverse: "orderedOwner", deleteRule: .nullify)
   var orderedTags: [Tag]
 }
 ```
 
-Interpretation:
-
-- `Tag?` -> to-one relationship
-- `Set<Tag>` -> unordered to-many relationship
-- `[Tag]` -> ordered to-many relationship
+There is no separate public inverse-only relationship macro.
 
 ### Required Relationship Rules
 
@@ -266,7 +279,7 @@ var category: Category
 
 Why:
 
-- v1 requires relationship declarations to follow a predictable optional/default model
+- the current model rules require relationship declarations to follow a predictable optional/default model
 - non-optional to-one relationships are rejected at macro validation time
 
 #### To-many relationships must not be optional
@@ -380,7 +393,7 @@ final class Tag: NSManagedObject {
 }
 ```
 
-Supported delete rules in v1:
+Currently supported delete rules:
 
 - `.nullify`
 - `.cascade`
@@ -438,6 +451,14 @@ model metadata.
 In CoreDataEvolution, the source-level term is `composition`. It corresponds to Core Data's
 `composite attribute` feature at the model layer.
 
+This feature requires the platform support behind Core Data composite attributes:
+
+- iOS 17+
+- macOS 14+
+- tvOS 17+
+- watchOS 10+
+- visionOS 1+
+
 ```swift
 @Composition
 struct Location {
@@ -475,7 +496,7 @@ relationships already support:
 - typed paths, sort descriptors, and `%K` predicate interpolation still start from the Swift path
   and resolve to the persistent path internally
 
-### Composition Rules in V1
+### Composition Rules
 
 A composition type must be:
 
@@ -484,9 +505,9 @@ A composition type must be:
 - made of stored `var` properties only
 - limited to supported primitive field types and optionals
 - non-nested
-- free of conversion behavior in v1
+- free of conversion behavior in the current implementation
 
-Additional v1 rules for `@CompositionField`:
+Current rules for `@CompositionField`:
 
 - use it only on stored `var` fields inside a `@Composition` struct
 - it only supports `persistentName`
@@ -520,7 +541,7 @@ attributes.
 
 ## Default Value Rules
 
-V1 keeps default-value semantics strict.
+The current implementation keeps default-value semantics strict.
 
 ### Persisted Properties
 
@@ -554,7 +575,7 @@ var title: String = ""
 
 Do not treat the Swift default as a way to override the model's default value.
 
-In v1, the declared default value is used for these purposes:
+The declared default value is used for these purposes:
 
 - to make the declaration explicit and toolable
 - to satisfy the "optional or default" model rule
@@ -583,7 +604,7 @@ var notes: String? = nil
 
 ### Custom Storage and Non-Optional Values
 
-In v1, non-optional custom storage declarations are intentionally restricted.
+Non-optional custom storage declarations are intentionally restricted in the current implementation.
 
 Do not rely on code-side conversion defaults for:
 
@@ -592,7 +613,7 @@ Do not rely on code-side conversion defaults for:
 - `.transformed`
 - `.composition`
 
-If you need one of these storage methods, prefer an optional property in v1.
+If you need one of these storage methods, prefer an optional property.
 
 ## Generated Init
 
@@ -699,7 +720,7 @@ Before using `@PersistentModel`, make sure all of these are true.
 - composition leaf renames must use `@CompositionField(persistentName: ...)`
 - composition type must be a non-generic `struct`
 - composition fields must be supported primitive fields
-- nested composition is not supported in v1
+- nested composition is not currently supported
 
 ## Invalid Examples
 
@@ -815,13 +836,13 @@ Examples of expected diagnostics:
 - `To-one relationship properties must be optional.`
 - `Optional to-many relationship ... is not supported.`
 - `Relationship property 'tag' must declare @Relationship(inverse: ..., deleteRule: ...).`
-- `@Relationship does not support deleteRule: .noAction in v1.`
+- `@Relationship does not support deleteRule: .noAction.`
 - `@Attribute trait .transient only supports .default storage.`
 - `Derived Attribute is not supported.`
 
 ## Recommended Style
 
-A good v1 style looks like this:
+A good style looks like this:
 
 ```swift
 import CoreData
@@ -874,9 +895,9 @@ final class Tag: NSManagedObject {
 
 This style matches the current macro, tooling, and runtime-schema expectations closely.
 
-## V1 Boundaries
+## Current Boundaries
 
-`@PersistentModel` v1 is intentionally conservative.
+`@PersistentModel` is intentionally conservative in the current implementation.
 
 Not supported yet:
 

@@ -10,7 +10,7 @@ This guide is written for library users. It explains:
 - how to structure your actor or main-actor type
 - how to use the convenience APIs
 - how to test these types safely
-- which constraints are intentional in v1
+- which constraints are intentional in the current implementation
 
 ## Choose the Right Macro
 
@@ -356,7 +356,7 @@ For main-actor handlers:
 - reserve heavy write flows for background actors when appropriate
 - use the same `NSPersistentContainer` when the UI and background actors need to cooperate
 
-## V1 Boundaries
+## Current Boundaries
 
 These are intentional in the current design:
 
