@@ -84,10 +84,10 @@ struct RuntimeSchemaTests {
     }
   }
 
-  @Test("runtime model builder requires explicit inverse metadata when multiple candidates exist")
-  func runtimeModelBuilderRejectsAmbiguousInferredInverse() throws {
+  @Test("runtime model builder requires declared inverse relationships to resolve")
+  func runtimeModelBuilderRejectsMissingDeclaredInverse() throws {
     #expect(
-      throws: CDRuntimeModelBuilderError.ambiguousInverse(
+      throws: CDRuntimeModelBuilderError.missingInverse(
         entityName: "RuntimeDocument",
         relationshipName: "owner",
         targetEntityName: "RuntimeUser"
@@ -122,6 +122,7 @@ private final class ManualRuntimeSchemaItem: NSManagedObject, CDRuntimeSchemaPro
         persistentName: "tags",
         targetTypeName: "ManualRuntimeSchemaTag",
         inverseName: "items",
+        deleteRule: .nullify,
         kind: .toManySet,
         isOptional: true
       )
@@ -143,6 +144,7 @@ private final class ManualRuntimeSchemaTag: NSManagedObject, CDRuntimeSchemaProv
         persistentName: "items",
         targetTypeName: "ManualRuntimeSchemaItem",
         inverseName: "tags",
+        deleteRule: .nullify,
         kind: .toManySet,
         isOptional: true
       )
@@ -231,6 +233,8 @@ private final class ManualRuntimeSchemaDocument: NSManagedObject, CDRuntimeSchem
         swiftName: "owner",
         persistentName: "owner",
         targetTypeName: "ManualRuntimeSchemaUser",
+        inverseName: "owner",
+        deleteRule: .nullify,
         kind: .toOne,
         isOptional: true
       )
@@ -248,6 +252,8 @@ private final class ManualRuntimeSchemaUser: NSManagedObject, CDRuntimeSchemaPro
         swiftName: "documents",
         persistentName: "documents",
         targetTypeName: "ManualRuntimeSchemaDocument",
+        inverseName: "owner",
+        deleteRule: .nullify,
         kind: .toManySet,
         isOptional: true
       ),
@@ -255,6 +261,8 @@ private final class ManualRuntimeSchemaUser: NSManagedObject, CDRuntimeSchemaPro
         swiftName: "drafts",
         persistentName: "drafts",
         targetTypeName: "ManualRuntimeSchemaDocument",
+        inverseName: "owner",
+        deleteRule: .nullify,
         kind: .toManySet,
         isOptional: true
       ),

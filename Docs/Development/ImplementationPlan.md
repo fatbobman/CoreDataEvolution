@@ -108,7 +108,7 @@
 - 为 `@PersistentModel` 生成静态 runtime schema metadata
 - 提供从 `[PersistentModel.Type]` 组装 `NSManagedObjectModel` 的 builder / helper
 - 支持普通 attribute、relationship、composition 展平
-- 支持 `@Inverse("property")` 显式 inverse hint
+- 支持显式 `@Relationship(inverse:deleteRule:)` relationship metadata
 - 支持 `@Attribute(.unique)` 产生单字段 uniqueness metadata
 - 约束 `@Attribute(.transient)`：
   - 表示 transient Core Data attribute
@@ -128,8 +128,8 @@
 
 - 不依赖 `.xcdatamodeld` 即可构建测试用 `NSManagedObjectModel`
 - 同一组模型类型可创建测试 container 并完成基础读写
-- relationship/inverse 可在输入类型集合中正确解析
-- 同一实体中指向同一目标实体的多条 relationship，在源码显式提供 `@Inverse(...)` 时可正确解析
+- relationship metadata 可在输入类型集合中正确解析
+- runtime schema 直接消费显式 `inverse + deleteRule`，不依赖 inverse 推断
 - `@Attribute(.unique)` 能转化为单字段唯一约束 metadata
 - `@Attribute(.transient)` 的 generate / validate 规则与 runtime schema 行为一致
 - Derived Attribute 会被 generate / validate 一致拒绝

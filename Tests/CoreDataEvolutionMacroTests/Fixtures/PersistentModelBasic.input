@@ -17,10 +17,11 @@ final class Item: NSManagedObject {
   @Ignore
   var transientCache: [String: Int] = [:]
 
-  @Inverse("items")
+  @Relationship(inverse: "items", deleteRule: .nullify)
   var tags: Set<Tag>
 
-  @Inverse("orderedItems")
+  @Relationship(inverse: "orderedItems", deleteRule: .nullify)
   var orderedTags: [Tag]
+  @Relationship(inverse: "category", deleteRule: .nullify)
   var category: Category?
 }

@@ -157,7 +157,7 @@ extension PersistentModelMacro: MemberMacro {
       return []
     }
     let model = analyzePersistentModelProperties(in: classDecl)
-    guard validateInverseHints(in: classDecl, model: model, context: context) else {
+    guard validateRelationshipAnnotations(in: classDecl, model: model, context: context) else {
       return []
     }
     let initProperties = analyzePersistentModelInitProperties(in: classDecl)

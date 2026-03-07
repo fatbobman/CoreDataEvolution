@@ -57,13 +57,14 @@ func analyzePersistentModelProperties(in classDecl: ClassDeclSyntax)
     let nonOptionalTypeName = attributeOptionalWrappedTypeName(typeAnnotation.type) ?? typeName
     let isOptional = attributeOptionalWrappedTypeName(typeAnnotation.type) != nil
     let defaultValueExpression = binding.initializer?.value.trimmedDescription
-    let inverseArguments: ParsedInverseDeclArguments?
-    if let inverseAttribute = firstAttribute(named: "Inverse", in: variable),
-      case .success(let parsedInverseArguments) = parseInverseDeclArguments(inverseAttribute)
+    let relationshipArguments: ParsedRelationshipDeclArguments?
+    if let relationshipAttribute = firstAttribute(named: "Relationship", in: variable),
+      case .success(let parsedRelationshipArguments) = parseRelationshipDeclArguments(
+        relationshipAttribute)
     {
-      inverseArguments = parsedInverseArguments
+      relationshipArguments = parsedRelationshipArguments
     } else {
-      inverseArguments = nil
+      relationshipArguments = nil
     }
 
     if isOptionalToManyRelationshipType(typeAnnotation.type) {
@@ -96,7 +97,7 @@ func analyzePersistentModelProperties(in classDecl: ClassDeclSyntax)
     if let relationship = parseRelationshipProperty(
       propertyName: propertyName,
       type: typeAnnotation.type,
-      inverseArguments: inverseArguments
+      relationshipArguments: relationshipArguments
     ) {
       properties.append(.relationship(relationship))
       continue
@@ -147,7 +148,7 @@ func analyzePersistentModelInitProperties(in classDecl: ClassDeclSyntax)
     if parseRelationshipProperty(
       propertyName: propertyName,
       type: typeAnnotation.type,
-      inverseArguments: nil
+      relationshipArguments: nil
     ) != nil {
       continue
     }
@@ -165,7 +166,7 @@ func analyzePersistentModelInitProperties(in classDecl: ClassDeclSyntax)
   return properties
 }
 
-func validateInverseHints(
+func validateRelationshipAnnotations(
   in classDecl: ClassDeclSyntax,
   model: PersistentModelAnalysis,
   context: some MacroExpansionContext
@@ -180,63 +181,47 @@ func validateInverseHints(
   var isValid = true
 
   for (propertyName, variable) in propertyNodes {
-    guard let inverseAttribute = firstAttribute(named: "Inverse", in: variable) else {
-      continue
-    }
+    let relationshipAttribute = firstAttribute(named: "Relationship", in: variable)
 
     if let binding = variable.bindings.first,
       let typeAnnotation = binding.typeAnnotation,
       isOptionalToManyRelationshipType(typeAnnotation.type)
     {
       // Optional to-many relationships are rejected earlier. Avoid stacking a second, less useful
-      // "not a relationship" diagnostic on the same declaration.
+      // annotation diagnostic on the same declaration.
       continue
     }
 
-    guard relationshipsByName[propertyName] != nil else {
+    let relationship = relationshipsByName[propertyName]
+
+    if let relationshipAttribute {
+      guard relationship != nil else {
+        MacroDiagnosticReporter.error(
+          "@Relationship can only be attached to relationship properties.",
+          domain: persistentModelMacroDomain,
+          in: context,
+          node: variable
+        )
+        isValid = false
+        continue
+      }
+      guard case .success = parseRelationshipDeclArguments(relationshipAttribute) else {
+        isValid = false
+        continue
+      }
+    }
+
+    guard let relationship else {
+      continue
+    }
+
+    if relationshipAttribute == nil {
       MacroDiagnosticReporter.error(
-        "@Inverse can only be attached to relationship properties.",
+        "Relationship property '\(relationship.propertyName)' must declare @Relationship(inverse: ..., deleteRule: ...).",
         domain: persistentModelMacroDomain,
         in: context,
         node: variable
       )
-      isValid = false
-      continue
-    }
-    guard case .success = parseInverseDeclArguments(inverseAttribute) else {
-      continue
-    }
-  }
-
-  let groupedRelationships = Dictionary(grouping: model.relationships) {
-    $0.targetTypeName.split(separator: ".").last.map(String.init) ?? $0.targetTypeName
-  }
-
-  for relationships in groupedRelationships.values where relationships.count > 1 {
-    // Macro expansion only sees the current type declaration, so it can require explicit inverse
-    // hints on this side but cannot enforce that the matching inverse property in another type is
-    // also annotated. Tooling validation and runtime schema wiring cover the full graph later.
-    for relationship in relationships where relationship.inverseName == nil {
-      let message =
-        """
-        Relationships from '\(classDecl.name.text)' to '\(relationship.targetTypeName)' are \
-        ambiguous. Add @Inverse("property") to '\(relationship.propertyName)' and the matching inverse relationship.
-        """
-      if let propertyNode = propertyNodes[relationship.propertyName] {
-        MacroDiagnosticReporter.error(
-          message,
-          domain: persistentModelMacroDomain,
-          in: context,
-          node: propertyNode
-        )
-      } else {
-        MacroDiagnosticReporter.error(
-          message,
-          domain: persistentModelMacroDomain,
-          in: context,
-          node: classDecl
-        )
-      }
       isValid = false
     }
   }
@@ -283,8 +268,11 @@ func autoAttachedAttribute(
     if let relationship = parseRelationshipProperty(
       propertyName: pattern.identifier.text,
       type: typeAnnotation.type,
-      inverseArguments: nil
+      relationshipArguments: nil
     ) {
+      guard hasMarkerAttribute("Relationship", in: variable) else {
+        return nil
+      }
       if relationship.kind == .toManySet {
         return
           "@_CDRelationship(setterPolicy: \(raw: relationshipSetterPolicyExpression(relationshipSetterPolicy)), _fromPersistentModel: true)"
@@ -316,13 +304,14 @@ private func relationshipSetterPolicyExpression(_ policy: ParsedRelationshipGene
 private func parseRelationshipProperty(
   propertyName: String,
   type: TypeSyntax,
-  inverseArguments: ParsedInverseDeclArguments?
+  relationshipArguments: ParsedRelationshipDeclArguments?
 ) -> PersistentRelationshipProperty? {
   if let element = setElementTypeName(type) {
     return PersistentRelationshipProperty(
       propertyName: propertyName,
       targetTypeName: element,
-      inverseName: inverseArguments?.inversePropertyName,
+      inverseName: relationshipArguments?.inversePropertyName,
+      deleteRule: relationshipArguments?.deleteRule,
       kind: .toManySet
     )
   }
@@ -330,7 +319,8 @@ private func parseRelationshipProperty(
     return PersistentRelationshipProperty(
       propertyName: propertyName,
       targetTypeName: element,
-      inverseName: inverseArguments?.inversePropertyName,
+      inverseName: relationshipArguments?.inversePropertyName,
+      deleteRule: relationshipArguments?.deleteRule,
       kind: .toManyArray
     )
   }
@@ -344,7 +334,8 @@ private func parseRelationshipProperty(
       return PersistentRelationshipProperty(
         propertyName: propertyName,
         targetTypeName: wrapped,
-        inverseName: inverseArguments?.inversePropertyName,
+        inverseName: relationshipArguments?.inversePropertyName,
+        deleteRule: relationshipArguments?.deleteRule,
         kind: .toOne
       )
     }

@@ -113,8 +113,6 @@ public enum ToolingValidateComparator {
       return (persistentField, composition)
     }
     let compositionByPersistentName = Dictionary(uniqueKeysWithValues: compositionPairs)
-    let ambiguousRelationshipNames = toolingAmbiguousRelationshipNames(in: entity)
-
     for attribute in entity.attributes {
       let expectedName: String
       let expectedType: String
@@ -156,7 +154,6 @@ public enum ToolingValidateComparator {
       compareRelationship(
         entityName: entity.name,
         relationship: relationship,
-        requiresExplicitInverse: ambiguousRelationshipNames.contains(relationship.swiftName),
         sourceProperty: sourceProperty,
         diagnostics: &diagnostics
       )
@@ -337,7 +334,6 @@ public enum ToolingValidateComparator {
   private static func compareRelationship(
     entityName: String,
     relationship: ToolingRelationshipIR,
-    requiresExplicitInverse: Bool,
     sourceProperty: ToolingSourcePropertyIR,
     diagnostics: inout [ToolingDiagnostic]
   ) {
@@ -402,32 +398,21 @@ public enum ToolingValidateComparator {
       )
     }
 
-    if requiresExplicitInverse {
-      guard let inverse = sourceProperty.inverse else {
-        diagnostics.append(
-          error(
-            "validate requires explicit @Inverse for ambiguous relationship '\(entityName).\(relationship.swiftName)'."
-          )
+    guard let relationshipAnnotation = sourceProperty.relationship else {
+      diagnostics.append(
+        error(
+          "validate requires explicit @Relationship(inverse:deleteRule:) for relationship '\(entityName).\(relationship.swiftName)'."
         )
-        return
-      }
-      compareInverseAnnotation(
-        entityName: entityName,
-        relationship: relationship,
-        inverse: inverse,
-        diagnostics: &diagnostics
       )
       return
     }
 
-    if let inverse = sourceProperty.inverse {
-      compareInverseAnnotation(
-        entityName: entityName,
-        relationship: relationship,
-        inverse: inverse,
-        diagnostics: &diagnostics
-      )
-    }
+    compareRelationshipAnnotation(
+      entityName: entityName,
+      relationship: relationship,
+      relationshipAnnotation: relationshipAnnotation,
+      diagnostics: &diagnostics
+    )
   }
 
   private static func shouldCompareDecodeFailurePolicy(
@@ -449,15 +434,16 @@ public enum ToolingValidateComparator {
     typeName?.replacingOccurrences(of: " ", with: "")
   }
 
-  private static func compareInverseAnnotation(
+  private static func compareRelationshipAnnotation(
     entityName: String,
     relationship: ToolingRelationshipIR,
-    inverse: ToolingSourceInverseAnnotationIR,
+    relationshipAnnotation: ToolingSourceRelationshipAnnotationIR,
     diagnostics: inout [ToolingDiagnostic]
   ) {
     guard let expectedInverseName = relationship.inverseRelationshipName else {
       assertionFailure(
-        "Validation should not compare inverse hints for relationships without inverse metadata.")
+        "Validation should not compare relationship annotations for relationships without inverse metadata."
+      )
       diagnostics.append(
         error(
           "validate found incomplete model inverse metadata for '\(entityName).\(relationship.swiftName)'."
@@ -466,10 +452,18 @@ public enum ToolingValidateComparator {
       return
     }
 
-    if inverse.inversePropertyName != expectedInverseName {
+    if relationshipAnnotation.inversePropertyName != expectedInverseName {
       diagnostics.append(
         error(
-          "validate found inverse name mismatch for '\(entityName).\(relationship.swiftName)'. Expected '\(expectedInverseName)', found '\(inverse.inversePropertyName)'."
+          "validate found inverse name mismatch for '\(entityName).\(relationship.swiftName)'. Expected '\(expectedInverseName)', found '\(relationshipAnnotation.inversePropertyName)'."
+        )
+      )
+    }
+
+    if relationshipAnnotation.deleteRule != relationship.deleteRule {
+      diagnostics.append(
+        error(
+          "validate found deleteRule mismatch for '\(entityName).\(relationship.swiftName)'. Expected '\(relationship.deleteRule)', found '\(relationshipAnnotation.deleteRule)'."
         )
       )
     }

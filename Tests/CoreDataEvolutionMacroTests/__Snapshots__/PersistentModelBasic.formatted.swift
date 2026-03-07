@@ -13,7 +13,8 @@ final class Item: NSManagedObject {
     }
   }
 
-  private static let __cd_attribute_validate_date_nonrelationship: Void = CoreDataEvolution._CDAttributeMacroValidation.requireNonRelationship(Date?.self)
+  private static let __cd_attribute_validate_date_nonrelationship: Void = CoreDataEvolution
+    ._CDAttributeMacroValidation.requireNonRelationship(Date?.self)
 
   var title: String {
     get {
@@ -27,17 +28,18 @@ final class Item: NSManagedObject {
     }
   }
 
-  private static let __cd_attribute_validate_title_nonrelationship: Void = CoreDataEvolution._CDAttributeMacroValidation.requireNonRelationship(String.self)
+  private static let __cd_attribute_validate_title_nonrelationship: Void = CoreDataEvolution
+    ._CDAttributeMacroValidation.requireNonRelationship(String.self)
   var transientCache: [String: Int] = [:]
   var tags: Set<Tag> {
     get {
       (value(forKey: "tags") as? NSSet)?
         .compactMap {
-        $0 as? Tag
-      }
+          $0 as? Tag
+        }
         .reduce(into: Set<Tag>()) {
-        $0.insert($1)
-      }
+          $0.insert($1)
+        }
         ?? []
     }
     set {
@@ -45,18 +47,18 @@ final class Item: NSManagedObject {
     }
   }
 
-  private static let __cd_relationship_validate_tags_entity: Void = CoreDataEvolution._CDRelationshipMacroValidation.requirePersistentEntity(Tag.self)
+  private static let __cd_relationship_validate_tags_entity: Void = CoreDataEvolution
+    ._CDRelationshipMacroValidation.requirePersistentEntity(Tag.self)
   var orderedTags: [Tag] {
-    get {
-      (value(forKey: "orderedTags") as? NSOrderedSet)?
-        .compactMap {
+    (value(forKey: "orderedTags") as? NSOrderedSet)?
+      .compactMap {
         $0 as? Tag
       }
-        ?? []
-    }
+      ?? []
   }
 
-  private static let __cd_relationship_validate_orderedTags_entity: Void = CoreDataEvolution._CDRelationshipMacroValidation.requirePersistentEntity(Tag.self)
+  private static let __cd_relationship_validate_orderedTags_entity: Void = CoreDataEvolution
+    ._CDRelationshipMacroValidation.requirePersistentEntity(Tag.self)
   var category: Category? {
     get {
       value(forKey: "category") as? Category
@@ -66,7 +68,8 @@ final class Item: NSManagedObject {
     }
   }
 
-  private static let __cd_relationship_validate_category_entity: Void = CoreDataEvolution._CDRelationshipMacroValidation.requirePersistentEntity(Category.self)
+  private static let __cd_relationship_validate_category_entity: Void = CoreDataEvolution
+    ._CDRelationshipMacroValidation.requirePersistentEntity(Category.self)
 
   enum Keys: String {
     case date = "timestamp"
@@ -136,15 +139,15 @@ final class Item: NSManagedObject {
         persistentPath: ["timestamp"],
         storageMethod: .default,
         supportsStoreSort: true
-        ),
+      ),
       "title": .init(
         kind: .attribute,
         swiftPath: ["title"],
         persistentPath: ["title"],
         storageMethod: .default,
         supportsStoreSort: true
-        )
-      ]
+      ),
+    ]
 
     return table
   }()
@@ -153,65 +156,65 @@ final class Item: NSManagedObject {
     var table: [String: CoreDataEvolution.CDFieldMeta] = __cdRelationshipProjectionTable
     table.merge(
       [
-    "tags": .init(
-    kind: .relationship,
-    swiftPath: ["tags"],
-    persistentPath: ["tags"],
-    storageMethod: .default,
-    supportsStoreSort: false,
-    isToManyRelationship: true
-  ),
-  "orderedTags": .init(
-    kind: .relationship,
-    swiftPath: ["orderedTags"],
-    persistentPath: ["orderedTags"],
-    storageMethod: .default,
-    supportsStoreSort: false,
-    isToManyRelationship: true
-  ),
-  "category": .init(
-    kind: .relationship,
-    swiftPath: ["category"],
-    persistentPath: ["category"],
-    storageMethod: .default,
-    supportsStoreSort: false,
-    isToManyRelationship: false
-  )
+        "tags": .init(
+          kind: .relationship,
+          swiftPath: ["tags"],
+          persistentPath: ["tags"],
+          storageMethod: .default,
+          supportsStoreSort: false,
+          isToManyRelationship: true
+        ),
+        "orderedTags": .init(
+          kind: .relationship,
+          swiftPath: ["orderedTags"],
+          persistentPath: ["orderedTags"],
+          storageMethod: .default,
+          supportsStoreSort: false,
+          isToManyRelationship: true
+        ),
+        "category": .init(
+          kind: .relationship,
+          swiftPath: ["category"],
+          persistentPath: ["category"],
+          storageMethod: .default,
+          supportsStoreSort: false,
+          isToManyRelationship: false
+        ),
       ],
       uniquingKeysWith: { _, new in
         new
       }
     )
-  table.merge(
-    CoreDataEvolution.CDRelationshipTableBuilder.makeToManyFieldEntries(
-      modelSwiftPathPrefix: ["tags"],
-      modelPersistentPathPrefix: ["tags"],
-      target: Tag.self
-    ),
-    uniquingKeysWith: { _, new in
-      new
-    }
-  )
-  table.merge(
-    CoreDataEvolution.CDRelationshipTableBuilder.makeToManyFieldEntries(
-      modelSwiftPathPrefix: ["orderedTags"],
-      modelPersistentPathPrefix: ["orderedTags"],
-      target: Tag.self
-    ),
-    uniquingKeysWith: { _, new in
-      new
-    }
-  )
-  table.merge(
-    CoreDataEvolution.CDRelationshipTableBuilder.makeToOneFieldEntries(
-      modelSwiftPathPrefix: ["category"],
-      modelPersistentPathPrefix: ["category"],
-      target: Category.self
-    ),
-    uniquingKeysWith: { _, new in
-      new
-    }
-  )
+    table.merge(
+      CoreDataEvolution.CDRelationshipTableBuilder.makeToManyFieldEntries(
+        modelSwiftPathPrefix: ["tags"],
+        modelPersistentPathPrefix: ["tags"],
+        target: Tag.self
+      ),
+      uniquingKeysWith: { _, new in
+        new
+      }
+    )
+    table.merge(
+      CoreDataEvolution.CDRelationshipTableBuilder.makeToManyFieldEntries(
+        modelSwiftPathPrefix: ["orderedTags"],
+        modelPersistentPathPrefix: ["orderedTags"],
+        target: Tag.self
+      ),
+      uniquingKeysWith: { _, new in
+        new
+      }
+    )
+    table.merge(
+      CoreDataEvolution.CDRelationshipTableBuilder.makeToOneFieldEntries(
+        modelSwiftPathPrefix: ["category"],
+        modelPersistentPathPrefix: ["category"],
+        target: Category.self
+      ),
+      uniquingKeysWith: { _, new in
+        new
+      }
+    )
     return table
   }()
 
@@ -221,13 +224,13 @@ final class Item: NSManagedObject {
       managedObjectClassName: NSStringFromClass(Self.self),
       attributes: [
         CoreDataEvolution.CDRuntimeAttributeSchema(
-    swiftName: "date",
-    persistentName: "timestamp",
-    swiftTypeName: "Date?",
-    isOptional: true,
-    defaultValueExpression: "nil",
-    storage: .primitive(.date),
-    isUnique: false
+          swiftName: "date",
+          persistentName: "timestamp",
+          swiftTypeName: "Date?",
+          isOptional: true,
+          defaultValueExpression: "nil",
+          storage: .primitive(.date),
+          isUnique: false
         ),
         CoreDataEvolution.CDRuntimeAttributeSchema(
           swiftName: "title",
@@ -237,22 +240,24 @@ final class Item: NSManagedObject {
           defaultValueExpression: "\"\"",
           storage: .primitive(.string),
           isUnique: false
-        )
+        ),
       ],
       relationships: [
         CoreDataEvolution.CDRuntimeRelationshipSchema(
-    swiftName: "tags",
-    persistentName: "tags",
-    targetTypeName: "Tag",
-    inverseName: "items",
-    kind: .toManySet,
-    isOptional: true
+          swiftName: "tags",
+          persistentName: "tags",
+          targetTypeName: "Tag",
+          inverseName: "items",
+          deleteRule: .nullify,
+          kind: .toManySet,
+          isOptional: true
         ),
         CoreDataEvolution.CDRuntimeRelationshipSchema(
           swiftName: "orderedTags",
           persistentName: "orderedTags",
           targetTypeName: "Tag",
           inverseName: "orderedItems",
+          deleteRule: .nullify,
           kind: .toManyArray,
           isOptional: true
         ),
@@ -260,9 +265,11 @@ final class Item: NSManagedObject {
           swiftName: "category",
           persistentName: "category",
           targetTypeName: "Category",
+          inverseName: "category",
+          deleteRule: .nullify,
           kind: .toOne,
           isOptional: true
-        )
+        ),
       ],
       uniquenessConstraints: [
 

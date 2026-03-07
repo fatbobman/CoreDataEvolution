@@ -29,6 +29,7 @@ final class RuntimeSchemaItem: NSManagedObject {
   @Attribute(storageMethod: .composition)
   var point: RuntimePoint? = nil
 
+  @Relationship(inverse: "items", deleteRule: .nullify)
   var tags: Set<RuntimeSchemaTag>
 }
 
@@ -36,16 +37,17 @@ final class RuntimeSchemaItem: NSManagedObject {
 @PersistentModel
 final class RuntimeSchemaTag: NSManagedObject {
   var name: String = ""
+  @Relationship(inverse: "tags", deleteRule: .nullify)
   var items: Set<RuntimeSchemaItem>
 }
 
 @objc(RuntimeDocument)
 @PersistentModel
 final class RuntimeDocument: NSManagedObject {
-  @Inverse("authoredDocuments")
+  @Relationship(inverse: "authoredDocuments", deleteRule: .nullify)
   var author: RuntimeUser?
 
-  @Inverse("editedDocuments")
+  @Relationship(inverse: "editedDocuments", deleteRule: .nullify)
   var editor: RuntimeUser?
 
   var title: String = ""
@@ -54,10 +56,10 @@ final class RuntimeDocument: NSManagedObject {
 @objc(RuntimeUser)
 @PersistentModel
 final class RuntimeUser: NSManagedObject {
-  @Inverse("author")
+  @Relationship(inverse: "author", deleteRule: .nullify)
   var authoredDocuments: Set<RuntimeDocument>
 
-  @Inverse("editor")
+  @Relationship(inverse: "editor", deleteRule: .nullify)
   var editedDocuments: Set<RuntimeDocument>
 
   var name: String = ""
@@ -102,7 +104,8 @@ final class RuntimeAmbiguousTargetItem: NSManagedObject, CDRuntimeSchemaProvidin
           swiftName: "owner",
           persistentName: "owner",
           targetTypeName: "User",
-          inverseName: nil,
+          inverseName: "documents",
+          deleteRule: .nullify,
           kind: .toOne,
           isOptional: true
         )

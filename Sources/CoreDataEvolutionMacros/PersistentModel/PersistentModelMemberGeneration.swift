@@ -275,24 +275,19 @@ func makeRuntimeEntitySchemaDecl(
       """
   }.joined(separator: ",\n")
 
-  let relationshipRows = model.relationships.map { relationship in
-    if let inverseName = relationship.inverseName {
-      return """
-        CoreDataEvolution.CDRuntimeRelationshipSchema(
-          swiftName: "\(relationship.propertyName)",
-          persistentName: "\(relationship.propertyName)",
-          targetTypeName: "\(relationship.targetTypeName)",
-          inverseName: "\(inverseName)",
-          kind: \(runtimeRelationshipKindExpression(relationship.kind)),
-          isOptional: true
-        )
-        """
+  let relationshipRows = model.relationships.compactMap { relationship in
+    guard let inverseName = relationship.inverseName,
+      let deleteRule = relationship.deleteRule
+    else {
+      return nil
     }
     return """
       CoreDataEvolution.CDRuntimeRelationshipSchema(
         swiftName: "\(relationship.propertyName)",
         persistentName: "\(relationship.propertyName)",
         targetTypeName: "\(relationship.targetTypeName)",
+        inverseName: "\(inverseName)",
+        deleteRule: \(runtimeRelationshipDeleteRuleExpression(deleteRule)),
         kind: \(runtimeRelationshipKindExpression(relationship.kind)),
         isOptional: true
       )
@@ -472,6 +467,20 @@ private func runtimeRelationshipKindExpression(_ kind: PersistentRelationshipPro
     return ".toManySet"
   case .toManyArray:
     return ".toManyArray"
+  }
+}
+
+private func runtimeRelationshipDeleteRuleExpression(_ rule: ParsedRelationshipDeleteRule) -> String
+{
+  switch rule {
+  case .nullify:
+    return ".nullify"
+  case .cascade:
+    return ".cascade"
+  case .deny:
+    return ".deny"
+  case .noAction:
+    return ".noAction"
   }
 }
 

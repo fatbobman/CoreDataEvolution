@@ -29,9 +29,7 @@ The macro system works together with these supporting macros:
 - `@Attribute`
 - `@Ignore`
 - `@Composition`
-- `@Inverse`
-
-There is no public relationship macro in v1. Relationships are inferred from the property type.
+- `@Relationship`
 
 ## Minimal Example
 
@@ -298,9 +296,10 @@ Core Data models using this library must define inverse relationships.
 
 If the inverse is missing, tooling and validation reject the model.
 
-## Declaring Ambiguous Inverses with `@Inverse`
+#### Every relationship must declare `@Relationship(...)`
 
-When a relationship can be inferred uniquely, you do not need `@Inverse`.
+Relationship cardinality is still inferred from the Swift property type, but relationship metadata
+is explicit in source.
 
 Example:
 
@@ -308,22 +307,26 @@ Example:
 @objc(Item)
 @PersistentModel
 final class Item: NSManagedObject {
+  @Relationship(inverse: "items", deleteRule: .nullify)
   var tag: Tag?
 }
 
 @objc(Tag)
 @PersistentModel
 final class Tag: NSManagedObject {
+  @Relationship(inverse: "tag", deleteRule: .nullify)
   var items: Set<Item>
 }
 ```
 
-This is unambiguous.
+`@Relationship(...)` always carries:
 
-### When `@Inverse` Is Required
+- `inverse`
+- `deleteRule`
 
-If the current entity declares multiple relationships to the same target entity, inference is no
-longer unique.
+There is no source-level inverse inference in the current model DSL.
+
+### Multiple Relationships to the Same Target Entity
 
 Example:
 
@@ -331,31 +334,25 @@ Example:
 @objc(Document)
 @PersistentModel
 final class Document: NSManagedObject {
-  @Inverse("authoredDocuments")
+  @Relationship(inverse: "authoredDocuments", deleteRule: .nullify)
   var author: User?
 
-  @Inverse("editedDocuments")
+  @Relationship(inverse: "editedDocuments", deleteRule: .nullify)
   var editor: User?
 }
 
 @objc(User)
 @PersistentModel
 final class User: NSManagedObject {
-  @Inverse("author")
+  @Relationship(inverse: "author", deleteRule: .nullify)
   var authoredDocuments: Set<Document>
 
-  @Inverse("editor")
+  @Relationship(inverse: "editor", deleteRule: .nullify)
   var editedDocuments: Set<Document>
 }
 ```
 
-Rule:
-
-- if inverse inference is ambiguous, every ambiguous relationship on the current side must be
-  annotated
-- the matching inverse relationship on the other side must also be annotated
-
-This rule also applies to self-referencing models.
+This works the same way for self-referencing models.
 
 ### Self-Referencing Relationship Example
 
@@ -363,10 +360,10 @@ This rule also applies to self-referencing models.
 @objc(Category)
 @PersistentModel
 final class Category: NSManagedObject {
-  @Inverse("children")
+  @Relationship(inverse: "children", deleteRule: .nullify)
   var parent: Category?
 
-  @Inverse("parent")
+  @Relationship(inverse: "parent", deleteRule: .nullify)
   var children: Set<Category>
 }
 ```
@@ -599,7 +596,7 @@ Before using `@PersistentModel`, make sure all of these are true.
 - to-many relationships must use `Set<T>` or `[T]`
 - to-many relationships cannot be optional
 - relationships must have inverses in the Core Data model
-- ambiguous inverse relationships must use `@Inverse(...)` on both sides
+- every relationship must declare `@Relationship(inverse:deleteRule:)`
 
 ### Composition Rules
 
@@ -658,23 +655,19 @@ Correct:
 var tags: Set<Tag>
 ```
 
-### Missing `@Inverse` in Ambiguous Relationship Graph
+### Missing `@Relationship` Metadata
 
 Invalid:
 
 ```swift
-var author: User?
-var editor: User?
+var tag: Tag?
 ```
 
 Correct:
 
 ```swift
-@Inverse("authoredDocuments")
-var author: User?
-
-@Inverse("editedDocuments")
-var editor: User?
+@Relationship(inverse: "items", deleteRule: .nullify)
+var tag: Tag?
 ```
 
 ### Transient with Unsupported Storage
@@ -709,7 +702,7 @@ Examples of expected diagnostics:
 - `@PersistentModel does not support declaring multiple stored properties in one var declaration.`
 - `To-one relationship properties must be optional.`
 - `Optional to-many relationship ... is not supported.`
-- `Relationships from 'Document' to 'User' are ambiguous. Add @Inverse(...) ...`
+- `Relationship property 'tag' must declare @Relationship(inverse: ..., deleteRule: ...).`
 - `@Attribute trait .transient only supports .default storage.`
 - `Derived Attribute is not supported.`
 
@@ -753,6 +746,7 @@ final class Item: NSManagedObject {
   @Ignore
   var uiState: [String: Int] = [:]
 
+  @Relationship(inverse: "items", deleteRule: .nullify)
   var tag: Tag?
 }
 
@@ -760,6 +754,7 @@ final class Item: NSManagedObject {
 @PersistentModel
 final class Tag: NSManagedObject {
   var name: String = ""
+  @Relationship(inverse: "tag", deleteRule: .nullify)
   var items: Set<Item>
 }
 ```

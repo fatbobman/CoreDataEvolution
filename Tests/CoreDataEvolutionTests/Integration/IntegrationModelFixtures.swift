@@ -57,6 +57,7 @@ final class CDEStringListTransformer: ValueTransformer {
 final class CDETag: NSManagedObject {
   var id: UUID? = nil
   var label: String = ""
+  @Relationship(inverse: "tag", deleteRule: .nullify)
   var items: Set<CDEItem>
 }
 
@@ -76,5 +77,6 @@ final class CDEItem: NSManagedObject {
   @Attribute(
     persistentName: "keywords_payload", storageMethod: .transformed(CDEStringListTransformer.self))
   var keywords: [String] = []
+  @Relationship(inverse: "items", deleteRule: .nullify)
   var tag: CDETag?
 }

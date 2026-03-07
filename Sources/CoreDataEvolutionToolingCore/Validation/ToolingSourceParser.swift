@@ -185,8 +185,8 @@ private final class ToolingSourceEntityCollector: SyntaxVisitor {
       hasIgnore: firstAttribute(named: "Ignore", in: variable.attributes) != nil,
       attribute: firstAttribute(named: "Attribute", in: variable.attributes).map(
         parseAttributeAnnotation(from:)),
-      inverse: firstAttribute(named: "Inverse", in: variable.attributes).flatMap(
-        parseInverseAnnotation(from:)),
+      relationship: firstAttribute(named: "Relationship", in: variable.attributes).flatMap(
+        parseRelationshipAnnotation(from:)),
       relationshipShape: typeSyntax.flatMap(parseRelationshipShape(from:))
     )
   }
@@ -341,25 +341,37 @@ private func parseAttributeAnnotation(
   )
 }
 
-private func parseInverseAnnotation(
+private func parseRelationshipAnnotation(
   from attribute: AttributeSyntax
-) -> ToolingSourceInverseAnnotationIR? {
-  guard let list = attribute.arguments?.as(LabeledExprListSyntax.self),
-    list.count == 1,
-    let argument = list.first,
-    let propertyLiteral = argument.expression.as(StringLiteralExprSyntax.self),
-    propertyLiteral.segments.count == 1,
-    let segment = propertyLiteral.segments.first?.as(StringSegmentSyntax.self)
-  else {
+) -> ToolingSourceRelationshipAnnotationIR? {
+  guard let list = attribute.arguments?.as(LabeledExprListSyntax.self) else {
     return nil
   }
 
-  let inversePropertyName = segment.content.text
-  guard inversePropertyName.isEmpty == false else {
+  var inversePropertyName: String?
+  var deleteRule: String?
+
+  for argument in list {
+    guard let label = argument.label?.text else {
+      return nil
+    }
+    switch label {
+    case "inverse":
+      inversePropertyName = parseStringLiteral(argument.expression)
+    case "deleteRule":
+      deleteRule = parseRelationshipDeleteRule(from: normalizedExpression(argument.expression))
+    default:
+      return nil
+    }
+  }
+
+  guard let inversePropertyName, inversePropertyName.isEmpty == false, let deleteRule else {
     return nil
   }
+
   return .init(
-    inversePropertyName: inversePropertyName
+    inversePropertyName: inversePropertyName,
+    deleteRule: deleteRule
   )
 }
 
@@ -497,6 +509,24 @@ private func parseRelationshipCountPolicy(from raw: String) -> ToolingRelationsh
   case ".plain", "RelationshipGenerationPolicy.plain",
     "CoreDataEvolution.RelationshipGenerationPolicy.plain":
     return .plain
+  default:
+    return nil
+  }
+}
+
+private func parseRelationshipDeleteRule(from raw: String) -> String? {
+  switch raw {
+  case ".nullify", "RelationshipDeleteRule.nullify",
+    "CoreDataEvolution.RelationshipDeleteRule.nullify":
+    return "nullify"
+  case ".cascade", "RelationshipDeleteRule.cascade",
+    "CoreDataEvolution.RelationshipDeleteRule.cascade":
+    return "cascade"
+  case ".deny", "RelationshipDeleteRule.deny", "CoreDataEvolution.RelationshipDeleteRule.deny":
+    return "deny"
+  case ".noAction", "RelationshipDeleteRule.noAction",
+    "CoreDataEvolution.RelationshipDeleteRule.noAction":
+    return "noAction"
   default:
     return nil
   }

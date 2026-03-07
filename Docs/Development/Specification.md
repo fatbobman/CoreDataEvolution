@@ -26,10 +26,7 @@ Runtime schema / runtime model builder 的 v1 边界：
 - 仅用于测试/调试，不替代 `xcdatamodeld`
 - 假定宏生成的静态 metadata 为唯一输入，不做运行时反射
 - 同一组模型类型应复用缓存后的 `NSManagedObjectModel`
-- 当同一实体中存在多个 relationship 指向同一目标实体时，源码必须显式提供 inverse hint
-- inverse hint 采用 `@Inverse("property")` 语法
-- 无法唯一推断 inverse 的 relationship，当前实体侧这些 relationship 必须全部显式标注 `@Inverse(...)`，对端对应的 inverse relationship 也必须显式标注
-- 自连接（self relationship）遵循同一规则
+- 关系元数据最终以 `@Relationship(inverse:deleteRule:)` 为源码真值，不依赖 inverse 推断
 - primitive 默认值仅支持可稳定翻译到 Core Data 默认值的表达式子集；不支持时直接报错
 - composition 在 runtime 路径中按单个 transformable dictionary payload 建模，不追求与 xcdatamodeld 的展平字段布局一致
 
@@ -146,20 +143,15 @@ enum RelationshipGenerationPolicy { case none, warning, plain }
 - 被标记的 `var` 不参与持久化代码生成。  
 - `let` 无需标记，默认不参与持久化生成。  
 
-### `@Inverse`
+### `@Relationship`
 
 - 仅用于 relationship 属性。
-- 语法：`@Inverse("property")`
-- 语义：显式声明对端 inverse relationship 的属性名。
-- 若 relationship 可唯一推断 inverse，则无需标注。
-- 当同一实体中存在多个 relationship 指向同一目标实体时，当前实体侧这些 relationship 必须全部显式标注 `@Inverse(...)`，对端对应的 inverse relationship 也必须显式标注。
-- relationship 属性本身已经提供目标实体类型，因此 `@Inverse` 仅需声明对端属性名字符串。
-
-### RelationshipInfo 注释
-
-- v1 不提供 `@RelationshipInfo` 宏。
-- 关系元信息通过工具生成/维护的结构化注释承载（用于代码可读性与工具校验输入）。
-- 校验工具在注释存在时比对 `inverse/deleteRule/ordered` 与模型一致性。
+- 语法：`@Relationship(inverse: "property", deleteRule: .nullify)`
+- `inverse` 必填。
+- `deleteRule` 必填。
+- relationship 属性本身已经提供目标实体类型，因此 `@Relationship` 只需要补充对端属性名与删除策略。
+- `deleteRule` 支持 Core Data 标准枚举值：`.nullify`、`.cascade`、`.deny`、`.noAction`。
+- 不再依赖公开的 `@Inverse` 或结构化关系注释。
 
 ### `@Composition`
 
@@ -198,12 +190,13 @@ v1 声明约束（硬性）：
 
 > 说明：关系目标类型在宏展开代码中通过 `_CDRelationshipMacroValidation.requirePersistentEntity(T.self)` 做编译期强约束。
 
-inverse hint 规则：
+relationship declaration 规则：
 
-- 若当前实体内某个目标实体类型只出现一条 relationship，则可省略 `@Inverse(...)`
-- 若当前实体内有多条 relationship 指向同一目标实体，则这些 relationship 必须全部显式标注 `@Inverse(...)`，且对端对应的 inverse relationship 也必须显式标注
+- 每个 relationship 属性都必须显式声明 `@Relationship(...)`
+- `inverse` 必须写出对端 relationship 的属性名
+- `deleteRule` 必须显式写出，不做源码层推断
 - 自连接按同一规则处理
-- 缺少必要的 `@Inverse(...)` 时，主宏应在编译期报错并拒绝展开
+- 缺少 `@Relationship(...)` 时，主宏应在编译期报错并拒绝展开
 
 ### Getter / Setter
 
@@ -324,7 +317,7 @@ NSPredicate(format: "%K == %@", Item.Keys.status.rawValue, status.rawValue)
 1. 不依赖运行时反射；仅消费宏生成的静态 schema metadata。
 2. 调用方必须显式提供所有相关实体类型，例如 `makeRuntimeModel([Item.self, Tag.self])`。
 3. relationship 解析要求目标类型与 inverse 两端都在输入集合中。
-4. 无法唯一推断 inverse 的 relationship 需要源码通过 `@Inverse(...)` 提供显式 inverse metadata；当前实体侧与对端对应的 inverse relationship 都必须标注。
+4. relationship 需要源码通过 `@Relationship(inverse:deleteRule:)` 提供显式 metadata；不依赖 inverse 推断。
 5. composition 仍按已生成的字段表展开为底层 attribute 集合。
 6. 由于当前范式已强约束“attribute 必须可选或有默认值、relationship 必须 optional 且有 inverse”，这些信息足以用于测试模型构建。
 
@@ -370,7 +363,7 @@ let model = NSManagedObjectModel.makeRuntimeModel([
 - relationship 命名与可选性（代码层）
 - 模型层 to-many optional
 - 模型层 inverse
-- RelationshipInfo 注释一致性（若存在），含 `ordered` 与属性类型的自洽性
+- `@Relationship(...)` 一致性，含 `inverse` / `deleteRule` 与属性类型的自洽性
 - 孤立字段（模型中存在但 Swift 中无对应 `@Attribute`）
 - 孤立声明（Swift 中的 `@Attribute` 在模型中无对应字段）
 - Undefined 类型属性（宏不支持，需开发者处理）

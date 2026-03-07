@@ -30,11 +30,23 @@ func preferredAttributeForParsing(named name: String, in variable: VariableDeclS
   return attributes.first(where: { $0.arguments != nil }) ?? attributes.first
 }
 
-struct ParsedInverseDeclArguments: Equatable {
+struct ParsedRelationshipDeclArguments: Equatable {
   let inversePropertyName: String
+  let deleteRule: ParsedRelationshipDeleteRule
 }
 
-enum InverseDeclArgumentsParseError: Error, Equatable {
+enum ParsedRelationshipDeleteRule: String, Equatable {
+  case nullify
+  case cascade
+  case deny
+  case noAction
+}
+
+enum RelationshipDeclArgumentsParseError: Error, Equatable {
+  case missingInverseArgument
+  case invalidInverseArgument
+  case missingDeleteRuleArgument
+  case invalidDeleteRuleArgument
   case invalidShape
 }
 
@@ -45,28 +57,76 @@ func attributeName(of attribute: AttributeSyntax) -> String {
     .map(String.init) ?? attribute.attributeName.trimmedDescription
 }
 
-func parseInverseDeclArguments(
+func parseRelationshipDeclArguments(
   _ attribute: AttributeSyntax
-) -> Result<ParsedInverseDeclArguments, InverseDeclArgumentsParseError> {
-  guard let list = attribute.arguments?.as(LabeledExprListSyntax.self),
-    list.count == 1,
-    let argument = list.first,
-    let propertyLiteral = argument.expression.as(StringLiteralExprSyntax.self),
-    propertyLiteral.segments.count == 1,
-    let segment = propertyLiteral.segments.first?.as(StringSegmentSyntax.self)
-  else {
+) -> Result<ParsedRelationshipDeclArguments, RelationshipDeclArgumentsParseError> {
+  guard let list = attribute.arguments?.as(LabeledExprListSyntax.self) else {
     return .failure(.invalidShape)
   }
 
-  let inversePropertyName = segment.content.text
-  guard inversePropertyName.isEmpty == false else {
-    return .failure(.invalidShape)
+  var inversePropertyName: String?
+  var deleteRule: ParsedRelationshipDeleteRule?
+
+  for argument in list {
+    guard let label = argument.label?.text else {
+      return .failure(.invalidShape)
+    }
+
+    switch label {
+    case "inverse":
+      guard let propertyLiteral = argument.expression.as(StringLiteralExprSyntax.self),
+        propertyLiteral.segments.count == 1,
+        let segment = propertyLiteral.segments.first?.as(StringSegmentSyntax.self)
+      else {
+        return .failure(.invalidInverseArgument)
+      }
+      let value = segment.content.text
+      guard value.isEmpty == false else {
+        return .failure(.invalidInverseArgument)
+      }
+      inversePropertyName = value
+    case "deleteRule":
+      let raw = argument.expression.trimmedDescription.replacingOccurrences(of: " ", with: "")
+      deleteRule = parseRelationshipDeleteRule(from: raw)
+      if deleteRule == nil {
+        return .failure(.invalidDeleteRuleArgument)
+      }
+    default:
+      return .failure(.invalidShape)
+    }
   }
+
+  guard let inversePropertyName else {
+    return .failure(.missingInverseArgument)
+  }
+  guard let deleteRule else {
+    return .failure(.missingDeleteRuleArgument)
+  }
+
   return .success(
     .init(
-      inversePropertyName: inversePropertyName
+      inversePropertyName: inversePropertyName,
+      deleteRule: deleteRule
     )
   )
+}
+
+func parseRelationshipDeleteRule(from raw: String) -> ParsedRelationshipDeleteRule? {
+  switch raw {
+  case ".nullify", "RelationshipDeleteRule.nullify",
+    "CoreDataEvolution.RelationshipDeleteRule.nullify":
+    return .nullify
+  case ".cascade", "RelationshipDeleteRule.cascade",
+    "CoreDataEvolution.RelationshipDeleteRule.cascade":
+    return .cascade
+  case ".deny", "RelationshipDeleteRule.deny", "CoreDataEvolution.RelationshipDeleteRule.deny":
+    return .deny
+  case ".noAction", "RelationshipDeleteRule.noAction",
+    "CoreDataEvolution.RelationshipDeleteRule.noAction":
+    return .noAction
+  default:
+    return nil
+  }
 }
 
 func typeNamesReferToSameEntity(_ lhs: String, _ rhs: String) -> Bool {

@@ -43,8 +43,7 @@ SwiftData 采用纯代码声明模型，看似更符合 Swift 习惯，但在模
 
 当前 runtime schema v1 还包含三条明确边界：
 
-- relationship metadata 默认允许唯一推断 inverse；当同一实体中存在多个 relationship 指向同一目标实体时，源码必须通过 `@Inverse("property")` 显式提供 inverse hint。
-- 无法唯一推断 inverse 的 relationship，当前实体侧这些 relationship 必须全部显式标注 `@Inverse(...)`，对端对应的 inverse relationship 也必须显式标注。这是一条 runtime/test-debug 路径与 tooling validate 共用的源码规则，不影响基于 `xcdatamodeld` 的正式模型工作流。
+- relationship metadata 以显式 `@Relationship(inverse:deleteRule:)` 为真值，不依赖 inverse 推断。
 - primitive 默认值只支持一组可稳定翻译到 `NSAttributeDescription.defaultValue` 的表达式子集；无法稳定翻译时直接报错，不做静默降级。
 - composition 在 runtime schema / runtime builder 中按单个 transformable dictionary payload 建模，遵循宏生成的 composition accessor 契约，不等价于 xcdatamodeld 的展平字段布局。
 
@@ -95,14 +94,18 @@ final class Item: NSManagedObject, Identifiable {
 
 ### 识别机制
 
-不需要显式的 `@Relationship` 宏。`@PersistentModel` 在展开时扫描参与持久化的 `var` 属性，通过判断属性类型是否符合 `PersistentEntity` 协议来自动识别关系（`let` 默认忽略）：
+`@PersistentModel` 仍通过属性类型识别关系的基数：
+
+- `T?` -> to-one
+- `Set<T>` -> unordered to-many
+- `[T]` -> ordered to-many
+
+但关系元数据不再依赖推断。每个 relationship 都必须显式写出：
 
 ```swift
-// 标记一个类型为 Core Data 实体的协议
-protocol PersistentEntity: NSManagedObject {}
+@Relationship(inverse: "items", deleteRule: .nullify)
+var category: Category?
 ```
-
-所有使用 `@PersistentModel` 的类自动符合 `PersistentEntity`，因此关系两端都无需额外标注。
 
 ### 声明示例
 
@@ -113,8 +116,11 @@ final class Item: NSManagedObject, Identifiable {
     @Attribute(persistentName: "timestamp")
     var date: Date?
 
-    var tags: Set<Tag>     // Tag 符合 PersistentEntity → 自动识别为对多关系
-    var category: Category? // Category 符合 PersistentEntity → 自动识别为对一关系
+    @Relationship(inverse: "items", deleteRule: .cascade)
+    var tags: Set<Tag>
+
+    @Relationship(inverse: "category", deleteRule: .nullify)
+    var category: Category?
 }
 ```
 
@@ -285,40 +291,25 @@ try context.save()
 
 ### 职责边界
 
-删除规则（cascade/nullify/deny）、逆关系（inverse）、是否有序（ordered）等语义**全部由 xcdatamodeld 负责声明**，宏不重复定义，避免两处定义不一致的风险。校验工具负责检查 Swift 侧声明与模型文件是否对齐。
+模型层仍然是底层真值来源，但 relationship 的源码表现层也必须完整声明：
+
+- `inverse`
+- `deleteRule`
+- ordered / unordered 仍由属性类型表达
+
+校验工具负责检查 Swift 侧 `@Relationship(...)` 与模型文件是否对齐。
 
 硬性要求：模型中的每一条 relationship 都必须配置 inverse。缺失 inverse 视为不符合本规范，校验阶段直接报错。
-
-### RelationshipInfo：结构化注释（非宏）
-
-为了让代码本身能传达关系语义（无需翻 xcdatamodeld），v1 使用**结构化注释**而不是宏。它不参与编译，也不生成运行时代码，由工具自动生成。
-
-```swift
-@PersistentModel
-final class Item: NSManagedObject, Identifiable {
-
-    @Attribute(persistentName: "timestamp")
-    var date: Date?
-
-    // RelationshipInfo(inverse: "items", deleteRule: .cascade)
-    var tags: Set<Tag>
-
-    // RelationshipInfo(inverse: "category", deleteRule: .nullify)
-    var category: Category?
-}
-```
-
-`RelationshipInfo` 是工具与开发者之间的**契约**，而非运行时指令。
 
 ### 有序对多关系
 
 xcdatamodeld 中勾选 "Ordered" 的对多关系，底层为 `NSOrderedSet`，Swift 侧对应 `Array`：
 
 ```swift
-// RelationshipInfo(inverse: "items", deleteRule: .cascade, ordered: true)
+@Relationship(inverse: "items", deleteRule: .cascade)
 var tags: [Tag]     // 有序对多，底层 NSOrderedSet
 
-// RelationshipInfo(inverse: "items", deleteRule: .cascade, ordered: false)
+@Relationship(inverse: "items", deleteRule: .cascade)
 var tags: Set<Tag>  // 无序对多，底层 NSSet
 ```
 
@@ -354,33 +345,24 @@ func removeFromTags(_ tag: Tag) {
 
 **两侧一致性校验**：工具同时检查以下两点，任一不一致均报错：
 
-- `ordered` 参数与 xcdatamodeld 中 Ordered 勾选状态是否一致
-- `ordered` 参数与 Swift 侧属性类型是否自洽（`ordered: true` 配 `Set` 或 `ordered: false` 配 `Array` 均报错）
+- xcdatamodeld 中 Ordered 勾选状态与 Swift 侧属性类型是否一致
+- `@Relationship` 中的 `inverse/deleteRule` 与模型是否一致
 
 ```
-[ERROR] Item.tags: RelationshipInfo declares ordered=true, but property type is Set<Tag> (expected Array)
-[ERROR] Item.tags: RelationshipInfo declares ordered=false, but xcdatamodeld has Ordered checked
+[ERROR] Item.tags: ordered relationship must use Array<T>, found Set<Tag>
+[ERROR] Item.tags: deleteRule mismatch — model has cascade, source declares nullify
 ```
 
 ### 校验策略
 
-`RelationshipInfo` 注释是可选的，工具根据是否存在来决定是否校验：
+`@Relationship(...)` 不是可选信息，而是 relationship 声明的一部分。工具必须始终校验：
 
-- **有 RelationshipInfo 注释**：工具校验注释参数与 xcdatamodeld 实际配置是否一致，不一致则报错
-- **无 RelationshipInfo 注释**：默认模式下跳过，输出 `[INFO]` 提示；`--strict` 模式下视为警告
+- `inverse`
+- `deleteRule`
+- ordered/unordered 与属性类型的一致性
 
-无论是否存在 RelationshipInfo 注释，工具都会强制检查模型层 inverse 是否配置；缺失 inverse 一律为 `[ERROR]`。
+无论源码如何声明，工具都会强制检查模型层 inverse 是否配置；缺失 inverse 一律为 `[ERROR]`。
 v1 不自动生成 `*Count`；若需要数量，推荐通过 `NSManagedObjectContext.count(for:)` + `NSPredicate` 计算。
-
-```
-// 默认模式
-[INFO]  Item.tags: no RelationshipInfo annotation, skipping validation
-
-// --strict 模式
-[WARN]  Item.tags: missing RelationshipInfo annotation
-```
-
-这样新项目可以从一开始就开启 `--strict` 全面覆盖，旧项目迁移时用默认模式逐步补全，工具也可以自动补充缺失的注释块。
 
 ---
 
@@ -925,12 +907,11 @@ let model = NSManagedObjectModel.makeRuntimeModel([
 
 runtime schema 的来源不是手写描述，而是宏生成的静态 metadata。builder 只做组装，不负责推断。
 
-relationship inverse 规则补充：
+relationship metadata 规则补充：
 
-- 若当前实体内某个目标实体类型只出现一条 relationship，则可省略 `@Inverse(...)`
-- 若当前实体内有多条 relationship 指向同一目标实体，则这些 relationship 必须全部显式标注 `@Inverse(...)`，且对端对应的 inverse relationship 也必须显式标注
+- 每个 relationship 都必须显式声明 `@Relationship(inverse:deleteRule:)`
 - 自连接（self relationship）按同一规则处理
-- relationship 属性本身已经提供目标实体类型，因此 `@Inverse` 只需要声明对端属性名字符串
+- runtime builder 直接消费显式 `inverse`，不再依赖公开的 inverse hint 机制
 
 边界需要保持非常清楚：
 
@@ -987,7 +968,7 @@ relationship inverse 规则补充：
 | 关系可选性（代码层） | Swift 侧对多是否为非可选、对一是否为可选 |
 | 关系 Optional（模型层） | xcdatamodeld 中对多关系是否为 Optional=true（硬性要求） |
 | 关系 inverse（模型层） | xcdatamodeld 中每条 relationship 都必须配置 inverse（硬性要求） |
-| RelationshipInfo 注释一致性 | 若存在，校验 `inverse`、`deleteRule`、`ordered` 与模型是否一致 |
+| `@Relationship(...)` 一致性 | 校验 `inverse`、`deleteRule` 与 ordered/unordered 是否和模型一致 |
 | Undefined 类型 | 模型中存在 Undefined 类型的属性，宏不支持，需要开发者处理 |
 
 **最佳实践建议（`[SUGGEST]`）**：

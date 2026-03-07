@@ -111,7 +111,7 @@ public struct ToolingSourcePropertyIR: Codable, Sendable, Equatable {
   public let isStatic: Bool
   public let hasIgnore: Bool
   public let attribute: ToolingSourceAttributeAnnotationIR?
-  public let inverse: ToolingSourceInverseAnnotationIR?
+  public let relationship: ToolingSourceRelationshipAnnotationIR?
   public let relationshipShape: ToolingSourceRelationshipShapeIR?
 
   public init(
@@ -125,7 +125,7 @@ public struct ToolingSourcePropertyIR: Codable, Sendable, Equatable {
     isStatic: Bool,
     hasIgnore: Bool,
     attribute: ToolingSourceAttributeAnnotationIR?,
-    inverse: ToolingSourceInverseAnnotationIR? = nil,
+    relationship: ToolingSourceRelationshipAnnotationIR? = nil,
     relationshipShape: ToolingSourceRelationshipShapeIR?
   ) {
     self.filePath = filePath
@@ -138,7 +138,7 @@ public struct ToolingSourcePropertyIR: Codable, Sendable, Equatable {
     self.isStatic = isStatic
     self.hasIgnore = hasIgnore
     self.attribute = attribute
-    self.inverse = inverse
+    self.relationship = relationship
     self.relationshipShape = relationshipShape
   }
 }
@@ -169,14 +169,17 @@ public struct ToolingSourceAttributeAnnotationIR: Codable, Sendable, Equatable {
   }
 }
 
-/// Parsed `@Inverse(...)` hint from source.
-public struct ToolingSourceInverseAnnotationIR: Codable, Sendable, Equatable {
+/// Parsed `@Relationship(...)` metadata from source.
+public struct ToolingSourceRelationshipAnnotationIR: Codable, Sendable, Equatable {
   public let inversePropertyName: String
+  public let deleteRule: String
 
   public init(
-    inversePropertyName: String
+    inversePropertyName: String,
+    deleteRule: String
   ) {
     self.inversePropertyName = inversePropertyName
+    self.deleteRule = deleteRule
   }
 }
 

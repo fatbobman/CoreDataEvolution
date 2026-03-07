@@ -33,6 +33,13 @@ public enum RelationshipGenerationPolicy {
   case plain
 }
 
+public enum RelationshipDeleteRule: String, Sendable, Codable {
+  case nullify
+  case cascade
+  case deny
+  case noAction
+}
+
 @attached(member, names: named(modelExecutor), named(modelContainer), named(init))
 @attached(extension, conformances: NSModelActor)
 public macro NSModelActor(disableGenerateInit: Bool = false) =
@@ -61,8 +68,10 @@ public macro Ignore() =
   #externalMacro(module: "CoreDataEvolutionMacros", type: "IgnoreMacro")
 
 @attached(peer)
-public macro Inverse(_ propertyName: String) =
-  #externalMacro(module: "CoreDataEvolutionMacros", type: "InverseMacro")
+public macro Relationship(
+  inverse: String,
+  deleteRule: RelationshipDeleteRule
+) = #externalMacro(module: "CoreDataEvolutionMacros", type: "PublicRelationshipMacro")
 
 @attached(accessor)
 @attached(peer, names: arbitrary)

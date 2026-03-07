@@ -152,8 +152,6 @@ public enum ToolingSourceRenderer {
         return (persistentField, composition)
       }
     )
-    let ambiguousRelationshipNames = toolingAmbiguousRelationshipNames(in: entity)
-
     for attribute in entity.attributes {
       if attribute.storage.method == .composition {
         if let composition = compositionAttributesByPersistentName[attribute.persistentName] {
@@ -179,7 +177,6 @@ public enum ToolingSourceRenderer {
       lines.append(
         contentsOf: try renderRelationshipProperty(
           relationship,
-          requiresExplicitInverse: ambiguousRelationshipNames.contains(relationship.swiftName),
           accessLevel: generationPolicy.accessLevel
         )
       )
@@ -288,7 +285,6 @@ public enum ToolingSourceRenderer {
 
   private static func renderRelationshipProperty(
     _ relationship: ToolingRelationshipIR,
-    requiresExplicitInverse: Bool,
     accessLevel: ToolingAccessLevel
   ) throws -> [String] {
     guard relationship.isOptional else {
@@ -324,19 +320,15 @@ public enum ToolingSourceRenderer {
     }
 
     var lines: [String] = []
-    if requiresExplicitInverse {
-      guard let inverseRelationshipName = relationship.inverseRelationshipName
-      else {
-        throw ToolingFailure.user(
-          .configInvalid,
-          """
-          generate requires explicit inverse metadata for ambiguous relationship \
-          '\(relationship.persistentName)'.
-          """
-        )
-      }
-      lines.append(#"  @Inverse("\#(inverseRelationshipName)")"#)
+    guard let inverseRelationshipName = relationship.inverseRelationshipName else {
+      throw ToolingFailure.user(
+        .configInvalid,
+        "generate requires inverse metadata for relationship '\(relationship.persistentName)'."
+      )
     }
+    lines.append(
+      "  @Relationship(inverse: \"\(inverseRelationshipName)\", deleteRule: .\(relationship.deleteRule))"
+    )
     lines.append(
       "  \(memberAccessModifierPrefix(for: accessLevel))var \(relationship.swiftName): \(typeName)")
     lines.append("")

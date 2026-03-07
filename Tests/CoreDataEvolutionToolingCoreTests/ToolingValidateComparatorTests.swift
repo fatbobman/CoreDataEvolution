@@ -15,8 +15,8 @@ import Testing
 
 @Suite("Tooling Core Validate Comparator Tests")
 struct ToolingValidateComparatorTests {
-  @Test("comparator requires explicit inverse for ambiguous relationships")
-  func comparatorRequiresExplicitInverseForAmbiguousRelationships() {
+  @Test("comparator requires explicit relationship metadata for relationships")
+  func comparatorRequiresExplicitRelationshipMetadataForRelationships() {
     let diagnostics = ToolingValidateComparator.compareQuick(
       expected: ambiguousRelationshipModelIR(),
       actual: .init(
@@ -69,17 +69,17 @@ struct ToolingValidateComparatorTests {
     #expect(
       diagnostics.contains {
         $0.message.contains(
-          "requires explicit @Inverse for ambiguous relationship 'Document.author'")
+          "requires explicit @Relationship(inverse:deleteRule:) for relationship 'Document.author'")
       })
     #expect(
       diagnostics.contains {
         $0.message.contains(
-          "requires explicit @Inverse for ambiguous relationship 'Document.editor'")
+          "requires explicit @Relationship(inverse:deleteRule:) for relationship 'Document.editor'")
       })
   }
 
-  @Test("comparator accepts matching inverse hints for ambiguous relationships")
-  func comparatorAcceptsMatchingInverseHintsForAmbiguousRelationships() {
+  @Test("comparator accepts matching relationship metadata")
+  func comparatorAcceptsMatchingRelationshipMetadata() {
     let diagnostics = ToolingValidateComparator.compareQuick(
       expected: ambiguousRelationshipModelIR(),
       actual: .init(
@@ -106,8 +106,9 @@ struct ToolingValidateComparatorTests {
                 isStatic: false,
                 hasIgnore: false,
                 attribute: nil,
-                inverse: .init(
-                  inversePropertyName: "authoredDocuments"
+                relationship: .init(
+                  inversePropertyName: "authoredDocuments",
+                  deleteRule: "nullify"
                 ),
                 relationshipShape: .toOne
               ),
@@ -122,8 +123,9 @@ struct ToolingValidateComparatorTests {
                 isStatic: false,
                 hasIgnore: false,
                 attribute: nil,
-                inverse: .init(
-                  inversePropertyName: "editedDocuments"
+                relationship: .init(
+                  inversePropertyName: "editedDocuments",
+                  deleteRule: "nullify"
                 ),
                 relationshipShape: .toOne
               ),

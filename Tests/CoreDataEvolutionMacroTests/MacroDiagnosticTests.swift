@@ -154,7 +154,9 @@ struct MacroDiagnosticTests {
         @objc(Item)
         @PersistentModel(relationshipCountPolicy: .plain)
         final class Item: NSManagedObject {
+          @Relationship(inverse: "items", deleteRule: .nullify)
           var tags: Set<Tag>
+          @Relationship(inverse: "orderedItems", deleteRule: .nullify)
           var orderedTags: [Tag]
         }
         """
@@ -176,6 +178,7 @@ struct MacroDiagnosticTests {
         @objc(Item)
         @PersistentModel(relationshipSetterPolicy: .warning)
         final class Item: NSManagedObject {
+          @Relationship(inverse: "items", deleteRule: .nullify)
           var tags: Set<Tag>
         }
         """
@@ -196,7 +199,9 @@ struct MacroDiagnosticTests {
         @objc(Item)
         @PersistentModel
         final class Item: NSManagedObject {
+          @Relationship(inverse: "category", deleteRule: .nullify)
           var category: Category?
+          @Relationship(inverse: "items", deleteRule: .nullify)
           var tags: Set<Tag>
         }
         """
@@ -330,7 +335,9 @@ struct MacroDiagnosticTests {
           var title: String = ""
           @Ignore
           var transientCache: [String: Int] = [:]
+          @Relationship(inverse: "items", deleteRule: .nullify)
           var tags: Set<Tag>
+          @Relationship(inverse: "category", deleteRule: .nullify)
           var category: Category?
         }
         """
@@ -405,8 +412,8 @@ struct MacroDiagnosticTests {
       })
   }
 
-  @Test("PersistentModel requires inverse hints for ambiguous relationships")
-  func persistentModelRequiresInverseHintsForAmbiguousRelationships() throws {
+  @Test("PersistentModel requires relationship metadata for relationship properties")
+  func persistentModelRequiresRelationshipMetadataForRelationshipProperties() throws {
     let result = try MacroTestSupport.expand(
       source: """
         import CoreData
@@ -421,12 +428,12 @@ struct MacroDiagnosticTests {
     )
     #expect(
       result.diagnostics.contains {
-        $0.contains("Relationships from 'Document' to 'User' are ambiguous")
+        $0.contains("must declare @Relationship(inverse: ..., deleteRule: ...)")
       })
   }
 
-  @Test("PersistentModel accepts explicit inverse hints for ambiguous relationships")
-  func persistentModelAcceptsExplicitInverseHintsForAmbiguousRelationships() throws {
+  @Test("PersistentModel accepts explicit relationship metadata")
+  func persistentModelAcceptsExplicitRelationshipMetadata() throws {
     let result = try MacroTestSupport.expand(
       source: """
         import CoreData
@@ -434,10 +441,10 @@ struct MacroDiagnosticTests {
         @objc(Document)
         @PersistentModel
         final class Document: NSManagedObject {
-          @Inverse("authoredDocuments")
+          @Relationship(inverse: "authoredDocuments", deleteRule: .nullify)
           var author: User?
 
-          @Inverse("editedDocuments")
+          @Relationship(inverse: "editedDocuments", deleteRule: .nullify)
           var editor: User?
         }
         """
@@ -445,23 +452,24 @@ struct MacroDiagnosticTests {
     #expect(result.diagnostics.isEmpty)
     #expect(result.expandedSource.contains(#"inverseName: "authoredDocuments""#))
     #expect(result.expandedSource.contains(#"inverseName: "editedDocuments""#))
+    #expect(result.expandedSource.contains(#"deleteRule: .nullify"#))
   }
 
-  @Test("Inverse rejects non-string arguments")
-  func inverseRejectsNonStringArguments() throws {
+  @Test("Relationship rejects invalid argument shapes")
+  func relationshipRejectsInvalidArgumentShapes() throws {
     let result = try MacroTestSupport.expand(
       source: """
         import CoreData
         import CoreDataEvolution
         final class Document: NSManagedObject {
-          @Inverse(User.self)
+          @Relationship(inverse: "author")
           var author: User?
         }
         """
     )
     #expect(
       result.diagnostics.contains {
-        $0.contains("@Inverse requires a string property name")
+        $0.contains("@Relationship requires `deleteRule:`")
       })
   }
 

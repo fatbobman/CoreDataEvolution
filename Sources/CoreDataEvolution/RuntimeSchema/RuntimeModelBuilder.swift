@@ -21,7 +21,6 @@ public enum CDRuntimeModelBuilderError: LocalizedError, Sendable, Equatable {
   case ambiguousRelationshipTarget(
     entityName: String, relationshipName: String, targetTypeName: String)
   case missingInverse(entityName: String, relationshipName: String, targetEntityName: String)
-  case ambiguousInverse(entityName: String, relationshipName: String, targetEntityName: String)
   case unsupportedRawBackingType(entityName: String, attributeName: String, backingTypeName: String)
   case unsupportedDefaultValueExpression(
     entityName: String,
@@ -44,10 +43,7 @@ public enum CDRuntimeModelBuilderError: LocalizedError, Sendable, Equatable {
         "runtime model builder found multiple target candidates for relationship '\(entityName).\(relationshipName)' and target type '\(targetTypeName)'."
     case .missingInverse(let entityName, let relationshipName, let targetEntityName):
       return
-        "runtime model builder could not infer an inverse for relationship '\(entityName).\(relationshipName)' targeting '\(targetEntityName)'."
-    case .ambiguousInverse(let entityName, let relationshipName, let targetEntityName):
-      return
-        "runtime model builder found multiple inverse candidates for relationship '\(entityName).\(relationshipName)' targeting '\(targetEntityName)'. Runtime schema currently requires a single unambiguous inverse relationship per source/target pair."
+        "runtime model builder could not resolve declared inverse '\(relationshipName)' on target entity '\(targetEntityName)' for relationship '\(entityName).\(relationshipName)'."
     case .unsupportedRawBackingType(let entityName, let attributeName, let backingTypeName):
       return
         "runtime model builder does not support raw backing type '\(backingTypeName)' for '\(entityName).\(attributeName)'."
@@ -64,8 +60,8 @@ public enum CDRuntimeModelBuilderError: LocalizedError, Sendable, Equatable {
 }
 
 /// Assembles `NSManagedObjectModel` from macro-emitted runtime schema.
-/// The builder is intentionally scoped to test/debug workflows and uses pragmatic defaults where
-/// the source macros do not yet model the full Core Data surface area.
+/// The builder is intentionally scoped to test/debug workflows and expects relationship metadata to
+/// already be explicit in source declarations.
 ///
 /// Built models are cached by participating type list so repeated test/debug setup reuses the
 /// same `NSManagedObjectModel` instance instead of rebuilding equivalent models over and over.
@@ -93,7 +89,6 @@ public enum CDRuntimeModelBuilder {
     let schemas = CDRuntimeSchemaCollection.entitySchemas(types)
     let model = NSManagedObjectModel()
     var entitiesByName: [String: NSEntityDescription] = [:]
-    var schemaByName: [String: CDRuntimeEntitySchema] = [:]
     var typeKeyToEntityNames: [String: Set<String>] = [:]
 
     for (index, schema) in schemas.enumerated() {
@@ -105,7 +100,6 @@ public enum CDRuntimeModelBuilder {
       entity.managedObjectClassName = schema.managedObjectClassName
       model.entities.insert(entity, at: index)
       entitiesByName[schema.entityName] = entity
-      schemaByName[schema.entityName] = schema
 
       let type = types[index]
       for key in typeLookupKeys(for: type, schema: schema) {
@@ -142,7 +136,7 @@ public enum CDRuntimeModelBuilder {
           description.isOrdered = true
         }
         description.isOptional = relationship.isOptional
-        description.deleteRule = .nullifyDeleteRule
+        description.deleteRule = deleteRule(for: relationship.deleteRule)
         properties.append(description)
         pendingRelationships.append((schema.entityName, relationship, description))
       }
@@ -187,21 +181,9 @@ public enum CDRuntimeModelBuilder {
       }
       description.destinationEntity = targetEntity
 
-      let inverseName: String
-      if let explicitInverseName = relationship.inverseName {
-        inverseName = explicitInverseName
-      } else {
-        inverseName = try inferInverseName(
-          sourceEntityName: entityName,
-          relationship: relationship,
-          targetEntityName: targetEntityName,
-          schemaByName: schemaByName,
-          typeKeyToEntityNames: typeKeyToEntityNames
-        )
-      }
-
       guard
-        let inverse = targetEntity.propertiesByName[inverseName] as? NSRelationshipDescription
+        let inverse = targetEntity.propertiesByName[relationship.inverseName]
+          as? NSRelationshipDescription
       else {
         throw CDRuntimeModelBuilderError.missingInverse(
           entityName: entityName,
@@ -301,6 +283,19 @@ public enum CDRuntimeModelBuilder {
       return .UUIDAttributeType
     case .url:
       return .URIAttributeType
+    }
+  }
+
+  private static func deleteRule(for rule: RelationshipDeleteRule) -> NSDeleteRule {
+    switch rule {
+    case .nullify:
+      return .nullifyDeleteRule
+    case .cascade:
+      return .cascadeDeleteRule
+    case .deny:
+      return .denyDeleteRule
+    case .noAction:
+      return .noActionDeleteRule
     }
   }
 
@@ -523,54 +518,6 @@ public enum CDRuntimeModelBuilder {
         primitiveType: primitiveType
       )
     }
-  }
-
-  private static func inferInverseName(
-    sourceEntityName: String,
-    relationship: CDRuntimeRelationshipSchema,
-    targetEntityName: String,
-    schemaByName: [String: CDRuntimeEntitySchema],
-    typeKeyToEntityNames: [String: Set<String>]
-  ) throws -> String {
-    // Runtime schema emitted from source declarations does not always carry explicit inverse names.
-    // Inference keeps the happy path lightweight, but only supports a single candidate on the
-    // target entity. If multiple relationships point back to the source entity, callers must
-    // provide explicit `inverseName` metadata.
-    guard let targetSchema = schemaByName[targetEntityName] else {
-      throw CDRuntimeModelBuilderError.missingInverse(
-        entityName: sourceEntityName,
-        relationshipName: relationship.persistentName,
-        targetEntityName: targetEntityName
-      )
-    }
-
-    let candidates = targetSchema.relationships.filter { targetRelationship in
-      guard
-        let resolvedTarget = resolveTargetEntityName(
-          for: targetRelationship,
-          typeKeyToEntityNames: typeKeyToEntityNames
-        )
-      else {
-        return false
-      }
-      return resolvedTarget == sourceEntityName
-    }
-
-    if candidates.isEmpty {
-      throw CDRuntimeModelBuilderError.missingInverse(
-        entityName: sourceEntityName,
-        relationshipName: relationship.persistentName,
-        targetEntityName: targetEntityName
-      )
-    }
-    if candidates.count > 1 {
-      throw CDRuntimeModelBuilderError.ambiguousInverse(
-        entityName: sourceEntityName,
-        relationshipName: relationship.persistentName,
-        targetEntityName: targetEntityName
-      )
-    }
-    return candidates[0].persistentName
   }
 
   private static func resolveTargetEntityName(

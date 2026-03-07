@@ -240,6 +240,7 @@ final class Item: NSManagedObject {
           persistentName: "tags",
           targetTypeName: "Tag",
           inverseName: "items",
+          deleteRule: .nullify,
           kind: .toManySet,
           isOptional: true
         ),
@@ -248,6 +249,7 @@ final class Item: NSManagedObject {
           persistentName: "orderedTags",
           targetTypeName: "Tag",
           inverseName: "orderedItems",
+          deleteRule: .nullify,
           kind: .toManyArray,
           isOptional: true
         ),
@@ -255,6 +257,8 @@ final class Item: NSManagedObject {
           swiftName: "category",
           persistentName: "category",
           targetTypeName: "Category",
+          inverseName: "category",
+          deleteRule: .nullify,
           kind: .toOne,
           isOptional: true
         ),

@@ -142,8 +142,8 @@ struct ToolingSourceRendererTests {
     #expect(rendered.contains("extension Item: PersistentEntity {}"))
   }
 
-  @Test("renderer emits inverse hints for ambiguous relationships")
-  func rendererEmitsInverseHintsForAmbiguousRelationships() throws {
+  @Test("renderer emits relationship metadata for relationships")
+  func rendererEmitsRelationshipMetadataForRelationships() throws {
     let modelIR = ToolingModelIR(
       source: .init(
         originalPath: "/virtual/AppModel.xcdatamodeld",
@@ -199,8 +199,10 @@ struct ToolingSourceRendererTests {
     let source = try ToolingSourceRenderer.renderSources(from: modelIR).first?.contents
     let rendered = try #require(source)
 
-    #expect(rendered.contains(#"@Inverse("authoredDocuments")"#))
-    #expect(rendered.contains(#"@Inverse("editedDocuments")"#))
+    #expect(
+      rendered.contains(#"@Relationship(inverse: "authoredDocuments", deleteRule: .nullify)"#))
+    #expect(
+      rendered.contains(#"@Relationship(inverse: "editedDocuments", deleteRule: .nullify)"#))
   }
 
   @Test("renderer rejects non-optional custom storage without a synthesizeable default")
