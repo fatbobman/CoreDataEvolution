@@ -60,4 +60,16 @@ struct TypedPathPredicateTests {
     #expect(predicate.predicateFormat.contains("ANY tags.tag_name =="))
     #expect(predicate.predicateFormat.contains("title CONTAINS"))
   }
+
+  @Test func rawEqualsBuildsPredicateFromRawValue() throws {
+    let predicate = PathItemModel.path.status.equals(PathItemStatus.active)
+    #expect(predicate.predicateFormat.contains("status_raw =="))
+    #expect(predicate.predicateFormat.contains("active"))
+  }
+
+  @Test func rawNotEqualsBuildsPredicateFromRawValue() throws {
+    let predicate = PathItemModel.path.status.notEquals(PathItemStatus.archived)
+    #expect(predicate.predicateFormat.contains("status_raw !="))
+    #expect(predicate.predicateFormat.contains("archived"))
+  }
 }

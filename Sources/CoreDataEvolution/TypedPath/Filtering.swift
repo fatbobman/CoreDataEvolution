@@ -55,6 +55,20 @@ public struct CDFilterField<Root: CoreDataPathTable, Value> {
     buildPredicate(operator: "!=", value: value)
   }
 
+  /// Convenience overload for `.raw` storage paths. The enum or wrapper value is converted to its
+  /// `rawValue` before building the `%K` predicate.
+  public func equals<R: RawRepresentable>(_ value: R) -> NSPredicate {
+    ensureRawStorage(method: "equals(_:)")
+    return buildPredicate(operator: "==", value: value.rawValue)
+  }
+
+  /// Convenience overload for `.raw` storage paths. The enum or wrapper value is converted to its
+  /// `rawValue` before building the `%K` predicate.
+  public func notEquals<R: RawRepresentable>(_ value: R) -> NSPredicate {
+    ensureRawStorage(method: "notEquals(_:)")
+    return buildPredicate(operator: "!=", value: value.rawValue)
+  }
+
   public func greaterThan(_ value: Any) -> NSPredicate {
     buildPredicate(operator: ">", value: value)
   }
@@ -184,6 +198,14 @@ public struct CDFilterField<Root: CoreDataPathTable, Value> {
     default: return "!="
     }
   }
+
+  private func ensureRawStorage(method: String) {
+    let storageMethod = Root.__cdMeta(forSwiftPath: swiftPathKey)?.storageMethod
+    precondition(
+      storageMethod == .raw,
+      "TypedPath \(method) RawRepresentable overload only supports paths declared with `.raw` storage."
+    )
+  }
 }
 
 extension CDPath where Root: CoreDataPathTable {
@@ -196,6 +218,14 @@ extension CDPath where Root: CoreDataPathTable {
   }
 
   public func notEquals(_ value: Any) -> NSPredicate {
+    filterField.notEquals(value)
+  }
+
+  public func equals<R: RawRepresentable>(_ value: R) -> NSPredicate {
+    filterField.equals(value)
+  }
+
+  public func notEquals<R: RawRepresentable>(_ value: R) -> NSPredicate {
     filterField.notEquals(value)
   }
 

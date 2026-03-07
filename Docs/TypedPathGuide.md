@@ -247,6 +247,19 @@ let predicate = Item.path.createdAt.lessThanOrEqual(Date())
 These helpers still compile down to `%K`-style `NSPredicate` construction using the mapped
 persistent path.
 
+For `.raw` storage, `equals` and `notEquals` also accept the `RawRepresentable` value directly:
+
+```swift
+let predicate = Item.path.status.equals(Status.published)
+```
+
+The helper converts the enum to its `rawValue` before building the predicate.
+
+Current v1 boundary:
+
+- `.raw` supports `equals` and `notEquals` with `RawRepresentable` values
+- `.codable` and `.transformed` do not expose store-backed typed predicate helpers
+
 ## To-Many Quantifiers
 
 For to-many relationships, use:

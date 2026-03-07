@@ -18,6 +18,11 @@ struct PathLocationComposition {
   var y: Double?
 }
 
+enum PathItemStatus: String, Sendable {
+  case active
+  case archived
+}
+
 final class PathTagModel: NSObject, CoreDataKeys, CoreDataPathDSLProviding {
   enum Keys: String {
     case name = "tag_name"
@@ -86,7 +91,7 @@ final class PathItemModel: NSObject, CoreDataKeys, CoreDataPathDSLProviding {
       persistentPath: ["title"]
     )
 
-    static let status = CDPath<PathItemModel, String?>(
+    static let status = CDPath<PathItemModel, PathItemStatus?>(
       swiftPath: ["status"],
       persistentPath: ["status_raw"],
       storageMethod: .raw
@@ -201,7 +206,7 @@ final class PathItemModel: NSObject, CoreDataKeys, CoreDataPathDSLProviding {
       Paths.title
     }
 
-    var status: CDPath<PathItemModel, String?> {
+    var status: CDPath<PathItemModel, PathItemStatus?> {
       Paths.status
     }
 
