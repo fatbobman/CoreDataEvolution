@@ -70,8 +70,9 @@ CLI v1 先解决两件事：
 版本策略：
 
 - `cde-tool` 版本应与当前 `CoreDataEvolution` tag 保持一致。
-- 如果通过 `Scripts/build-cde-tool.sh` 构建，脚本会在构建时注入当前 tag / commit / dirty 信息。
+- 如果通过 `Scripts/build-cde-tool.sh` 从 git checkout 构建，脚本会在构建时注入当前 tag / commit / dirty 信息。
 - 直接 `swift build` / `swift run` 的源码构建默认显示开发占位版本（例如 `0.0.0-dev`）。
+- 如果源码不是 git checkout（例如下载的 zip），则无法保证拿到 tag / commit，工具会退回到开发占位元数据。
 
 ### `Scripts/build-cde-tool.sh`
 
@@ -92,6 +93,30 @@ bash Scripts/build-cde-tool.sh --copy-to ~/bin --force
 - 通过 `--copy-to <dir>` 可将二进制复制到指定目录。
 - 不默认写入系统全局路径。
 - 构建脚本会暂时重写内部版本元数据文件，并在结束后恢复，避免把版本注入结果留在工作区。
+
+### Release 策略
+
+v1 的版本与发行策略分为两层：
+
+- 本地 / 开发构建：
+  - 保持当前 fallback 机制。
+  - `--version / -v / version` 输出：
+    - version
+    - tag
+    - commit
+    - describe
+    - dirty
+- GitHub Release：
+  - 通过 GitHub Action 在 tag 构建时：
+    1. 构建二进制
+    2. 生成 `version.json`
+    3. 生成 checksum
+    4. 上传 release assets
+
+约定：
+
+- 不使用 pre-commit / pre-push hook 注入版本信息。
+- 版本注入属于构建与发布行为，不属于普通源码编辑行为。
 
 ## 3. 配置文件（JSON）
 

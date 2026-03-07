@@ -1,0 +1,507 @@
+# cde-tool Guide
+
+`cde-tool` is the companion CLI for `@PersistentModel`.
+
+Its job is not to replace your model declarations. Its job is to keep the three layers of the
+system aligned:
+
+- the Core Data source model (`.xcdatamodeld` / `.xcdatamodel`)
+- the Swift source you write with `@PersistentModel`
+- the generated boilerplate that follows the package's rules
+
+This guide explains:
+
+- why the tool exists
+- when you should use it
+- how to choose between `generate`, `validate`, and `inspect`
+- how `conformance` and `exact` validation differ
+- how to build and use the CLI in practice
+
+## Mental Model
+
+`@PersistentModel` is a source-level representation of a Core Data model.
+
+That source representation must stay aligned with the real Core Data schema. If it drifts, the
+macro may still expand, but the model you are expressing is no longer the one you think you are
+shipping.
+
+`cde-tool` exists to make that alignment explicit.
+
+Think of the tool as a schema companion:
+
+- `generate` helps you create source that matches the model
+- `validate` checks that existing source still matches the model
+- `inspect` shows how the tool currently understands the model and rules
+- `bootstrap-config` helps you create an editable project config from an existing model
+- `init-config` gives you a default config template
+
+The tool does not replace the macro system.
+
+The macro system is responsible for expanding correct declarations into working code.
+
+The tool is responsible for helping you:
+
+- create those declarations
+- keep them aligned over time
+- detect drift before it turns into runtime or migration problems
+
+## When You Need the Tool
+
+You should use `cde-tool` when:
+
+- you want to generate `@PersistentModel` source from an existing Core Data model
+- your project has multiple entities and you want a repeatable model-to-source workflow
+- you want CI to detect schema/source drift
+- you want a stable config-driven setup for `persistentName`, storage methods, inverse hints, and
+  validation rules
+
+You may not need it if:
+
+- you are only experimenting with a very small project
+- you are writing the model declarations by hand once and do not need drift checking
+- you are not using generated source files at all
+
+The bigger the model surface becomes, the more useful `cde-tool` becomes.
+
+## What the Tool Accepts
+
+`cde-tool` is intentionally source-model-only.
+
+It accepts:
+
+- `.xcdatamodeld`
+- `.xcdatamodel`
+
+It does not accept:
+
+- `.momd`
+- `.mom`
+
+That restriction is deliberate. The CLI needs source-model information such as version selection and
+Xcode code generation settings. Compiled model artifacts do not carry enough information for the
+tooling workflow.
+
+## Core Workflow
+
+The normal workflow is:
+
+1. start from a Core Data source model
+2. create or refine a config
+3. generate `@PersistentModel` source
+4. add your own methods and computed properties outside the tool-managed files
+5. validate drift as the model evolves
+
+Typical first-time setup:
+
+```bash
+cde-tool bootstrap-config \
+  --model-path Models/AppModel.xcdatamodeld \
+  --output cde-tool.json
+```
+
+Then:
+
+1. edit the generated config
+2. run `generate`
+3. add your hand-written extension files
+4. run `validate`
+
+## Building the CLI
+
+For normal development, you can use:
+
+```bash
+swift run --skip-build cde-tool --help
+```
+
+If you want a reusable local binary, use:
+
+```bash
+bash Scripts/build-cde-tool.sh
+```
+
+This script:
+
+- builds `cde-tool` in release mode
+- injects version metadata when git metadata is available
+- prints the final binary path
+
+You can also copy the binary to a local tools directory:
+
+```bash
+bash Scripts/build-cde-tool.sh --copy-to ~/bin
+```
+
+If a binary already exists there:
+
+```bash
+bash Scripts/build-cde-tool.sh --copy-to ~/bin --force
+```
+
+## Checking the Tool Version
+
+Three version entry points are available:
+
+```bash
+cde-tool --version
+cde-tool -v
+cde-tool version
+```
+
+Use them as follows:
+
+- `--version`
+  - concise output, suitable for scripts
+- `-v`
+  - detailed build metadata
+- `version`
+  - same detailed metadata, explicit command form
+
+This matters because `cde-tool` is intentionally coupled to the library and macro semantics.
+
+When debugging a report or CI failure, always check the tool version first.
+
+### Local Version Behavior
+
+The local version behavior is intentionally simple:
+
+- if you build from a git checkout, the tool can report:
+  - version
+  - tag
+  - commit
+  - describe
+  - dirty
+- if you build from a source archive without git metadata, the tool falls back to development
+  metadata
+
+That means:
+
+- local source builds are still usable
+- release-quality provenance should come from the release pipeline, not from ad hoc local archives
+
+## Release Strategy
+
+The current release strategy is split into two layers.
+
+### Local / Development Builds
+
+For v1, local builds keep the fallback mechanism:
+
+- `cde-tool --version`
+  - concise version string
+- `cde-tool -v`
+  - version
+  - tag
+  - commit
+  - describe
+  - dirty
+- `cde-tool version`
+  - same detailed metadata as `-v`
+
+This is enough for:
+
+- local debugging
+- issue reports
+- CI logs in repository builds
+
+### GitHub Release Builds
+
+For release artifacts, the intended path is GitHub Actions.
+
+When building from a release tag, the workflow should:
+
+1. build the `cde-tool` binary
+2. generate `version.json`
+3. generate checksums
+4. upload the release assets
+
+That keeps the release artifacts fully traceable even when users download binaries or source
+archives outside a git checkout.
+
+## Config Files
+
+The CLI supports JSON config files so you do not need to repeat long argument lists.
+
+Create a default template:
+
+```bash
+cde-tool init-config --output cde-tool.json
+```
+
+Or print it directly:
+
+```bash
+cde-tool init-config --stdout
+```
+
+When using config files:
+
+- `generate` reads the `generate` section
+- `validate` reads the `validate` section
+- `inspect --config` reads the `generate` section
+
+Relative paths are resolved from the config file's directory.
+
+That is true for:
+
+- `modelPath`
+- `momcBin`
+- output/source directories
+- header template paths
+
+## `generate`
+
+`generate` turns a Core Data source model plus rules into `@PersistentModel` source files.
+
+Example:
+
+```bash
+cde-tool generate \
+  --config cde-tool.json
+```
+
+Or direct arguments:
+
+```bash
+cde-tool generate \
+  --model-path Models/AppModel.xcdatamodeld \
+  --output-dir Sources/AppModels \
+  --module-name AppModels
+```
+
+Use `generate` when:
+
+- you are creating source for the first time
+- the model changed and you want the source regenerated
+- you want tool-managed files to follow current naming and storage rules
+
+Useful flags:
+
+- `--dry-run`
+  - show planned writes without touching disk
+- `--single-file true`
+  - emit one managed file
+- `--split-by-entity true`
+  - emit one managed file per entity
+- `--emit-extension-stubs true`
+  - create companion extension files for hand-written methods and computed properties
+
+## `validate`
+
+`validate` checks whether the current source still matches the model and the configured rules.
+
+Example:
+
+```bash
+cde-tool validate --config cde-tool.json
+```
+
+Or:
+
+```bash
+cde-tool validate \
+  --model-path Models/AppModel.xcdatamodeld \
+  --source-dir Sources/AppModels \
+  --module-name AppModels
+```
+
+The tool supports two validation modes:
+
+- `conformance`
+- `exact`
+
+### `conformance`
+
+`conformance` checks rules.
+
+It validates whether the source written by the developer still conforms to:
+
+- the Core Data model
+- the configured naming and storage rules
+- the package's `@PersistentModel` constraints
+
+This mode does **not** require tool-managed files to be byte-for-byte identical to the current
+generator output.
+
+Use `conformance` when:
+
+- developers may make limited source-level adjustments
+- you care about correctness more than exact generated text
+- generated files may still pass through normal project tooling
+
+### `exact`
+
+`exact` checks unchanged generated output.
+
+It first performs `conformance`, then additionally verifies that tool-managed files match the
+current generator output exactly.
+
+That means:
+
+- managed file paths must match
+- managed file contents must match
+- stale managed files are reported
+- hand-edited managed files are reported
+
+Use `exact` when:
+
+- you want CI to enforce a no-drift rule
+- generated files are treated as read-only artifacts
+- your team wants regeneration to be the only way managed files change
+
+### Important Notes for `exact`
+
+`exact` is intentionally strict.
+
+Do not use it as the default mental model for every project.
+
+If you adopt `exact`, you must also adopt its constraints:
+
+- do not hand-edit tool-managed files
+- do not run formatters or auto-fixers over tool-managed files
+- do not let lint tools rewrite whitespace or imports in tool-managed files
+
+If formatting changes the managed file text, `exact` will report drift even when semantics did not
+change.
+
+## Best Practice: Put Custom Code in Separate Extensions
+
+This is the recommended pattern:
+
+- let `cde-tool` own the managed file
+- put your custom methods in a separate extension file
+- put your computed properties in a separate extension file
+
+Example:
+
+```swift
+// Sources/AppModels/Item+Extensions.swift
+
+extension Item {
+  var displayTitle: String {
+    title.uppercased()
+  }
+
+  func markAsRead() {
+    isRead = true
+  }
+}
+```
+
+This matters especially in `exact` mode.
+
+If you add methods or computed properties directly into a tool-managed file, the next exact
+validation will report drift.
+
+If you use:
+
+```bash
+--emit-extension-stubs true
+```
+
+the generator will create companion extension files to make this pattern obvious from the start.
+
+## `inspect`
+
+`inspect` is a debugging command.
+
+It loads the model and resolved rules, then prints the intermediate representation (IR) as JSON.
+
+Example:
+
+```bash
+cde-tool inspect \
+  --model-path Models/AppModel.xcdatamodeld
+```
+
+Or with config:
+
+```bash
+cde-tool inspect --config cde-tool.json
+```
+
+Use `inspect` when:
+
+- you want to see how the tool currently resolves attribute names
+- you want to check storage methods and inverse hints
+- you are debugging config rules or generation behavior
+
+This command is especially useful before changing config or when a generate/validate result looks
+surprising.
+
+## `bootstrap-config`
+
+`bootstrap-config` creates an editable config scaffold from a real model.
+
+Example:
+
+```bash
+cde-tool bootstrap-config \
+  --model-path Models/AppModel.xcdatamodeld \
+  --output cde-tool.json
+```
+
+Use it when:
+
+- you are adopting `cde-tool` in an existing project
+- you want a starting point for `typeMappings` and `attributeRules`
+- you want generate and validate to share one explicit rule set
+
+The generated config is meant to be edited.
+
+It is not a final answer; it is a starting point.
+
+## `init-config`
+
+`init-config` creates a default JSON template without reading a model.
+
+Use it when:
+
+- you want a clean config skeleton
+- you already know the structure you want
+- you do not need a model-driven scaffold
+
+Examples:
+
+```bash
+cde-tool init-config --output cde-tool.json
+cde-tool init-config --stdout
+```
+
+## What the Tool Does Not Do
+
+The tool does not:
+
+- replace macro expansion
+- validate macro-expanded implementation details directly
+- accept compiled `.mom` / `.momd` as the main workflow input
+- make generated files safe to hand-edit under `exact`
+
+It also does not remove the need to understand the model rules from
+[PersistentModelGuide.md](./PersistentModelGuide.md).
+
+The CLI works because those rules are intentionally strict and tooling-friendly.
+
+## Recommended Team Workflow
+
+For a team project, the most stable approach is:
+
+1. keep the Core Data source model as the schema source of truth
+2. keep `cde-tool.json` in the repository
+3. generate source from the tool, not by hand-copying patterns
+4. put custom behavior in extension files
+5. use `conformance` locally
+6. use `exact` in CI only if your team is ready to treat managed files as read-only
+
+That gives you:
+
+- clear ownership of generated files
+- explicit config-driven rules
+- predictable review diffs
+- earlier drift detection
+
+## Related Guides
+
+- [PersistentModelGuide.md](./PersistentModelGuide.md)
+- [StorageMethodGuide.md](./StorageMethodGuide.md)
+- [TypedPathGuide.md](./TypedPathGuide.md)
