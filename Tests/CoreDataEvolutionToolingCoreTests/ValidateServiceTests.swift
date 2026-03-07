@@ -32,6 +32,44 @@ struct ValidateServiceTests {
     #expect(result.sourceIR.entities.count == 2)
   }
 
+  @Test("validate conformance accepts generated relationship renames from relationship rules")
+  func validateConformanceAcceptsGeneratedRelationshipRenames() throws {
+    let fixture = try makeValidationFixture(
+      relationshipRules: .init(
+        entities: [
+          "CDEItem": [
+            "tag": .init(swiftName: "ownerTag")
+          ],
+          "CDETag": [
+            "items": .init(swiftName: "ownedItems")
+          ],
+        ]
+      )
+    )
+    defer { fixture.cleanUp() }
+
+    let result = try ValidateService.run(
+      makeValidateRequest(
+        sourceDirectory: fixture.sourceDirectory.path,
+        modelPath: fixture.modelPath,
+        relationshipRules: .init(
+          entities: [
+            "CDEItem": [
+              "tag": .init(swiftName: "ownerTag")
+            ],
+            "CDETag": [
+              "items": .init(swiftName: "ownedItems")
+            ],
+          ]
+        )
+      )
+    )
+
+    #expect(result.errorCount == 0)
+    #expect(result.warningCount == 0)
+    #expect(result.diagnostics.isEmpty)
+  }
+
   @Test("validate allows extra ignore property")
   func validateAllowsExtraIgnoreProperty() throws {
     let fixture = try makeValidationFixture()
@@ -308,7 +346,8 @@ struct ValidateServiceTests {
   }
 
   private func makeValidationFixture(
-    mutateContents: ((String) -> String)? = nil
+    mutateContents: ((String) -> String)? = nil,
+    relationshipRules: ToolingRelationshipRules = .init()
   ) throws -> (
     modelPath: String, sourceDirectory: URL, cleanUp: () -> Void
   ) {
@@ -322,7 +361,11 @@ struct ValidateServiceTests {
     )
 
     let generateResult = try GenerateService.run(
-      makeGenerateRequest(outputDirectory: temporaryDirectory.path, modelPath: modelPath))
+      makeGenerateRequest(
+        outputDirectory: temporaryDirectory.path,
+        modelPath: modelPath,
+        relationshipRules: relationshipRules
+      ))
     for file in generateResult.filePlan {
       let outputURL = temporaryDirectory.appendingPathComponent(file.relativePath)
       try FileManager.default.createDirectory(
@@ -342,7 +385,11 @@ struct ValidateServiceTests {
     )
   }
 
-  private func makeGenerateRequest(outputDirectory: String, modelPath: String) throws
+  private func makeGenerateRequest(
+    outputDirectory: String,
+    modelPath: String,
+    relationshipRules: ToolingRelationshipRules = .init()
+  ) throws
     -> GenerateRequest
   {
     return .init(
@@ -376,6 +423,7 @@ struct ValidateServiceTests {
           ]
         ]
       ),
+      relationshipRules: relationshipRules,
       accessLevel: .internal,
       singleFile: false,
       splitByEntity: true,
@@ -394,7 +442,8 @@ struct ValidateServiceTests {
   private func makeValidateRequest(
     sourceDirectory: String,
     modelPath: String,
-    level: ToolingValidationLevel = .conformance
+    level: ToolingValidationLevel = .conformance,
+    relationshipRules: ToolingRelationshipRules = .init()
   ) -> ValidateRequest {
     return .init(
       modelPath: modelPath,
@@ -427,6 +476,7 @@ struct ValidateServiceTests {
           ]
         ]
       ),
+      relationshipRules: relationshipRules,
       accessLevel: .internal,
       singleFile: false,
       splitByEntity: true,

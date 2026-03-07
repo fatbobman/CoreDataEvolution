@@ -113,6 +113,70 @@ struct GenerateServiceTests {
     #expect(itemPlan.contents.contains(toolingManagedFileMarker))
   }
 
+  @Test("generate service renders renamed relationships from relationship rules")
+  func generateServiceRendersRenamedRelationshipsFromRelationshipRules() throws {
+    let modelPath = try makeToolingSourceModelFixture()
+    defer { try? FileManager.default.removeItem(at: modelPath.deletingLastPathComponent()) }
+
+    let result = try GenerateService.run(
+      .init(
+        modelPath: modelPath.path,
+        modelVersion: nil,
+        momcBin: nil,
+        outputDir: "Generated/CoreDataEvolution",
+        moduleName: "AppModels",
+        typeMappings: makeDefaultToolingTypeMappings(),
+        attributeRules: .init(
+          entities: [
+            "CDEItem": [
+              "location": .init(swiftType: "CDEItemLocation", storageMethod: .composition)
+            ]
+          ]
+        ),
+        relationshipRules: .init(
+          entities: [
+            "CDEItem": [
+              "tag": .init(swiftName: "ownerTag")
+            ],
+            "CDETag": [
+              "items": .init(swiftName: "ownedItems")
+            ],
+          ]
+        ),
+        accessLevel: .internal,
+        singleFile: false,
+        splitByEntity: true,
+        overwrite: .none,
+        cleanStale: false,
+        dryRun: true,
+        format: .none,
+        headerTemplate: nil,
+        generateInit: false,
+        relationshipSetterPolicy: .warning,
+        relationshipCountPolicy: .none,
+        defaultDecodeFailurePolicy: .fallbackToDefaultValue
+      )
+    )
+
+    let itemSource = try #require(
+      result.generatedSources.first(where: { $0.entityName == "CDEItem" })
+    )
+    #expect(
+      itemSource.contents.contains(
+        #"@Relationship(persistentName: "tag", inverse: "items", deleteRule: .nullify)"#
+      ))
+    #expect(itemSource.contents.contains("var ownerTag: CDETag?"))
+
+    let tagSource = try #require(
+      result.generatedSources.first(where: { $0.entityName == "CDETag" })
+    )
+    #expect(
+      tagSource.contents.contains(
+        #"@Relationship(persistentName: "items", inverse: "tag", deleteRule: .nullify)"#
+      ))
+    #expect(tagSource.contents.contains("var ownedItems: Set<CDEItem>"))
+  }
+
   @Test("generate service supports single-file output")
   func generateServiceSupportsSingleFileOutput() throws {
     let repositoryRoot = try findRepositoryRoot()
