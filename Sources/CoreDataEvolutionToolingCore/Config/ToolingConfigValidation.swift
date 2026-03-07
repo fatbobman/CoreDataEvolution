@@ -62,6 +62,12 @@ public func validateToolingConfigTemplate(
       context: "generate.relationshipRules",
       entitiesByName: entitiesByName
     )
+    try validateCompositionRules(
+      generate.compositionRules ?? .init(),
+      context: "generate.compositionRules",
+      entitiesByName: entitiesByName,
+      attributeRules: generate.attributeRules ?? .init()
+    )
     try validateTypeResolutionCoverage(
       typeMappings: mergeToolingTypeMappings(generate.typeMappings),
       attributeRules: generate.attributeRules ?? .init(),
@@ -87,6 +93,12 @@ public func validateToolingConfigTemplate(
       validate.relationshipRules ?? .init(),
       context: "validate.relationshipRules",
       entitiesByName: entitiesByName
+    )
+    try validateCompositionRules(
+      validate.compositionRules ?? .init(),
+      context: "validate.compositionRules",
+      entitiesByName: entitiesByName,
+      attributeRules: validate.attributeRules ?? .init()
     )
     try validateTypeResolutionCoverage(
       typeMappings: mergeToolingTypeMappings(validate.typeMappings),
@@ -242,6 +254,10 @@ private func validateGenerateTemplate(_ template: GenerateTemplate) throws {
     template.relationshipRules,
     context: "generate.relationshipRules"
   )
+  try validateCompositionRulesStatic(
+    template.compositionRules,
+    context: "generate.compositionRules"
+  )
 }
 
 /// Validates the `validate` section's self-contained rules and required fields.
@@ -288,6 +304,10 @@ private func validateValidateTemplate(_ template: ValidateTemplate) throws {
   try validateRelationshipRulesStatic(
     template.relationshipRules,
     context: "validate.relationshipRules"
+  )
+  try validateCompositionRulesStatic(
+    template.compositionRules,
+    context: "validate.compositionRules"
   )
 }
 
@@ -416,6 +436,34 @@ private func validateRelationshipRulesStatic(
   }
 }
 
+private func validateCompositionRulesStatic(
+  _ rules: ToolingCompositionRules?,
+  context: String
+) throws {
+  guard let rules else { return }
+
+  for (typeName, fields) in rules.types {
+    if typeName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+      throw configValidationFailure("\(context) contains an empty composition type name.")
+    }
+
+    for (fieldName, rule) in fields {
+      if fieldName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        throw configValidationFailure(
+          "\(context).\(typeName) contains an empty persistent field name.")
+      }
+
+      if let swiftName = rule.swiftName,
+        swiftName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+      {
+        throw configValidationFailure(
+          "\(context).\(typeName).\(fieldName).swiftName must not be empty."
+        )
+      }
+    }
+  }
+}
+
 /// Ensures `attributeRules` only point at attributes that actually exist in the model.
 private func validateAttributeRules(
   _ rules: ToolingAttributeRules,
@@ -456,6 +504,55 @@ private func validateRelationshipRules(
       }
     }
   }
+}
+
+/// Ensures `compositionRules` only target composition Swift types that are actually referenced by
+/// some `.composition` attribute rule in the current config/model pair.
+///
+/// Tooling does not yet parse standalone `@Composition` source declarations, so this check cannot
+/// prove that every persistent leaf field key exists. It can only validate that a composition rule
+/// names a Swift type used by at least one configured composition-backed attribute.
+private func validateCompositionRules(
+  _ rules: ToolingCompositionRules,
+  context: String,
+  entitiesByName: [String: NSEntityDescription],
+  attributeRules: ToolingAttributeRules
+) throws {
+  let referencedTypeNames = referencedCompositionTypeNames(
+    entitiesByName: entitiesByName,
+    attributeRules: attributeRules
+  )
+
+  for typeName in rules.types.keys {
+    guard referencedTypeNames.contains(typeName) else {
+      throw configValidationFailure(
+        "\(context) references composition type '\(typeName)', but no model attribute resolves to storageMethod '.composition' with swiftType '\(typeName)'."
+      )
+    }
+  }
+}
+
+private func referencedCompositionTypeNames(
+  entitiesByName: [String: NSEntityDescription],
+  attributeRules: ToolingAttributeRules
+) -> Set<String> {
+  var result = Set<String>()
+
+  for (entityName, entity) in entitiesByName {
+    let rules = attributeRules[entity: entityName]
+    for (fieldName, _) in entity.attributesByName {
+      let rule = rules[fieldName] ?? .init()
+      guard resolveToolingAttributeStorageMethod(rule) == .composition,
+        let swiftType = rule.swiftType?.trimmingCharacters(in: .whitespacesAndNewlines),
+        swiftType.isEmpty == false
+      else {
+        continue
+      }
+      result.insert(swiftType)
+    }
+  }
+
+  return result
 }
 
 /// Verifies that each persistent attribute can resolve to a concrete Swift type.

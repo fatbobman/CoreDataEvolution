@@ -323,6 +323,218 @@ struct ConfigValidationTests {
     }
   }
 
+  @Test("composition rules reject empty type names, field names, and swift names")
+  func compositionRulesRejectInvalidStaticShape() throws {
+    let emptyTypeTemplate = ToolingConfigTemplate(
+      schemaVersion: toolingSupportedSchemaVersion,
+      generate: .init(
+        modelPath: "Models/AppModel.xcdatamodeld",
+        modelVersion: nil,
+        momcBin: nil,
+        outputDir: "Generated/CoreDataEvolution",
+        moduleName: "AppModels",
+        typeMappings: nil,
+        attributeRules: nil,
+        relationshipRules: nil,
+        compositionRules: .init(
+          types: [
+            "": ["lat": .init(swiftName: "latitude")]
+          ]
+        ),
+        accessLevel: .internal,
+        singleFile: false,
+        splitByEntity: true,
+        overwrite: ToolingOverwriteMode.none,
+        cleanStale: false,
+        dryRun: false,
+        format: ToolingFormatMode.none,
+        headerTemplate: nil,
+        emitExtensionStubs: false,
+        generateInit: false,
+        relationshipSetterPolicy: .warning,
+        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
+        defaultDecodeFailurePolicy: .fallbackToDefaultValue
+      ),
+      validate: nil
+    )
+
+    try expectConfigFailure(emptyTypeTemplate, code: .configInvalid) {
+      try validateToolingConfigTemplate(emptyTypeTemplate)
+    }
+
+    let emptyFieldTemplate = ToolingConfigTemplate(
+      schemaVersion: toolingSupportedSchemaVersion,
+      generate: .init(
+        modelPath: "Models/AppModel.xcdatamodeld",
+        modelVersion: nil,
+        momcBin: nil,
+        outputDir: "Generated/CoreDataEvolution",
+        moduleName: "AppModels",
+        typeMappings: nil,
+        attributeRules: nil,
+        relationshipRules: nil,
+        compositionRules: .init(
+          types: [
+            "ItemLocation": ["": .init(swiftName: "latitude")]
+          ]
+        ),
+        accessLevel: .internal,
+        singleFile: false,
+        splitByEntity: true,
+        overwrite: ToolingOverwriteMode.none,
+        cleanStale: false,
+        dryRun: false,
+        format: ToolingFormatMode.none,
+        headerTemplate: nil,
+        emitExtensionStubs: false,
+        generateInit: false,
+        relationshipSetterPolicy: .warning,
+        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
+        defaultDecodeFailurePolicy: .fallbackToDefaultValue
+      ),
+      validate: nil
+    )
+
+    try expectConfigFailure(emptyFieldTemplate, code: .configInvalid) {
+      try validateToolingConfigTemplate(emptyFieldTemplate)
+    }
+
+    let emptySwiftNameTemplate = ToolingConfigTemplate(
+      schemaVersion: toolingSupportedSchemaVersion,
+      generate: .init(
+        modelPath: "Models/AppModel.xcdatamodeld",
+        modelVersion: nil,
+        momcBin: nil,
+        outputDir: "Generated/CoreDataEvolution",
+        moduleName: "AppModels",
+        typeMappings: nil,
+        attributeRules: nil,
+        relationshipRules: nil,
+        compositionRules: .init(
+          types: [
+            "ItemLocation": ["lat": .init(swiftName: "")]
+          ]
+        ),
+        accessLevel: .internal,
+        singleFile: false,
+        splitByEntity: true,
+        overwrite: ToolingOverwriteMode.none,
+        cleanStale: false,
+        dryRun: false,
+        format: ToolingFormatMode.none,
+        headerTemplate: nil,
+        emitExtensionStubs: false,
+        generateInit: false,
+        relationshipSetterPolicy: .warning,
+        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
+        defaultDecodeFailurePolicy: .fallbackToDefaultValue
+      ),
+      validate: nil
+    )
+
+    try expectConfigFailure(emptySwiftNameTemplate, code: .configInvalid) {
+      try validateToolingConfigTemplate(emptySwiftNameTemplate)
+    }
+  }
+
+  @Test("composition rules reject unused composition types against the model")
+  func compositionRulesRejectUnusedTypesAgainstModel() throws {
+    let model = makeModel()
+    let template = ToolingConfigTemplate(
+      schemaVersion: toolingSupportedSchemaVersion,
+      generate: .init(
+        modelPath: "Models/AppModel.xcdatamodeld",
+        modelVersion: nil,
+        momcBin: nil,
+        outputDir: "Generated/CoreDataEvolution",
+        moduleName: "AppModels",
+        typeMappings: nil,
+        attributeRules: .init(
+          entities: [
+            "Item": [
+              "payload": .init(
+                swiftType: "ItemLocation",
+                storageMethod: .composition
+              )
+            ]
+          ]
+        ),
+        relationshipRules: nil,
+        compositionRules: .init(
+          types: [
+            "UnusedLocation": ["lat": .init(swiftName: "latitude")]
+          ]
+        ),
+        accessLevel: .internal,
+        singleFile: false,
+        splitByEntity: true,
+        overwrite: ToolingOverwriteMode.none,
+        cleanStale: false,
+        dryRun: false,
+        format: ToolingFormatMode.none,
+        headerTemplate: nil,
+        emitExtensionStubs: false,
+        generateInit: false,
+        relationshipSetterPolicy: .warning,
+        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
+        defaultDecodeFailurePolicy: .fallbackToDefaultValue
+      ),
+      validate: nil
+    )
+
+    try expectConfigFailure(template, code: .configInvalid) {
+      try validateToolingConfigTemplate(template, against: model)
+    }
+  }
+
+  @Test("composition rules accept referenced composition types against the model")
+  func compositionRulesAcceptReferencedTypesAgainstModel() throws {
+    let model = makeModel()
+    let template = ToolingConfigTemplate(
+      schemaVersion: toolingSupportedSchemaVersion,
+      generate: .init(
+        modelPath: "Models/AppModel.xcdatamodeld",
+        modelVersion: nil,
+        momcBin: nil,
+        outputDir: "Generated/CoreDataEvolution",
+        moduleName: "AppModels",
+        typeMappings: nil,
+        attributeRules: .init(
+          entities: [
+            "Item": [
+              "payload": .init(
+                swiftType: "ItemLocation",
+                storageMethod: .composition
+              )
+            ]
+          ]
+        ),
+        relationshipRules: nil,
+        compositionRules: .init(
+          types: [
+            "ItemLocation": ["lat": .init(swiftName: "latitude")]
+          ]
+        ),
+        accessLevel: .internal,
+        singleFile: false,
+        splitByEntity: true,
+        overwrite: ToolingOverwriteMode.none,
+        cleanStale: false,
+        dryRun: false,
+        format: ToolingFormatMode.none,
+        headerTemplate: nil,
+        emitExtensionStubs: false,
+        generateInit: false,
+        relationshipSetterPolicy: .warning,
+        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
+        defaultDecodeFailurePolicy: .fallbackToDefaultValue
+      ),
+      validate: nil
+    )
+
+    try validateToolingConfigTemplate(template, against: model)
+  }
+
   @Test("default storage requires an inferable Core Data primitive type")
   func defaultStorageRequiresInferablePrimitiveType() throws {
     let model = makeModel()

@@ -32,6 +32,11 @@ public struct ToolingCompositionFieldRule: Codable, Sendable, Equatable {
 ///     "lng": { "swiftName": "longitude" }
 ///   }
 /// }
+///
+/// Current tooling can validate the composition type name and leaf rename values, but it does not
+/// yet parse standalone `@Composition` declarations. That means config validation can confirm that
+/// a rule targets a composition Swift type used by some `.composition` attribute, but it cannot
+/// prove that every persistent leaf field key exists in the source-side composition definition.
 public struct ToolingCompositionRules: Codable, Sendable, Equatable {
   public var types: [String: [String: ToolingCompositionFieldRule]]
 
