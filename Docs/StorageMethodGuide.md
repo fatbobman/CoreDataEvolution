@@ -415,7 +415,22 @@ Current composition rules:
 - only primitive field types
 - no nested composition
 - no `.raw`, `.codable`, or `.transformed` inside composition fields
-- no field renaming inside composition
+- field renaming is supported through `@CompositionField(persistentName: ...)`
+
+### Schema-backed model setup
+
+If the property is backed by a real `.xcdatamodeld`, the entity must use a real Core Data
+composite attribute.
+
+In practice, the model should contain:
+
+- a top-level attribute such as `location`
+- `attributeType = Composite`
+- a referenced composite type such as `GeoPoint`
+- the composite's leaf attributes, such as `latitude` and `longitude`
+
+Do not model schema-backed `.composition` as `Transformable`. A transformable dictionary payload is
+only used by the runtime-only test/debug model builder, not by the real `.xcdatamodeld` workflow.
 
 ## Decode Failure Policy
 

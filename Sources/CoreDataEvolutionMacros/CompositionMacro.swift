@@ -29,7 +29,7 @@ extension CompositionMacro: ExtensionMacro {
 
     let decl: DeclSyntax =
       """
-      extension \(type.trimmed): CoreDataEvolution.CDCompositionPathProviding, CoreDataEvolution.CDCompositionValueCodable {}
+      extension \(type.trimmed): CoreDataEvolution.CDCompositionPathProviding, CoreDataEvolution.CDCompositionValueCodable, CoreDataEvolution.CoreDataPathDSLProviding {}
       """
     guard let ext = decl.as(ExtensionDeclSyntax.self) else {
       MacroDiagnosticReporter.error(
@@ -221,7 +221,23 @@ extension CompositionMacro: MemberMacro {
       return []
     }
 
+    let compositionTypeName = structDecl.name.trimmedDescription
     let tableBody = fieldEntries.joined(separator: ",\n")
+    let pathBody = fields.map { field in
+      """
+      \(accessModifier)static let \(field.name) = CoreDataEvolution.CDPath<\(compositionTypeName), \(field.typeName)>(
+        swiftPath: ["\(field.name)"],
+        persistentPath: ["\(field.persistentName)"]
+      )
+      """
+    }.joined(separator: "\n\n")
+    let pathRootBody = fields.map { field in
+      """
+      \(accessModifier)var \(field.name): CoreDataEvolution.CDPath<\(compositionTypeName), \(field.typeName)> {
+        Paths.\(field.name)
+      }
+      """
+    }.joined(separator: "\n\n")
     let runtimeFieldBody = makeRuntimeFieldBody(fields: fields)
     let encodeBody = makeEncodeBody(fields: fields)
     let decodeBody = makeDecodeBody(fields: fields)
@@ -230,6 +246,26 @@ extension CompositionMacro: MemberMacro {
       \(raw: accessModifier)static let __cdCompositionFieldTable: [String: CoreDataEvolution.CDCompositionFieldMeta] = [
       \(raw: tableBody)
       ]
+
+      \(raw: accessModifier)static let __cdFieldTable: [String: CoreDataEvolution.CDFieldMeta] = {
+        CoreDataEvolution.CDCompositionTableBuilder.makeModelFieldEntries(
+          modelSwiftPathPrefix: [],
+          modelPersistentPathPrefix: [],
+          composition: Self.self
+        )
+      }()
+
+      \(raw: accessModifier)enum Paths {
+      \(raw: pathBody)
+      }
+
+      \(raw: accessModifier)struct PathRoot: Sendable {
+      \(raw: pathRootBody)
+      }
+
+      \(raw: accessModifier)static var path: PathRoot {
+        .init()
+      }
 
       \(raw: accessModifier)static let __cdRuntimeCompositionFields: [CoreDataEvolution.CDRuntimeCompositionFieldSchema] = [
       \(raw: runtimeFieldBody)

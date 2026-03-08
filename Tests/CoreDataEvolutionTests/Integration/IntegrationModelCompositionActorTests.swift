@@ -42,7 +42,19 @@ struct IntegrationModelCompositionActorTests {
     #expect(predicate.predicateFormat.contains("location.x >"))
   }
 
-  @Test func compositionStorageRoundTripsAsDictionaryPayload() async throws {
+  @Test func schemaBackedCompositionUsesCoreDataCompositeAttribute() throws {
+    let model = IntegrationModelStack.model
+    guard let entity = model.entitiesByName["CDEItem"],
+      let attribute = entity.attributesByName["location"]
+    else {
+      Issue.record("Expected integration model to contain CDEItem.location.")
+      return
+    }
+
+    #expect(attribute.attributeType == .compositeAttributeType)
+  }
+
+  @Test func compositionStorageRoundTripsAgainstCompositeAttribute() async throws {
     let stack = IntegrationModelStack()
     let handler = IntegrationCompositionHandler(container: stack.container)
     try await handler.seedCompositionData()

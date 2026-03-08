@@ -6,7 +6,7 @@
         <attribute name="priority" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="status_raw" optional="YES" attributeType="String"/>
         <attribute name="config_blob" optional="YES" attributeType="Binary"/>
-        <attribute name="location" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData"/>
+        <attribute name="location" optional="YES" attributeType="Composite" composite="CDEItemLocation"/>
         <attribute name="keywords_payload" optional="YES" attributeType="String"/>
         <relationship name="tag" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CDETag" inverseName="items" inverseEntity="CDETag"/>
     </entity>
@@ -15,6 +15,10 @@
         <attribute name="label" attributeType="String" defaultValueString=""/>
         <relationship name="items" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="CDEItem" inverseName="tag" inverseEntity="CDEItem"/>
     </entity>
+    <composite name="CDEItemLocation">
+        <attribute name="x" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="y" optional="YES" attributeType="Double" usesScalarValueType="YES"/>
+    </composite>
     <elements>
         <element name="CDEItem" positionX="-70" positionY="-20" width="128" height="104"/>
         <element name="CDETag" positionX="190" positionY="-20" width="128" height="89"/>

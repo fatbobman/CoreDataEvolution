@@ -45,12 +45,13 @@ public macro NSMainModelActor(disableGenerateInit: Bool = false) =
 
 @attached(
   member,
-  names: named(__cdCompositionFieldTable), named(__cdDecodeComposition),
-  named(__cdEncodeComposition), named(__cdRuntimeCompositionFields)
+  names: named(__cdCompositionFieldTable), named(__cdFieldTable), named(Paths), named(PathRoot),
+  named(path), named(__cdDecodeComposition), named(__cdEncodeComposition),
+  named(__cdRuntimeCompositionFields)
 )
 @attached(
   extension,
-  conformances: CDCompositionPathProviding, CDCompositionValueCodable,
+  conformances: CDCompositionPathProviding, CDCompositionValueCodable, CoreDataPathDSLProviding,
   CDRuntimeCompositionSchemaProviding
 )
 public macro Composition() =

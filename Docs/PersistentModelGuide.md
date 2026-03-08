@@ -479,6 +479,20 @@ final class Item: NSManagedObject {
 }
 ```
 
+For a schema-backed Core Data model, this source declaration must match a real composite attribute
+in `.xcdatamodeld`.
+
+That means:
+
+- the entity must declare a top-level attribute such as `location`
+- that attribute's type must be `Composite`
+- the model must also declare the matching composite type, for example `Location`
+- the composite type must contain the leaf fields, such as `x` and `y`
+
+Do **not** model schema-backed `.composition` as a `Transformable` attribute in Xcode. The runtime
+schema/test-only helpers can use a transformable dictionary payload, but a real `.xcdatamodeld`
+workflow should use a real Core Data composite attribute.
+
 When a composition leaf needs a different Core Data field name, use
 `@CompositionField(persistentName: ...)`:
 

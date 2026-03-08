@@ -39,6 +39,55 @@ public protocol CDCompositionValueCodable: CDCompositionPathProviding {
   var __cdEncodeComposition: [String: Any] { get }
 }
 
+/// Entry path for composition subfields, e.g. `Model.path.location.latitude`.
+@dynamicMemberLookup
+public struct CDCompositionPath<
+  Root: CoreDataPathTable,
+  Value,
+  Composition: CoreDataPathDSLProviding
+>: @unchecked Sendable {
+  public let root: CDPath<Root, Value>
+
+  public init(root: CDPath<Root, Value>) {
+    self.root = root
+  }
+
+  public var swiftPath: [String] {
+    root.swiftPath
+  }
+
+  public var persistentPath: [String] {
+    root.persistentPath
+  }
+
+  public var storageMethod: StorageMethod {
+    root.storageMethod
+  }
+
+  public var swiftPathKey: String {
+    root.swiftPathKey
+  }
+
+  public var persistentPathKey: String {
+    root.persistentPathKey
+  }
+
+  public var raw: String {
+    root.raw
+  }
+
+  public subscript<Leaf>(
+    dynamicMember keyPath: KeyPath<Composition.PathRoot, CDPath<Composition, Leaf>>
+  ) -> CDPath<Root, Leaf> {
+    let leafPath = Composition.path[keyPath: keyPath]
+    return CDPath<Root, Leaf>(
+      swiftPath: root.swiftPath + leafPath.swiftPath,
+      persistentPath: root.persistentPath + leafPath.persistentPath,
+      storageMethod: leafPath.storageMethod
+    )
+  }
+}
+
 /// Utility used by the model macro path-table generation step.
 public enum CDCompositionTableBuilder {
   public static func makeModelFieldEntries<Composition: CDCompositionPathProviding>(

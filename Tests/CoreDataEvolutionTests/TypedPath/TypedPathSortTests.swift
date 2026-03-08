@@ -24,10 +24,10 @@ struct TypedPathSortTests {
   @Test func compositionLeafPathSupportsStoreSort() throws {
     let descriptor = try NSSortDescriptor(
       PathItemModel.self,
-      path: PathItemModel.path.magnitude.richter,
+      path: PathItemModel.path.location.x,
       order: .desc
     )
-    #expect(descriptor.key == "magnitude.richter")
+    #expect(descriptor.key == "location.lat")
     #expect(descriptor.ascending == false)
   }
 

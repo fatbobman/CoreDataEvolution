@@ -51,15 +51,29 @@ func makePathsDecl(
   var lines: [String] = []
 
   for attribute in model.attributes {
-    lines.append(
-      """
-      \(accessModifier)static let \(attribute.propertyName) = CoreDataEvolution.CDPath<\(modelTypeName), \(attribute.typeName)>(
-        swiftPath: ["\(attribute.propertyName)"],
-        persistentPath: ["\(attribute.persistentName)"],
-        storageMethod: \(storageMethodExpression(attribute.storageMethod))
+    if attribute.storageMethod == .composition {
+      lines.append(
+        """
+        \(accessModifier)static let \(attribute.propertyName) = CoreDataEvolution.CDCompositionPath<\(modelTypeName), \(attribute.typeName), \(attribute.nonOptionalTypeName)>(
+          root: CoreDataEvolution.CDPath<\(modelTypeName), \(attribute.typeName)>(
+            swiftPath: ["\(attribute.propertyName)"],
+            persistentPath: ["\(attribute.persistentName)"],
+            storageMethod: .composition
+          )
+        )
+        """
       )
-      """
-    )
+    } else {
+      lines.append(
+        """
+        \(accessModifier)static let \(attribute.propertyName) = CoreDataEvolution.CDPath<\(modelTypeName), \(attribute.typeName)>(
+          swiftPath: ["\(attribute.propertyName)"],
+          persistentPath: ["\(attribute.persistentName)"],
+          storageMethod: \(storageMethodExpression(attribute.storageMethod))
+        )
+        """
+      )
+    }
   }
 
   for relation in model.relationships {
@@ -129,6 +143,10 @@ private func pathTypeReference(
   modelTypeName: String
 ) -> String {
   if let attribute = model.attributes.first(where: { $0.propertyName == propertyName }) {
+    if attribute.storageMethod == .composition {
+      return
+        "CoreDataEvolution.CDCompositionPath<\(modelTypeName), \(attribute.typeName), \(attribute.nonOptionalTypeName)>"
+    }
     return "CoreDataEvolution.CDPath<\(modelTypeName), \(attribute.typeName)>"
   }
   if let relation = model.relationships.first(where: { $0.propertyName == propertyName }) {

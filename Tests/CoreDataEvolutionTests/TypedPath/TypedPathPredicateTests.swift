@@ -18,8 +18,9 @@ struct TypedPathPredicateTests {
   @Test func pathDslSupportsNormalAndCompositionForms() throws {
     #expect(PathItemModel.path.title.swiftPathKey == "title")
     #expect(PathItemModel.path.title.raw == "title")
-    #expect(PathItemModel.path.magnitude.richter.swiftPathKey == "magnitude.richter")
-    #expect(PathItemModel.path.magnitude.richter.raw == "magnitude.richter")
+    #expect(PathItemModel.path.location.x.swiftPathKey == "location.x")
+    #expect(PathItemModel.path.location.x.raw == "location.lat")
+    #expect(PathItemModel.path.location.y.raw == "location.lng")
     #expect(PathItemModel.path.tags.any.name.persistentPathKey == "tags.tag_name")
     #expect(PathItemModel.path.tags.any.name.raw == "tags.tag_name")
   }

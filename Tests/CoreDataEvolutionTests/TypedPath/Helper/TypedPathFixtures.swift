@@ -106,18 +106,15 @@ final class PathItemModel: NSObject, CoreDataKeys, CoreDataPathDSLProviding {
       storageMethod: .codable
     )
 
-    enum magnitude {
-      static let root = CDPath<PathItemModel, [String: Any]?>(
-        swiftPath: ["magnitude"],
-        persistentPath: ["magnitude"],
+    static let location = CDCompositionPath<
+      PathItemModel, PathLocationComposition?, PathLocationComposition
+    >(
+      root: CDPath<PathItemModel, PathLocationComposition?>(
+        swiftPath: ["location"],
+        persistentPath: ["location"],
         storageMethod: .composition
       )
-
-      static let richter = CDPath<PathItemModel, Double>(
-        swiftPath: ["magnitude", "richter"],
-        persistentPath: ["magnitude", "richter"]
-      )
-    }
+    )
 
     enum category {
       static let name = CDPath<PathItemModel, String?>(
@@ -161,17 +158,24 @@ final class PathItemModel: NSObject, CoreDataKeys, CoreDataPathDSLProviding {
       storageMethod: .codable,
       supportsStoreSort: false
     ),
-    "magnitude": .init(
+    "location": .init(
       kind: .composition,
-      swiftPath: ["magnitude"],
-      persistentPath: ["magnitude"],
+      swiftPath: ["location"],
+      persistentPath: ["location"],
       storageMethod: .composition,
       supportsStoreSort: false
     ),
-    "magnitude.richter": .init(
+    "location.x": .init(
       kind: .attribute,
-      swiftPath: ["magnitude", "richter"],
-      persistentPath: ["magnitude", "richter"],
+      swiftPath: ["location", "x"],
+      persistentPath: ["location", "lat"],
+      storageMethod: .default,
+      supportsStoreSort: true
+    ),
+    "location.y": .init(
+      kind: .attribute,
+      swiftPath: ["location", "y"],
+      persistentPath: ["location", "lng"],
       storageMethod: .default,
       supportsStoreSort: true
     ),
@@ -217,8 +221,10 @@ final class PathItemModel: NSObject, CoreDataKeys, CoreDataPathDSLProviding {
       Paths.metadata
     }
 
-    var magnitude: MagnitudePath {
-      .init()
+    var location:
+      CDCompositionPath<PathItemModel, PathLocationComposition?, PathLocationComposition>
+    {
+      Paths.location
     }
 
     var category: CategoryPath {
@@ -227,16 +233,6 @@ final class PathItemModel: NSObject, CoreDataKeys, CoreDataPathDSLProviding {
 
     var tags: CDToManyRelationPath<PathItemModel, PathTagModel> {
       Paths.tags
-    }
-  }
-
-  struct MagnitudePath: Sendable {
-    var root: CDPath<PathItemModel, [String: Any]?> {
-      Paths.magnitude.root
-    }
-
-    var richter: CDPath<PathItemModel, Double> {
-      Paths.magnitude.richter
     }
   }
 
