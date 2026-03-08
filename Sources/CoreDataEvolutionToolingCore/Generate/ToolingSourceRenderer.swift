@@ -113,7 +113,6 @@ public enum ToolingSourceRenderer {
       lines.append(header.trimmingCharacters(in: .whitespacesAndNewlines))
       lines.append("")
     }
-    lines.append("import CoreData")
     lines.append("import CoreDataEvolution")
     lines.append("import Foundation")
     lines.append("")
