@@ -134,10 +134,22 @@ public struct CDFilterField<Root: CoreDataPathTable, Value> {
         let format = "ANY %K \(`operator`) %@"
         return NSPredicate(format: format, argumentArray: [key, boxedValue])
       case .none:
-        // Use explicit NOT ANY for Core Data compatibility.
-        let format = "ANY %K \(`operator`) %@"
-        let anyPredicate = NSPredicate(format: format, argumentArray: [key, boxedValue])
-        return NSCompoundPredicate(notPredicateWithSubpredicate: anyPredicate)
+        // `NOT ANY` can incorrectly exclude empty to-many collections in real Core Data fetches.
+        // `SUBQUERY(...).@count == 0` preserves the expected "no matching elements" semantics.
+        guard
+          let relationshipKey = persistentPath.first,
+          persistentPath.count > 1
+        else {
+          let format = "ANY %K \(`operator`) %@"
+          let anyPredicate = NSPredicate(format: format, argumentArray: [key, boxedValue])
+          return NSCompoundPredicate(notPredicateWithSubpredicate: anyPredicate)
+        }
+        let leafKey = persistentPath.dropFirst().joined(separator: ".")
+        let format = "SUBQUERY(%K, $e, $e.%K \(`operator`) %@).@count == 0"
+        return NSPredicate(
+          format: format,
+          argumentArray: [relationshipKey, leafKey, boxedValue]
+        )
       case .all:
         // `ALL A op B` => `NOT (ANY A inverse(op) B)`
         let inverseOperator = inverse(of: `operator`)

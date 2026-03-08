@@ -30,6 +30,9 @@ private actor IntegrationPredicateHandler {
     let objc = CDETag(context: modelContext)
     objc.label = "ObjC"
 
+    let empty = CDETag(context: modelContext)
+    empty.label = "Empty"
+
     let alpha = CDEItem(context: modelContext)
     alpha.title = "alpha"
     alpha.priority = 2
@@ -63,11 +66,17 @@ struct IntegrationModelPredicateActorTests {
       let tagLabels = tags.map(\.label)
       let inverseItemCount = tags.first?.items.count ?? 0
 
-      return (itemNames, tagLabels, inverseItemCount)
+      let noneRequest = NSFetchRequest<CDETag>(entityName: "CDETag")
+      noneRequest.sortDescriptors = [NSSortDescriptor(key: "label", ascending: true)]
+      noneRequest.predicate = CDETag.path.items.none.title.equals("alpha")
+      let noneLabels = try context.fetch(noneRequest).map(\.label)
+
+      return (itemNames, tagLabels, inverseItemCount, noneLabels)
     }
 
     #expect(result.0 == ["alpha"])
     #expect(result.1 == ["Swift"])
     #expect(result.2 == 1)
+    #expect(result.3 == ["Empty", "ObjC"])
   }
 }

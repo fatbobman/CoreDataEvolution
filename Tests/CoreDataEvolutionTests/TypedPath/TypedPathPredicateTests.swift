@@ -37,18 +37,14 @@ struct TypedPathPredicateTests {
 
   @Test func toManyNoneBuildsPredicate() throws {
     let predicate = PathItemModel.path.tags.none.name.contains("legacy")
-    #expect(predicate.predicateFormat.contains("NOT ANY tags.tag_name CONTAINS"))
+    #expect(
+      predicate.predicateFormat
+        == #"SUBQUERY(tags, $e, $e.tag_name CONTAINS[cd] "legacy").@count == 0"#)
   }
 
-  @Test func toManyNoneMatchesExplicitNotAny() throws {
+  @Test func toManyNoneBuildsSubqueryCountPredicate() throws {
     let fromDsl = PathItemModel.path.tags.none.name.equals("Swift")
-    let explicit = NSCompoundPredicate(
-      notPredicateWithSubpredicate: NSPredicate(
-        format: "ANY %K == %@",
-        argumentArray: ["tags.tag_name", "Swift"]
-      )
-    )
-    #expect(fromDsl.predicateFormat == explicit.predicateFormat)
+    #expect(fromDsl.predicateFormat == #"SUBQUERY(tags, $e, $e.tag_name == "Swift").@count == 0"#)
   }
 
   @Test func toManyAndNormalFieldsCanComposePredicate() throws {
