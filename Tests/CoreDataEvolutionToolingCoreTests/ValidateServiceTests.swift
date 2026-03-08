@@ -171,6 +171,37 @@ struct ValidateServiceTests {
     )
   }
 
+  @Test("validate rejects non-nil defaults for optional codable storage")
+  func validateRejectsNonNilDefaultsForOptionalCodableStorage() throws {
+    let fixture = try makeValidationFixture()
+    defer { fixture.cleanUp() }
+
+    try rewriteEntityFile(
+      named: "CDEItem+CoreDataEvolution.swift",
+      in: fixture.sourceDirectory
+    ) { contents in
+      contents.replacingOccurrences(
+        of: "var config: CDEItemConfig? = nil",
+        with: "var config: CDEItemConfig? = .init()"
+      )
+    }
+
+    let result = try ValidateService.run(
+      makeValidateRequest(
+        sourceDirectory: fixture.sourceDirectory.path,
+        modelPath: fixture.modelPath)
+    )
+
+    #expect(result.errorCount == 1)
+    #expect(
+      result.diagnostics.contains {
+        $0.message.contains(
+          "only allows nil as an explicit default for optional codable storage at 'CDEItem.config'"
+        )
+      }
+    )
+  }
+
   @Test("validate rejects multi-binding stored properties")
   func validateRejectsMultiBindingStoredProperties() throws {
     let fixture = try makeValidationFixture()

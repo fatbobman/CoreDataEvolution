@@ -33,6 +33,15 @@ final class RuntimeSchemaItem: NSManagedObject {
   var tags: Set<RuntimeSchemaTag>
 }
 
+@objc(RuntimeTransientItem)
+@PersistentModel
+final class RuntimeTransientItem: NSManagedObject {
+  var title: String = ""
+
+  @Attribute(.transient)
+  var cachedSummary: String = ""
+}
+
 @objc(RuntimeSchemaTag)
 @PersistentModel
 final class RuntimeSchemaTag: NSManagedObject {
@@ -206,5 +215,37 @@ struct RuntimeModelBuilderTests {
     #expect(fetched.title == "article")
     #expect(fetched.point?.x == 4.5)
     #expect(fetched.tags.count == 1)
+  }
+
+  @MainActor
+  @Test("runtime model builder preserves transient defaults across save and refetch")
+  func runtimeModelBackedTransientDefaultsRoundTrip() throws {
+    let container = try NSPersistentContainer.makeRuntimeTest(
+      modelTypes: RuntimeTransientItem.self,
+      testName: "RuntimeTransientDefaultsRoundTrip"
+    )
+
+    let context = container.viewContext
+    let entity = try #require(
+      NSEntityDescription.entity(forEntityName: "RuntimeTransientItem", in: context)
+    )
+
+    let item = RuntimeTransientItem(entity: entity, insertInto: context)
+    item.title = "draft"
+    try context.save()
+    let objectID = item.objectID
+
+    context.reset()
+
+    let fetched = try #require(
+      context.existingObject(with: objectID) as? RuntimeTransientItem
+    )
+    #expect(fetched.cachedSummary == "")
+
+    fetched.title = "review"
+    try context.save()
+
+    context.refresh(fetched, mergeChanges: false)
+    #expect(fetched.cachedSummary == "")
   }
 }

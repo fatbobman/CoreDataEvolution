@@ -752,6 +752,116 @@ struct MacroDiagnosticTests {
       })
   }
 
+  @Test("Attribute codable rejects non-nil explicit default value")
+  func attributeCodableRejectsNonNilExplicitDefaultValue() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        struct Payload: Codable {
+          var title: String = ""
+        }
+        struct S {
+          @Attribute(storageMethod: .codable)
+          var payload: Payload? = .init()
+        }
+        """
+    )
+    #expect(
+      result.diagnostics.contains {
+        $0.contains("storageMethod `.codable` only supports nil as an explicit default value")
+      })
+  }
+
+  @Test("Attribute transformed rejects non-nil explicit default value")
+  func attributeTransformedRejectsNonNilExplicitDefaultValue() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import Foundation
+        final class T: ValueTransformer {}
+        struct S {
+          @Attribute(storageMethod: .transformed(T.self))
+          var colors: [String]? = []
+        }
+        """
+    )
+    #expect(
+      result.diagnostics.contains {
+        $0.contains("storageMethod `.transformed` only supports nil as an explicit default value")
+      })
+  }
+
+  @Test("Attribute composition rejects non-nil explicit default value")
+  func attributeCompositionRejectsNonNilExplicitDefaultValue() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreDataEvolution
+        @Composition
+        struct Point {
+          var x: Double = 0
+        }
+        struct S {
+          @Attribute(storageMethod: .composition)
+          var point: Point? = .init()
+        }
+        """
+    )
+    #expect(
+      result.diagnostics.contains {
+        $0.contains("storageMethod `.composition` only supports nil as an explicit default value")
+      })
+  }
+
+  @Test("Attribute custom storage currently requires optional declarations")
+  func attributeCustomStorageRequiresOptionalDeclarations() throws {
+    let codableResult = try MacroTestSupport.expand(
+      source: """
+        struct Payload: Codable {
+          var title: String = ""
+        }
+        struct S {
+          @Attribute(storageMethod: .codable)
+          var payload: Payload = .init()
+        }
+        """
+    )
+    #expect(
+      codableResult.diagnostics.contains {
+        $0.contains("storageMethod `.codable` currently requires an optional property")
+      })
+
+    let transformedResult = try MacroTestSupport.expand(
+      source: """
+        import Foundation
+        final class T: ValueTransformer {}
+        struct S {
+          @Attribute(storageMethod: .transformed(T.self))
+          var colors: [String] = []
+        }
+        """
+    )
+    #expect(
+      transformedResult.diagnostics.contains {
+        $0.contains("storageMethod `.transformed` currently requires an optional property")
+      })
+
+    let compositionResult = try MacroTestSupport.expand(
+      source: """
+        import CoreDataEvolution
+        @Composition
+        struct Point {
+          var x: Double = 0
+        }
+        struct S {
+          @Attribute(storageMethod: .composition)
+          var point: Point = .init()
+        }
+        """
+    )
+    #expect(
+      compositionResult.diagnostics.contains {
+        $0.contains("storageMethod `.composition` currently requires an optional property")
+      })
+  }
+
   @Test("Attribute optional property can omit default value")
   func attributeOptionalPropertyCanOmitDefaultValue() throws {
     let result = try MacroTestSupport.expand(

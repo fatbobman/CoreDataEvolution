@@ -657,16 +657,19 @@ var notes: String? = nil
 
 ### Custom Storage and Non-Optional Values
 
-Non-optional custom storage declarations are intentionally restricted in the current implementation.
+Custom storage rules are stricter than primitive `.default` storage.
 
-Do not rely on code-side conversion defaults for:
+Current rules:
 
 - `.raw`
 - `.codable`
 - `.transformed`
 - `.composition`
 
-If you need one of these storage methods, prefer an optional property.
+- `.codable`, `.transformed`, and `.composition` currently require optional properties
+- for those three storage methods, the only supported explicit default is `nil`
+- `.raw` remains a separate case because its backing primitive can still align with a model-backed
+  default in some cases
 
 ## Generated Init
 

@@ -135,9 +135,10 @@ Currently supported:
 General rule for custom storage:
 
 - `.raw`, `.codable`, `.transformed(...)`, and `.composition` are custom storage methods
-- non-optional custom storage is intentionally restricted in the current implementation
-- if you need custom storage, prefer optional declarations unless the package explicitly documents a
-  safe non-optional case
+- `.codable`, `.transformed(...)`, and `.composition` currently require optional declarations
+- for those three storage methods, the only supported explicit default is `nil`
+- `.raw` remains the only custom storage path that may still align with a model-backed primitive
+  default
 
 ## `.default`
 
@@ -246,8 +247,8 @@ Use this when:
 
 - the type must conform to `Codable`
 - `.codable` is not inferred automatically
-- the property should usually be optional in the current implementation
-- this follows the same general custom-storage restriction as `.raw`
+- the property must currently be optional
+- the only supported explicit default is `nil`
 
 ### Why explicit `.codable` matters
 
@@ -281,7 +282,8 @@ Use this when:
 - you must pass a transformer metatype
 - the declaration must look like `.transformed(MyTransformer.self)`
 - decode failure behavior can be customized with `decodeFailurePolicy`
-- the property should usually be optional in the current implementation
+- the property must currently be optional
+- the only supported explicit default is `nil`
 
 ### Schema-backed model requirement
 
@@ -351,7 +353,8 @@ system as a single logical property.
 In CoreDataEvolution, `composition` is the source-level term. It corresponds to Core Data's
 `composite attribute` concept at the model layer.
 
-Like the other custom storage methods, `.composition` should usually be declared as optional.
+Like the other custom storage methods that encode or transform payloads, `.composition` must
+currently be declared as optional and may only use `nil` as an explicit default.
 
 Example:
 

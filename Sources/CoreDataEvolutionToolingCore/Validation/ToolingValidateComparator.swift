@@ -344,6 +344,17 @@ public enum ToolingValidateComparator {
       if let actualDefault = sourceProperty.defaultValueLiteral,
         normalizeLiteral(actualDefault) != "nil"
       {
+        if attribute.storage.method == .codable
+          || attribute.storage.method == .composition
+          || attribute.storage.method == .transformed
+        {
+          diagnostics.append(
+            error(
+              "validate only allows nil as an explicit default for optional \(attribute.storage.method.rawValue) storage at '\(entityName).\(expectedPropertyName)'."
+            )
+          )
+          return
+        }
         diagnostics.append(
           error(
             "validate only allows optional persistent property '\(entityName).\(expectedPropertyName)' to omit a default or use nil.",

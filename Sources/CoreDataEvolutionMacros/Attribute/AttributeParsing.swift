@@ -234,6 +234,51 @@ func buildAttributeInfo(
     return nil
   }
 
+  if isOptional == false,
+    storageMethod == .codable || storageMethod == .composition
+      || isTransformedStorageMethod(storageMethod)
+  {
+    if emitDiagnostics {
+      MacroDiagnosticReporter.error(
+        "@Attribute storageMethod `.\(storageMethodDiagnosticName(storageMethod))` currently requires an optional property. Only nil-backed defaults are supported for this storage method.",
+        domain: attributeMacroDomain,
+        id: "unsupported-nonoptional-custom-storage",
+        in: context,
+        node: typeAnnotation.type
+      )
+    }
+    return nil
+  }
+
+  if let explicitDefaultValueExpression,
+    explicitDefaultValueExpression != "nil",
+    storageMethod == .codable || storageMethod == .composition
+      || isTransformedStorageMethod(storageMethod)
+  {
+    if emitDiagnostics {
+      let message =
+        "@Attribute storageMethod `.\(storageMethodDiagnosticName(storageMethod))` only supports nil as an explicit default value. Use an optional property and omit the default or assign nil."
+      if let initializerValue = binding.initializer?.value {
+        MacroDiagnosticReporter.error(
+          message,
+          domain: attributeMacroDomain,
+          id: "unsupported-custom-storage-default",
+          in: context,
+          node: initializerValue
+        )
+      } else {
+        MacroDiagnosticReporter.error(
+          message,
+          domain: attributeMacroDomain,
+          id: "unsupported-custom-storage-default",
+          in: context,
+          node: binding.pattern
+        )
+      }
+    }
+    return nil
+  }
+
   return AttributeInfo(
     propertyName: propertyName,
     persistentName: persistentName,
@@ -247,6 +292,21 @@ func buildAttributeInfo(
     isUnique: isUnique,
     isTransient: isTransient
   )
+}
+
+private func storageMethodDiagnosticName(_ storageMethod: ParsedAttributeStorageMethod) -> String {
+  switch storageMethod {
+  case .default:
+    return "default"
+  case .raw:
+    return "raw"
+  case .codable:
+    return "codable"
+  case .composition:
+    return "composition"
+  case .transformed:
+    return "transformed"
+  }
 }
 
 private func parseAttributeArguments(
