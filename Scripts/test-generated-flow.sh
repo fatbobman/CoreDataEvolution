@@ -101,11 +101,19 @@ if [[ "$SKIP_BUILD" != true ]]; then
   echo ">>> Cleaning external fixture build artifacts"
   rm -rf "$FIXTURE_DIR/.build"
 
-  echo ">>> Building external generated target"
-  swift build --package-path "$FIXTURE_DIR" --target "$APP_TARGET"
+  echo ">>> Building external generated product"
+  swift build --package-path "$FIXTURE_DIR" --product "$APP_TARGET"
 fi
 
 if [[ "$RUN_APP" == true ]]; then
+  BIN_PATH="$(swift build --package-path "$FIXTURE_DIR" --show-bin-path)"
+  APP_BINARY="$BIN_PATH/$APP_TARGET"
+
+  if [[ ! -x "$APP_BINARY" ]]; then
+    echo "Expected built app at $APP_BINARY, but it was not found or is not executable." >&2
+    exit 1
+  fi
+
   echo ">>> Running external generated flow"
-  swift run --package-path "$FIXTURE_DIR" "$APP_TARGET"
+  "$APP_BINARY"
 fi
