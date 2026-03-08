@@ -24,5 +24,12 @@ let package = Package(
         .product(name: "CoreDataEvolution", package: "CoreDataEvolution"),
       ]
     ),
+    .executableTarget(
+      name: "GeneratedQuantifierApp",
+      dependencies: [
+        "GeneratedModels",
+        .product(name: "CoreDataEvolution", package: "CoreDataEvolution"),
+      ]
+    ),
   ]
 )

@@ -40,6 +40,9 @@ It contains:
 - `Sources/GeneratedFlowApp/`
   - a real executable target that imports `GeneratedModels`, compiles the source model, creates a
     container, saves data, and queries through generated typed paths
+- `Sources/GeneratedQuantifierApp/`
+  - a second executable target that focuses on generated to-many quantifiers and nil payload
+    round-trips from another target
 - `cde-tool.json`
   - the generate/validate config used by the fixture
 
@@ -59,6 +62,10 @@ The fixture is intentionally designed to cover the user-facing paths that are mo
   - `FlowTask.path.title`
   - `FlowTask.path.project.name`
   - `FlowTask.path.location.latitude`
+- to-many quantifiers across generated public APIs, including:
+  - `FlowProject.path.tasks.any.title.contains(...)`
+  - `FlowProject.path.tasks.none.title.contains(...)`
+- nil round-trip behavior for transformed generated payloads
 
 ## Standard Command
 
@@ -144,6 +151,12 @@ Example:
 
 ```bash
 CDE_GENERATED_FLOW_TARGET=GeneratedFlowApp bash Scripts/test-generated-flow.sh
+```
+
+Run the second quantifier-focused executable:
+
+```bash
+CDE_GENERATED_FLOW_TARGET=GeneratedQuantifierApp bash Scripts/test-generated-flow.sh
 ```
 
 ## Interpreting Failures
