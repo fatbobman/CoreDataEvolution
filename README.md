@@ -20,6 +20,14 @@ SwiftData introduced modern concurrency features like `@ModelActor`, making it e
 * [Practical SwiftData: Building SwiftUI Applications with Modern Approaches](https://fatbobman.com/en/posts/practical-swiftdata-building-swiftui-applications-with-modern-approaches/)
 * [Concurrent Programming in SwiftData](https://fatbobman.com/en/posts/concurret-programming-in-swiftdata/)
 
+`CoreDataEvolution` re-exports `CoreData`, so normal user code usually only needs:
+
+```swift
+import CoreDataEvolution
+```
+
+In most use sites, you do not need a separate `import CoreData`.
+
 ## Key Features
 
 - **Custom Executors for Core Data Actors**  

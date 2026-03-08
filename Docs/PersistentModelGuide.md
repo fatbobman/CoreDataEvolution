@@ -13,6 +13,14 @@ This guide is written for library users. It focuses on:
 The current design is intentionally strict. The goal is predictable code generation, stable macro
 expansion, and tooling-friendly validation.
 
+`CoreDataEvolution` re-exports `CoreData`, so normal model source files usually only need:
+
+```swift
+import CoreDataEvolution
+```
+
+You do not normally need a separate `import CoreData`.
+
 ## Before You Start
 
 `@PersistentModel` is a **source-layer representation** of a Core Data model.
@@ -54,7 +62,6 @@ The macro system works together with these supporting macros:
 ## Minimal Example
 
 ```swift
-import CoreData
 import CoreDataEvolution
 
 @objc(Item)
@@ -908,7 +915,6 @@ Examples of expected diagnostics:
 A good style looks like this:
 
 ```swift
-import CoreData
 import CoreDataEvolution
 
 @Composition

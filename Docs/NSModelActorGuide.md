@@ -12,13 +12,20 @@ This guide is written for library users. It explains:
 - how to test these types safely
 - which constraints are intentional in the current implementation
 
+`CoreDataEvolution` re-exports `CoreData`, so normal use sites usually only need:
+
+```swift
+import CoreDataEvolution
+```
+
+You do not normally need a separate `import CoreData`.
+
 ## Choose the Right Macro
 
 Use `@NSModelActor` when the type should own a private Core Data context and serialize its work
 through an actor.
 
 ```swift
-import CoreData
 import CoreDataEvolution
 
 @NSModelActor
@@ -35,7 +42,6 @@ actor ItemStore {
 Use `@NSMainModelActor` when the type should always operate on `viewContext` from the main actor.
 
 ```swift
-import CoreData
 import CoreDataEvolution
 
 @MainActor
