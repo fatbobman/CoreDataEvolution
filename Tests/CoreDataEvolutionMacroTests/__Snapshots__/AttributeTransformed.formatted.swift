@@ -8,7 +8,11 @@ struct Item {
   var color: String? {
     get {
       let transformer = ColorTransformer.self.init()
-      guard let value = transformer.reverseTransformedValue(value(forKey: "color")) as? String else {
+      let storedValue = value(forKey: "color")
+      if let value = storedValue as? String {
+        return value
+      }
+      guard let value = transformer.reverseTransformedValue(storedValue) as? String else {
         return nil
       }
       return value

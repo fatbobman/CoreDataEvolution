@@ -682,9 +682,11 @@ Current rules:
 When enabled, the generated init:
 
 - includes persisted attributes
+- includes persisted attributes declared with `.raw`, `.codable`, `.transformed`, and `.composition`
 - includes `@Ignore` properties
 - excludes relationships
 - does not inject a Core Data context parameter
+- does not assign default parameter values; callers must pass every included argument explicitly
 
 Example:
 
@@ -694,9 +696,13 @@ Example:
 final class Item: NSManagedObject {
   var title: String = ""
 
+  @Attribute(storageMethod: .codable)
+  var config: ItemConfig? = nil
+
   @Ignore
   var transientCache: [String: Int] = [:]
 
+  @Relationship(inverse: "items", deleteRule: .nullify)
   var tags: Set<Tag>
 }
 ```
@@ -706,6 +712,7 @@ Generated init shape:
 ```swift
 convenience init(
   title: String,
+  config: ItemConfig?,
   transientCache: [String: Int]
 )
 ```

@@ -76,7 +76,7 @@ final class CDEItem: NSManagedObject {
   var location: CDEItemLocation? = nil
   @Attribute(
     persistentName: "keywords_payload", storageMethod: .transformed(CDEStringListTransformer.self))
-  var keywords: [String] = []
+  var keywords: [String]? = nil
   @Relationship(inverse: "items", deleteRule: .nullify)
   var tag: CDETag?
 }

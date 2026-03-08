@@ -390,6 +390,67 @@ struct MacroDiagnosticTests {
         "convenience init(\n    title: String,\n    transientCache: [String: Int]\n  )"))
   }
 
+  @Test("PersistentModel init includes custom storage properties and Ignore")
+  func persistentModelInitIncludesCustomStorageProperties() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+
+        struct Payload: Codable {}
+        enum Status: String { case draft }
+
+        @Composition
+        struct Point {
+          var x: Double = 0
+        }
+
+        @objc(Item)
+        @PersistentModel(generateInit: true)
+        final class Item: NSManagedObject {
+          @Attribute(storageMethod: .raw)
+          var status: Status? = nil
+
+          @Attribute(storageMethod: .codable)
+          var payload: Payload? = nil
+
+          @Attribute(storageMethod: .composition)
+          var point: Point? = nil
+
+          @Attribute(storageMethod: .transformed(ValueTransformer.self))
+          var keywords: [String]? = nil
+
+          @Ignore
+          var transientCache: [String: Int] = [:]
+
+          @Relationship(inverse: "item", deleteRule: .nullify)
+          var tag: Tag?
+        }
+        """
+    )
+    #expect(result.diagnostics.isEmpty)
+    #expect(
+      result.expandedSource.contains(
+        """
+        convenience init(
+            status: Status?,
+            payload: Payload?,
+            point: Point?,
+            keywords: [String]?,
+            transientCache: [String: Int]
+          )
+        """
+      )
+    )
+    #expect(result.expandedSource.contains("self.status = status"))
+    #expect(result.expandedSource.contains("self.payload = payload"))
+    #expect(result.expandedSource.contains("self.point = point"))
+    #expect(result.expandedSource.contains("self.keywords = keywords"))
+    #expect(result.expandedSource.contains("self.transientCache = transientCache"))
+    #expect(result.expandedSource.contains("convenience init(\n    tag: Tag?") == false)
+    #expect(result.expandedSource.contains(",\n    tag: Tag?") == false)
+  }
+
   @Test("PersistentModel rejects optional to-many relationship declaration")
   func persistentModelRejectsOptionalToManyRelationshipDeclaration() throws {
     let result = try MacroTestSupport.expand(

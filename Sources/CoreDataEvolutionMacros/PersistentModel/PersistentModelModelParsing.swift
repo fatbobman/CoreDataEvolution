@@ -142,6 +142,16 @@ func analyzePersistentModelInitProperties(in classDecl: ClassDeclSyntax)
       continue
     }
 
+    if hasMarkerAttribute("Attribute", in: storedBinding.variable) {
+      properties.append(
+        PersistentModelInitProperty(
+          propertyName: propertyName,
+          typeName: typeName
+        )
+      )
+      continue
+    }
+
     if shouldRejectOptionalToManyRelationship(typeAnnotation.type, in: storedBinding.variable) {
       continue
     }
