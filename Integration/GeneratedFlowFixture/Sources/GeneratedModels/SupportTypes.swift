@@ -35,7 +35,7 @@ public struct FlowPoint: Sendable, Equatable {
 
 public final class FlowStringListTransformer: ValueTransformer {
   public override class func transformedValueClass() -> AnyClass {
-    NSData.self
+    NSString.self
   }
 
   public override class func allowsReverseTransformation() -> Bool {
@@ -44,13 +44,25 @@ public final class FlowStringListTransformer: ValueTransformer {
 
   public override func transformedValue(_ value: Any?) -> Any? {
     guard let strings = value as? [String] else { return nil }
-    return try? NSKeyedArchiver.archivedData(withRootObject: strings, requiringSecureCoding: true)
+    return strings.joined(separator: "|")
   }
 
   public override func reverseTransformedValue(_ value: Any?) -> Any? {
-    guard let data = value as? Data else { return nil }
-    return try? NSKeyedUnarchiver.unarchivedObject(
-      ofClasses: [NSArray.self, NSString.self], from: data) as? [String]
+    let raw: String?
+    switch value {
+    case let stringValue as String:
+      raw = stringValue
+    case let nsStringValue as NSString:
+      raw = nsStringValue as String
+    default:
+      raw = nil
+    }
+
+    guard let raw else { return nil }
+    if raw.isEmpty {
+      return []
+    }
+    return raw.split(separator: "|").map(String.init)
   }
 
   public static func register() {

@@ -11,7 +11,7 @@
         <attribute name="created_at" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="status_raw" optional="YES" attributeType="String"/>
         <attribute name="config_blob" optional="YES" attributeType="Binary"/>
-        <attribute name="tags_payload" optional="YES" attributeType="Transformable" valueTransformerName="FlowStringListTransformer"/>
+        <attribute name="tags_payload" optional="YES" attributeType="String"/>
         <attribute name="location" optional="YES" attributeType="Composite" composite="FlowPoint"/>
         <relationship name="owner_project" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="FlowProject" inverseName="owned_tasks" inverseEntity="FlowProject"/>
     </entity>

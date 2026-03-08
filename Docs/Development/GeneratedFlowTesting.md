@@ -84,6 +84,20 @@ A passing run means:
 - `validate` accepted the generated source in both supported modes
 - the external package compiled successfully
 - the executable completed a real save/query round-trip against a compiled Core Data model
+- the fixture app's semantic assertions all passed
+
+Those semantic assertions currently verify:
+
+- `status == .review`
+- `project.name == "Schema Lab"`
+- `location.latitude == 31.2304`
+- `tags == ["generated", "typed-path"]`
+
+Current model-layer prerequisites in the fixture:
+
+- `location` is modeled as a real Core Data `Composite` attribute
+- `tags_payload` is modeled as `String`, not `Transformable`, because
+  `FlowStringListTransformer.transformedValueClass()` returns `NSString`
 
 The script intentionally removes `Integration/GeneratedFlowFixture/.build` before rebuilding the
 fixture target. This keeps the black-box flow honest when macro implementations change but the

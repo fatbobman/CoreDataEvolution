@@ -114,7 +114,10 @@ Runtime schema / runtime model builder 的 v1 边界：
 - `.raw` 会在编译期约束属性类型满足 `RawRepresentable`。
 - `.codable` 会在编译期约束属性类型满足 `Codable`。
 - `.transformed` 要求传入 `ValueTransformer` 元类型（如 `MyTransformer.self`）。
-- 兼容既有数据库：对于模型里已配置为 `Transformable` 的数组/字典（如 `[String]`、`[String: String]`），可继续使用 `.transformed`；通常可不自定义 transformer 名称（使用系统默认安全反序列化路径），但建议在模型中显式指定系统 transformer 以增强可迁移性。
+- schema-backed `.transformed(...)` 字段的模型类型应与 transformer 的持久化输出类型一致：
+  - 输出 `NSString` -> `String`
+  - 输出 `NSData` -> `Binary Data`
+  - 只有显式走安全反序列化路径（如 `NSSecureUnarchiveFromData`）时，模型字段才通常设为 `Transformable`
 - `.composition` 会在编译期约束属性类型满足 `@Composition` 生成的协议能力（`CDCompositionPathProviding` + `CDCompositionValueCodable`）。
 - `@Attribute` 不能标注关系属性（`T?` / `Set<T>` / `[T]` 且 `T: NSManagedObject`）；关系由主宏按类型自动识别并生成代码。
 - `decodeFailurePolicy` 同时用于 getter 解码失败与 setter 编码/转换失败。

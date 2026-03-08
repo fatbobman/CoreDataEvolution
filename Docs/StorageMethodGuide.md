@@ -283,10 +283,39 @@ Use this when:
 - decode failure behavior can be customized with `decodeFailurePolicy`
 - the property should usually be optional in the current implementation
 
+### Schema-backed model requirement
+
+For schema-backed Core Data models, the attribute type should match the transformer's stored output.
+
+That means:
+
+- if your transformer returns `NSString`, model the field as `String`
+- if your transformer returns `NSData`, model the field as `Binary Data`
+- only use Core Data `Transformable` when the model is intentionally relying on a transformable
+  payload path, such as `NSSecureUnarchiveFromData`
+
+This is the most important rule for `.transformed(...)`:
+
+- the Swift-facing type is your property type
+- the Core Data field type is the transformer's persisted output type
+
+Example:
+
+```swift
+final class StringListTransformer: ValueTransformer {
+  override class func transformedValueClass() -> AnyClass { NSString.self }
+}
+
+@Attribute(storageMethod: .transformed(StringListTransformer.self))
+var tags: [String]? = nil
+```
+
+In this example, the Core Data field should be modeled as `String`, not `Transformable`.
+
 ### Existing-model compatibility
 
-This path is especially useful for existing schemas that already store arrays, dictionaries, or
-other payloads as `Transformable`.
+This path is especially useful for existing schemas that already store payloads through a stable
+transformer contract.
 
 For collection payloads such as:
 
@@ -296,13 +325,10 @@ For collection payloads such as:
 
 do not treat them as plain primitive storage.
 
-They should be modeled as `Transformable` values backed by the system secure-unarchive transformer,
-or by a custom `ValueTransformer` that intentionally mirrors that behavior.
+If the model already uses the system secure-unarchive transformer, keep that setup explicit:
 
-In practice, that means:
-
-- the Core Data model should explicitly use the system `NSSecureUnarchiveFromData` transformer (or
-  an equivalent custom transformer)
+- the Core Data model should use the system `NSSecureUnarchiveFromData` transformer (or an
+  equivalent custom transformer)
 - the Swift declaration should mirror that choice with `.transformed(...)`
 
 Example:
@@ -311,6 +337,8 @@ Example:
 @Attribute(storageMethod: .transformed(NSSecureUnarchiveFromDataTransformer.self))
 var numbers: [Int]? = nil
 ```
+
+In that specific case, the schema-backed field is typically modeled as `Transformable`.
 
 If you need tighter control over allowed classes or a pre-existing transformer name, prefer a
 dedicated transformer subclass instead of relying on implicit transformable behavior.

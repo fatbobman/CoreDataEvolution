@@ -224,6 +224,16 @@ var config: ItemConfig? = nil
 var keywords: [String]? = nil
 ```
 
+For schema-backed models, `.transformed(...)` means the Core Data field type should match the
+transformer's stored output type.
+
+Example:
+
+- if the transformer stores `NSString`, the model field should be `String`
+- if the transformer stores `NSData`, the model field should be `Binary Data`
+- only model the field as `Transformable` when the schema intentionally uses a transformable
+  payload path such as `NSSecureUnarchiveFromData`
+
 ### Decode Failure Policy
 
 Decode failure policies only make sense for storage methods that actually decode values.

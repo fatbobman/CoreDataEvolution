@@ -804,8 +804,12 @@ var color: UIColor? {
 }
 ```
 
-注意：需要在 xcdatamodeld 中将该属性设为 `Transformable`。  
-对于已有数据库里常见的数组/字典（如 `[String]`、`[String: String]`）字段，通常无需自定义 transformer 名称即可工作（系统默认安全反序列化路径）；但建议显式指定系统 transformer（如 `NSSecureUnarchiveFromData`）以提升迁移与排障可控性。
+注意：schema-backed `.transformed(...)` 字段的模型类型应与 transformer 的持久化输出类型一致。  
+例如：
+
+- 输出 `NSString` -> 模型字段应为 `String`
+- 输出 `NSData` -> 模型字段应为 `Binary Data`
+- 只有显式走安全反序列化路径（如 `NSSecureUnarchiveFromData`）时，模型字段才通常设为 `Transformable`
 
 ### .composition — NSCompositeAttributeDescription（v1 支持）
 

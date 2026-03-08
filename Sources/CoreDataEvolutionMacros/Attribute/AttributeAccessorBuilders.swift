@@ -391,7 +391,11 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
         """
         get {
           let transformer = \(raw: transformerType).init()
-          guard let value = transformer.reverseTransformedValue(value(forKey: "\(raw: key)")) as? \(raw: wrappedType) else {
+          let storedValue = value(forKey: "\(raw: key)")
+          if let value = storedValue as? \(raw: wrappedType) {
+            return value
+          }
+          guard let value = transformer.reverseTransformedValue(storedValue) as? \(raw: wrappedType) else {
             assertionFailure("Invalid transformed payload for `\(raw: property)` (\(raw: key)).")
             return nil
           }
@@ -406,7 +410,11 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
         """
         get {
           let transformer = \(raw: transformerType).init()
-          guard let value = transformer.reverseTransformedValue(value(forKey: "\(raw: key)")) as? \(raw: wrappedType) else {
+          let storedValue = value(forKey: "\(raw: key)")
+          if let value = storedValue as? \(raw: wrappedType) {
+            return value
+          }
+          guard let value = transformer.reverseTransformedValue(storedValue) as? \(raw: wrappedType) else {
             return \(raw: fallback)
           }
           return value
@@ -420,7 +428,11 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
         """
         get {
           let transformer = \(raw: transformerType).init()
-          guard let value = transformer.reverseTransformedValue(value(forKey: "\(raw: key)")) as? \(raw: type) else {
+          let storedValue = value(forKey: "\(raw: key)")
+          if let value = storedValue as? \(raw: type) {
+            return value
+          }
+          guard let value = transformer.reverseTransformedValue(storedValue) as? \(raw: type) else {
             assertionFailure("Invalid transformed payload for `\(raw: property)` (\(raw: key)).")
             return \(raw: fallback)
           }
@@ -434,7 +446,11 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
       """
       get {
         let transformer = \(raw: transformerType).init()
-        guard let value = transformer.reverseTransformedValue(value(forKey: "\(raw: key)")) as? \(raw: type) else {
+        let storedValue = value(forKey: "\(raw: key)")
+        if let value = storedValue as? \(raw: type) {
+          return value
+        }
+        guard let value = transformer.reverseTransformedValue(storedValue) as? \(raw: type) else {
           return \(raw: fallback)
         }
         return value
