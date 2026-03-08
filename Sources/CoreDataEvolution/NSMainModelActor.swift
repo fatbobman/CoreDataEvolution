@@ -9,21 +9,24 @@
 //  ------------------------------------------------
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
-/// A protocol that defines the properties and methods for accessing a Core Data model in a main actor context.
 import CoreData
 
+/// Main-actor protocol used by types expanded from `@NSMainModelActor`.
+///
+/// The generated type works with `container.viewContext` and is intended for UI-facing Core Data
+/// code that should remain on the main actor.
 @MainActor
 public protocol NSMainModelActor: AnyObject {
-  /// The NSPersistentContainer for the NSMainModelActor
+  /// The persistent container owned by this main-actor type.
   var modelContainer: NSPersistentContainer { get }
 }
 extension NSMainModelActor {
-  /// The view context for the NSMainModelActor
+  /// The view context exposed by the container.
   public var modelContext: NSManagedObjectContext {
     modelContainer.viewContext
   }
 
-  /// Returns the model for the specified identifier, downcast to the appropriate class.
+  /// Looks up a managed object by ID and downcasts it to the requested type.
   public subscript<T>(id: NSManagedObjectID, as _: T.Type) -> T? where T: NSManagedObject {
     try? modelContext.existingObject(with: id) as? T
   }

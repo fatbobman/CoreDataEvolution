@@ -1,5 +1,4 @@
 import CoreData
-/// A protocol that defines the properties and methods for accessing a Core Data model in a model actor context.
 import Foundation
 import _Concurrency
 
@@ -14,25 +13,29 @@ import _Concurrency
 //  ------------------------------------------------
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
+/// Actor protocol used by types expanded from `@NSModelActor`.
+///
+/// The actor isolates all Core Data work onto a serial executor backed by
+/// `NSManagedObjectContext.perform`.
 public protocol NSModelActor: Actor {
-  /// The NSPersistentContainer for the NSModelActor
+  /// The persistent container owned by this actor.
   nonisolated var modelContainer: NSPersistentContainer { get }
 
-  /// The executor that coordinates access to the model actor.
+  /// The custom executor that serializes access to the actor's Core Data context.
   nonisolated var modelExecutor: NSModelObjectContextExecutor { get }
 }
 extension NSModelActor {
-  /// The optimized, unonwned reference to the model actor's executor.
+  /// The unowned serial executor used by the actor runtime.
   public nonisolated var unownedExecutor: UnownedSerialExecutor {
     modelExecutor.asUnownedSerialExecutor()
   }
 
-  /// The context that serializes any code running on the model actor.
+  /// The context bound to the actor's serial executor.
   public var modelContext: NSManagedObjectContext {
     modelExecutor.context
   }
 
-  /// Returns the model for the specified identifier, downcast to the appropriate class.
+  /// Looks up a managed object by ID and downcasts it to the requested type.
   public subscript<T>(id: NSManagedObjectID, as _: T.Type) -> T? where T: NSManagedObject {
     try? modelContext.existingObject(with: id) as? T
   }

@@ -258,6 +258,14 @@ Supported policies:
 - `.fallbackToDefaultValue`
 - `.debugAssertNil`
 
+For `.codable` and `.transformed`, `.fallbackToDefaultValue` now effectively means
+"fallback to `nil`". These storage methods currently require optional declarations and do not
+support non-`nil` source defaults, so there is no separate model-backed value to restore.
+
+`decodeFailurePolicy` does not apply to `.composition`. Composition properties are currently
+optional-only, but that rule is enforced through the storage method itself rather than through
+decode-failure configuration.
+
 For a dedicated guide to storage choices, tradeoffs, and current limits of `.default`, `.raw`,
 `.codable`, `.transformed`, and `.composition`, see
 [StorageMethodGuide.md](./StorageMethodGuide.md).

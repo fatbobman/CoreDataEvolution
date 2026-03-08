@@ -119,8 +119,20 @@ extension NSPersistentContainer {
     return container
   }
 
-  /// Convenience overload for test/debug workflows that build the model from macro-emitted runtime
-  /// schema instead of `.xcdatamodeld`.
+  /// Builds a test container from macro-emitted runtime schema instead of `.xcdatamodeld`.
+  ///
+  /// This is intended for test/debug workflows where the participating `@PersistentModel` types
+  /// are already known in code and a separate model file would add unnecessary friction.
+  ///
+  /// - Parameters:
+  ///   - modelTypes: The participating model types. The list must include every entity referenced
+  ///     by relationships in the runtime-built schema.
+  ///   - testName: Optional explicit store name override. If omitted, a name is derived from the
+  ///     call site.
+  ///   - fileID: Pass-through call-site file identity used when `testName` is omitted.
+  ///   - function: Pass-through call-site function identity used when `testName` is omitted.
+  ///   - subDirectory: Temporary subdirectory used for the SQLite files.
+  /// - Returns: A fully loaded `NSPersistentContainer`.
   public static func makeRuntimeTest(
     modelTypes: [any CDRuntimeSchemaProviding.Type],
     testName: String = "",

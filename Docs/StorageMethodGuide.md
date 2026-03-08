@@ -496,6 +496,10 @@ Example:
 var config: ItemConfig? = nil
 ```
 
+For `.codable` and `.transformed(...)`, `.fallbackToDefaultValue` currently falls back to `nil`.
+Those storage methods are limited to optional declarations and do not support non-`nil` source
+defaults, so there is no separate model-backed value to reconstruct after a decode failure.
+
 This policy does not apply to plain primitive `.default` storage.
 
 ## `transient` Is Not a Storage Method

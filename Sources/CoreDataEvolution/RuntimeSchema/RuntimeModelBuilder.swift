@@ -71,7 +71,17 @@ public enum CDRuntimeModelBuilder {
   private static let cacheLock = NSLock()
   nonisolated(unsafe) private static var modelCache: [String: NSManagedObjectModel] = [:]
 
-  /// Builds a Core Data model from macro-emitted runtime schema metadata.
+  /// Builds an `NSManagedObjectModel` from macro-emitted runtime schema metadata.
+  ///
+  /// This API is intended for test/debug workflows. It does not try to replace a production
+  /// `.xcdatamodeld` pipeline and only supports the subset of model metadata represented by the
+  /// generated runtime schema.
+  ///
+  /// - Parameter types: The participating `@PersistentModel` types. Every relationship target must
+  ///   be included in this list.
+  /// - Returns: A cached `NSManagedObjectModel` assembled from the participating runtime schemas.
+  /// - Throws: `CDRuntimeModelBuilderError` when the runtime schema is incomplete or internally
+  ///   inconsistent.
   public static func makeModel(
     _ types: [any CDRuntimeSchemaProviding.Type]
   ) throws -> NSManagedObjectModel {
@@ -199,7 +209,7 @@ public enum CDRuntimeModelBuilder {
     return model
   }
 
-  /// Variadic convenience for tests that keep the participating entity list inline.
+  /// Variadic convenience overload for inline runtime-model construction.
   public static func makeModel(
     _ types: any CDRuntimeSchemaProviding.Type...
   ) throws -> NSManagedObjectModel {
