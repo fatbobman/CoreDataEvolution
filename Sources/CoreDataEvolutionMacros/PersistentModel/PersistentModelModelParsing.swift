@@ -67,10 +67,6 @@ func analyzePersistentModelProperties(in classDecl: ClassDeclSyntax)
       relationshipArguments = nil
     }
 
-    if isOptionalToManyRelationshipType(typeAnnotation.type) {
-      continue
-    }
-
     if hasMarkerAttribute("Attribute", in: variable),
       let attribute = preferredAttributeForParsing(named: "Attribute", in: variable)
     {
@@ -91,6 +87,10 @@ func analyzePersistentModelProperties(in classDecl: ClassDeclSyntax)
           )
         )
       )
+      continue
+    }
+
+    if isOptionalToManyRelationshipType(typeAnnotation.type) {
       continue
     }
 
@@ -142,7 +142,7 @@ func analyzePersistentModelInitProperties(in classDecl: ClassDeclSyntax)
       continue
     }
 
-    if isOptionalToManyRelationshipType(typeAnnotation.type) {
+    if shouldRejectOptionalToManyRelationship(typeAnnotation.type, in: storedBinding.variable) {
       continue
     }
     if parseRelationshipProperty(
@@ -185,7 +185,7 @@ func validateRelationshipAnnotations(
 
     if let binding = variable.bindings.first,
       let typeAnnotation = binding.typeAnnotation,
-      isOptionalToManyRelationshipType(typeAnnotation.type)
+      shouldRejectOptionalToManyRelationship(typeAnnotation.type, in: variable)
     {
       // Optional to-many relationships are rejected earlier. Avoid stacking a second, less useful
       // annotation diagnostic on the same declaration.
@@ -289,8 +289,8 @@ func autoAttachedAttribute(
     guard let typeAnnotation = binding.typeAnnotation else {
       return nil
     }
-    if isOptionalToManyRelationshipType(typeAnnotation.type) {
-      return "@_CDRelationship(_fromPersistentModel: true)"
+    if shouldRejectOptionalToManyRelationship(typeAnnotation.type, in: variable) {
+      return nil
     }
     if let relationship = parseRelationshipProperty(
       propertyName: pattern.identifier.text,
@@ -369,6 +369,18 @@ func isOptionalToManyRelationshipType(_ type: TypeSyntax) -> Bool {
     return false
   }
   return setElementTypeName(wrappedType) != nil || arrayElementTypeName(wrappedType) != nil
+}
+
+func shouldRejectOptionalToManyRelationship(
+  _ type: TypeSyntax,
+  in variable: VariableDeclSyntax
+) -> Bool {
+  guard isOptionalToManyRelationshipType(type) else {
+    return false
+  }
+  // Explicit @Attribute means this collection shape is intended to use an attribute storage
+  // strategy such as transformed or codable, not relationship semantics.
+  return hasMarkerAttribute("Attribute", in: variable) == false
 }
 
 private func isLikelyMissingOptionalToOneRelationship(_ type: TypeSyntax) -> Bool {

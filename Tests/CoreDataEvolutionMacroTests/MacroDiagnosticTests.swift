@@ -409,6 +409,25 @@ struct MacroDiagnosticTests {
       })
   }
 
+  @Test("PersistentModel accepts optional transformed array attributes")
+  func persistentModelAcceptsOptionalTransformedArrayAttributes() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        final class T: ValueTransformer {}
+        @objc(Item)
+        @PersistentModel
+        final class Item: NSManagedObject {
+          @Attribute(storageMethod: .transformed(T.self))
+          var tags: [String]? = nil
+        }
+        """
+    )
+    #expect(result.diagnostics.isEmpty)
+    #expect(result.expandedSource.contains("var tags: [String]?"))
+  }
+
   @Test("PersistentModel rejects multi-binding stored properties")
   func persistentModelRejectsMultiBindingStoredProperties() throws {
     let result = try MacroTestSupport.expand(
