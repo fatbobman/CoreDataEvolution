@@ -176,6 +176,23 @@ func analyzePersistentModelInitProperties(in classDecl: ClassDeclSyntax)
   return properties
 }
 
+func hasDeclaredFetchRequestMethod(in classDecl: ClassDeclSyntax) -> Bool {
+  classDecl.memberBlock.members.contains { member in
+    guard let function = member.decl.as(FunctionDeclSyntax.self) else {
+      return false
+    }
+    guard function.name.text == "fetchRequest" else {
+      return false
+    }
+    guard function.signature.parameterClause.parameters.isEmpty else {
+      return false
+    }
+    return function.modifiers.contains(where: {
+      $0.name.text == "class" || $0.name.text == "static"
+    })
+  }
+}
+
 func validateRelationshipAnnotations(
   in classDecl: ClassDeclSyntax,
   model: PersistentModelAnalysis,

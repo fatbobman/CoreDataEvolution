@@ -107,6 +107,11 @@ final class FlowProject: NSManagedObject {
     )
   }
 
+  @nonobjc
+  class func fetchRequest() -> NSFetchRequest<FlowProject> {
+    NSFetchRequest<FlowProject>(entityName: "FlowProject")
+  }
+
   func addToTasks(_ value: FlowTask) {
     mutableSetValue(forKey: "owned_tasks").add(value)
   }
@@ -213,6 +218,11 @@ final class FlowTask: NSManagedObject {
 
       ]
     )
+  }
+
+  @nonobjc
+  class func fetchRequest() -> NSFetchRequest<FlowTask> {
+    NSFetchRequest<FlowTask>(entityName: "FlowTask")
   }
 }
 

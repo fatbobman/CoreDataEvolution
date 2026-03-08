@@ -288,6 +288,11 @@ final class Item: NSManagedObject {
     self.transientCache = transientCache
   }
 
+  @nonobjc
+  class func fetchRequest() -> NSFetchRequest<Item> {
+    NSFetchRequest<Item>(entityName: "Item")
+  }
+
   func addToTags(_ value: Tag) {
     mutableSetValue(forKey: "tags").add(value)
   }

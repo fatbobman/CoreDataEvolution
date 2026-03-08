@@ -121,6 +121,32 @@ struct MacroDiagnosticTests {
     #expect(result.expandedSource.contains("public struct PathRoot: Sendable"))
     #expect(result.expandedSource.contains("public var title: CoreDataEvolution.CDPath"))
     #expect(result.expandedSource.contains("public static var path: PathRoot"))
+    #expect(
+      result.expandedSource.contains(
+        "@nonobjc\n  public class func fetchRequest() -> NSFetchRequest<PublicItem>")
+    )
+  }
+
+  @Test("PersistentModel does not duplicate user fetchRequest")
+  func persistentModelDoesNotDuplicateUserFetchRequest() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        @objc(Item)
+        @PersistentModel
+        final class Item: NSManagedObject {
+          var title: String = ""
+
+          @nonobjc
+          class func fetchRequest() -> NSFetchRequest<Item> {
+            NSFetchRequest<Item>(entityName: "Item")
+          }
+        }
+        """
+    )
+    #expect(result.diagnostics.isEmpty)
+    #expect(result.expandedSource.components(separatedBy: "class func fetchRequest()").count == 2)
   }
 
   @Test("PersistentModel rejects non-class declaration")

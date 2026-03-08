@@ -192,6 +192,16 @@ extension PersistentModelMacro: MemberMacro {
       members.append(initDecl)
     }
 
+    if hasDeclaredFetchRequestMethod(in: classDecl) == false {
+      members.append(
+        makeFetchRequestDecl(
+          accessModifier: accessModifier,
+          modelTypeName: modelTypeName,
+          objcClassName: objcClassName
+        )
+      )
+    }
+
     members += makeToManyHelpers(
       accessModifier: accessModifier,
       model: model

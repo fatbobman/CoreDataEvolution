@@ -405,6 +405,19 @@ func makeInitDecl(
     """
 }
 
+func makeFetchRequestDecl(
+  accessModifier: String,
+  modelTypeName: String,
+  objcClassName: String
+) -> DeclSyntax {
+  """
+  @nonobjc
+  \(raw: accessModifier)class func fetchRequest() -> NSFetchRequest<\(raw: modelTypeName)> {
+    NSFetchRequest<\(raw: modelTypeName)>(entityName: "\(raw: objcClassName)")
+  }
+  """
+}
+
 func makeToManyHelpers(
   accessModifier: String,
   model: PersistentModelAnalysis
