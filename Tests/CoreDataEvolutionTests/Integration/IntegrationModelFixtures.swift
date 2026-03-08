@@ -9,8 +9,7 @@
 //  ------------------------------------------------
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
-@preconcurrency import CoreData
-import CoreDataEvolution
+@preconcurrency import CoreDataEvolution
 import Foundation
 
 enum CDEItemStatus: String, Sendable {

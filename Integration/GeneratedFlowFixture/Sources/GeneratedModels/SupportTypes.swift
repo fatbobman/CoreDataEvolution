@@ -1,5 +1,4 @@
-@preconcurrency import CoreData
-import CoreDataEvolution
+@preconcurrency import CoreDataEvolution
 import Foundation
 
 public enum FlowTaskStatus: String, Sendable {

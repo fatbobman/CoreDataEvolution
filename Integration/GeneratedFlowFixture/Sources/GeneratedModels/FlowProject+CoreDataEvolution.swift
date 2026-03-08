@@ -2,7 +2,6 @@
 // Do not edit by hand.
 // Regenerate with cde-tool generate.
 
-import CoreData
 import CoreDataEvolution
 import Foundation
 

@@ -9,7 +9,6 @@
 //  ------------------------------------------------
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
-import CoreData
 import CoreDataEvolution
 
 @NSModelActor(disableGenerateInit: true)

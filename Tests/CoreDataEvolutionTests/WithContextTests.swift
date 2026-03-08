@@ -1,4 +1,3 @@
-import CoreData
 import CoreDataEvolution
 import Testing
 
