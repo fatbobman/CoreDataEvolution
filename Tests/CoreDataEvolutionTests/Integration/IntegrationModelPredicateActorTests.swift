@@ -70,12 +70,18 @@ struct IntegrationModelPredicateActorTests {
       noneRequest.predicate = CDETag.path.items.none.title.equals("alpha")
       let noneLabels = try context.fetch(noneRequest).map(\.label)
 
-      return (itemNames, tagLabels, inverseItemCount, noneLabels)
+      let allRequest = NSFetchRequest<CDETag>(entityName: "CDETag")
+      allRequest.sortDescriptors = [NSSortDescriptor(key: "label", ascending: true)]
+      allRequest.predicate = CDETag.path.items.all.priority.greaterThan(3)
+      let allLabels = try context.fetch(allRequest).map(\.label)
+
+      return (itemNames, tagLabels, inverseItemCount, noneLabels, allLabels)
     }
 
     #expect(result.0 == ["alpha"])
     #expect(result.1 == ["Swift"])
     #expect(result.2 == 1)
     #expect(result.3 == ["Empty", "ObjC"])
+    #expect(result.4 == ["Empty", "ObjC"])
   }
 }

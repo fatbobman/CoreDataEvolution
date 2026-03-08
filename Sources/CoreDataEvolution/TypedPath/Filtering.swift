@@ -151,11 +151,24 @@ public struct CDFilterField<Root: CoreDataPathTable, Value> {
           argumentArray: [relationshipKey, leafKey, boxedValue]
         )
       case .all:
-        // `ALL A op B` => `NOT (ANY A inverse(op) B)`
-        let inverseOperator = inverse(of: `operator`)
-        let format = "ANY %K \(inverseOperator) %@"
-        let anyInverse = NSPredicate(format: format, argumentArray: [key, boxedValue])
-        return NSCompoundPredicate(notPredicateWithSubpredicate: anyInverse)
+        // `ALL` must preserve vacuous truth for empty to-many collections and avoid invalid
+        // predicate forms such as `ANY %K NOT CONTAINS[cd] %@`. Count the elements that do not
+        // satisfy the original predicate and require that count to be zero.
+        guard
+          let relationshipKey = persistentPath.first,
+          persistentPath.count > 1
+        else {
+          let inverseOperator = inverse(of: `operator`)
+          let format = "%K \(inverseOperator) %@"
+          let inversePredicate = NSPredicate(format: format, argumentArray: [key, boxedValue])
+          return NSCompoundPredicate(notPredicateWithSubpredicate: inversePredicate)
+        }
+        let leafKey = persistentPath.dropFirst().joined(separator: ".")
+        let format = "SUBQUERY(%K, $e, NOT ($e.%K \(`operator`) %@)).@count == 0"
+        return NSPredicate(
+          format: format,
+          argumentArray: [relationshipKey, leafKey, boxedValue]
+        )
       }
     }
     let format = "%K \(`operator`) %@"

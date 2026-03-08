@@ -32,7 +32,9 @@ struct TypedPathPredicateTests {
 
   @Test func toManyAllBuildsPredicate() throws {
     let predicate = PathItemModel.path.tags.all.score.greaterThan(80)
-    #expect(predicate.predicateFormat.contains("NOT ANY tags.score <="))
+    #expect(predicate.predicateFormat.contains("SUBQUERY(tags, $e, NOT"))
+    #expect(predicate.predicateFormat.contains("$e.score > 80"))
+    #expect(predicate.predicateFormat.contains(").@count == 0"))
   }
 
   @Test func toManyNoneBuildsPredicate() throws {
