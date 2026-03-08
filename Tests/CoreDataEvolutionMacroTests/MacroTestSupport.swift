@@ -171,7 +171,9 @@ enum MacroTestSupport {
       throw MacroTestSupportError.missingSnapshot(path: snapshotURL.path)
     }
 
-    let expected = try String(contentsOf: snapshotURL, encoding: .utf8)
+    // Snapshot comparisons should ignore incidental leading/trailing blank lines so
+    // old files with a trailing newline do not fail against normalized expansion output.
+    let expected = trimmedSource(try String(contentsOf: snapshotURL, encoding: .utf8))
     guard actual == expected else {
       try writeActualSnapshot(actual, for: snapshotURL)
       throw MacroTestSupportError.snapshotMismatch(snapshotName: snapshotURL.lastPathComponent)
