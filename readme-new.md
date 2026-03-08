@@ -95,6 +95,12 @@ The production source of truth is still your Core Data model.
 
 The macro layer gives you a better, more explicit, more toolable representation of that model in Swift source.
 
+This is the most important mental model for new users:
+
+- keep building the real schema in Xcode
+- use `@PersistentModel` to describe that schema in Swift
+- use `cde-tool` to keep the two layers aligned
+
 ## The Three Main Parts of the Package
 
 ### 1. Actor isolation for Core Data
@@ -279,6 +285,9 @@ It does **not** refer to the other Swift property name.
 ### `composition` requires Core Data composite attribute support
 
 `@Composition` maps to Core Data composite attributes.
+
+For schema-backed models, this means the Xcode model must declare a real top-level `Composite`
+attribute, not a pair of flattened entity fields and not a `Transformable` fallback.
 
 That means it requires platform support for that Core Data feature:
 

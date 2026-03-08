@@ -62,4 +62,11 @@ struct MacroExpansionSnapshotTests {
   func relationshipBasicSnapshot() throws {
     try MacroTestSupport.assertExpansionSnapshot(fixtureName: "RelationshipBasic")
   }
+
+  @Test("PersistentModel relationship persistent name snapshot")
+  func persistentModelRelationshipPersistentNameSnapshot() throws {
+    try MacroTestSupport.assertExpansionSnapshot(
+      fixtureName: "PersistentModelRelationshipPersistentName"
+    )
+  }
 }

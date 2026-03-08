@@ -74,6 +74,7 @@ Integration model compile + run (for real `.momd` verification):
 ```bash
 bash Scripts/compile-integration-model.sh
 bash Scripts/test-integration-model.sh
+bash Scripts/test-generated-flow.sh
 ```
 
 Path/toolchain behavior for integration model scripts:
@@ -86,6 +87,11 @@ Path/toolchain behavior for integration model scripts:
 - Output `.momd` can be overridden by `CDE_INTEGRATION_MODEL_OUTPUT`.
 - Tests can consume a precompiled model via `CDE_INTEGRATION_MODEL_MOMD`.
 - If `CDE_INTEGRATION_MODEL_MOMD` is not set, integration tests compile the model on demand via `Scripts/compile-integration-model.sh`.
+- `Scripts/test-generated-flow.sh` runs the downstream generated-model fixture:
+  - builds `cde-tool`
+  - generates source into `Integration/GeneratedFlowFixture`
+  - validates generated output
+  - builds and runs the external fixture package
 
 ## Release Tag Convention
 

@@ -429,8 +429,18 @@ In practice, the model should contain:
 - a referenced composite type such as `GeoPoint`
 - the composite's leaf attributes, such as `latitude` and `longitude`
 
+In Xcode's model editor, that means:
+
+- create one entity attribute whose type is `Composite`
+- point that attribute at a named composite type
+- declare the leaf fields inside that composite type
+
 Do not model schema-backed `.composition` as `Transformable`. A transformable dictionary payload is
 only used by the runtime-only test/debug model builder, not by the real `.xcdatamodeld` workflow.
+
+Also do not flatten those leaf fields directly onto the entity while keeping the Swift source as a
+single composition property. A declaration such as `var location: GeoPoint?` expects the Core Data
+model to expose a top-level `location` composite attribute.
 
 ## Decode Failure Policy
 

@@ -8,6 +8,40 @@ public struct Coordinate {
     "longitude": .init(swiftPath: ["longitude"], persistentPath: ["lng"])
   ]
 
+  public static let __cdFieldTable: [String: CoreDataEvolution.CDFieldMeta] = {
+    CoreDataEvolution.CDCompositionTableBuilder.makeModelFieldEntries(
+      modelSwiftPathPrefix: [],
+      modelPersistentPathPrefix: [],
+      composition: Self.self
+    )
+  }()
+
+  public enum Paths {
+  public static let latitude = CoreDataEvolution.CDPath<Coordinate, Double>(
+    swiftPath: ["latitude"],
+    persistentPath: ["lat"]
+  )
+
+  public static let longitude = CoreDataEvolution.CDPath<Coordinate, Double?>(
+    swiftPath: ["longitude"],
+    persistentPath: ["lng"]
+  )
+  }
+
+  public struct PathRoot: Sendable {
+  public var latitude: CoreDataEvolution.CDPath<Coordinate, Double> {
+    Paths.latitude
+  }
+
+  public var longitude: CoreDataEvolution.CDPath<Coordinate, Double?> {
+    Paths.longitude
+  }
+  }
+
+  public static var path: PathRoot {
+    .init()
+  }
+
   public static let __cdRuntimeCompositionFields: [CoreDataEvolution.CDRuntimeCompositionFieldSchema] = [
   .init(
     persistentName: "lat",
@@ -39,5 +73,5 @@ public struct Coordinate {
   }
 }
 
-extension Coordinate: CoreDataEvolution.CDCompositionPathProviding, CoreDataEvolution.CDCompositionValueCodable {
+extension Coordinate: CoreDataEvolution.CDCompositionPathProviding, CoreDataEvolution.CDCompositionValueCodable, CoreDataEvolution.CoreDataPathDSLProviding {
 }

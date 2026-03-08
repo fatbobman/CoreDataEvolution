@@ -6,6 +6,31 @@ struct Magnitude {
     "richter": .init(swiftPath: ["richter"], persistentPath: ["richter"])
   ]
 
+  static let __cdFieldTable: [String: CoreDataEvolution.CDFieldMeta] = {
+    CoreDataEvolution.CDCompositionTableBuilder.makeModelFieldEntries(
+      modelSwiftPathPrefix: [],
+      modelPersistentPathPrefix: [],
+      composition: Self.self
+    )
+  }()
+
+  enum Paths {
+  static let richter = CoreDataEvolution.CDPath<Magnitude, Double>(
+    swiftPath: ["richter"],
+    persistentPath: ["richter"]
+  )
+  }
+
+  struct PathRoot: Sendable {
+  var richter: CoreDataEvolution.CDPath<Magnitude, Double> {
+    Paths.richter
+  }
+  }
+
+  static var path: PathRoot {
+    .init()
+  }
+
   static let __cdRuntimeCompositionFields: [CoreDataEvolution.CDRuntimeCompositionFieldSchema] = [
   .init(
     persistentName: "richter",
@@ -48,5 +73,5 @@ struct Item {
   private static let __cd_attribute_validate_magnitude_composition: Void = CoreDataEvolution._CDAttributeMacroValidation.requireComposition(Magnitude.self)
 }
 
-extension Magnitude: CoreDataEvolution.CDCompositionPathProviding, CoreDataEvolution.CDCompositionValueCodable {
+extension Magnitude: CoreDataEvolution.CDCompositionPathProviding, CoreDataEvolution.CDCompositionValueCodable, CoreDataEvolution.CoreDataPathDSLProviding {
 }

@@ -292,10 +292,20 @@ func autoAttachedAttribute(
     if shouldRejectOptionalToManyRelationship(typeAnnotation.type, in: variable) {
       return nil
     }
+    let relationshipArguments: ParsedRelationshipDeclArguments?
+    if let relationshipAttribute = firstAttribute(named: "Relationship", in: variable),
+      case .success(let parsedRelationshipArguments) = parseRelationshipDeclArguments(
+        relationshipAttribute
+      )
+    {
+      relationshipArguments = parsedRelationshipArguments
+    } else {
+      relationshipArguments = nil
+    }
     if let relationship = parseRelationshipProperty(
       propertyName: pattern.identifier.text,
       type: typeAnnotation.type,
-      relationshipArguments: nil
+      relationshipArguments: relationshipArguments
     ) {
       guard hasMarkerAttribute("Relationship", in: variable) else {
         // Public relationship metadata is required before attaching @_CDRelationship. Missing

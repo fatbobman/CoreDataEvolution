@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24477" systemVersion="24A335" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="FlowProject" representedClassName="FlowProject" syncable="YES">
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" attributeType="String" defaultValueString=""/>
+        <relationship name="owned_tasks" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="FlowTask" inverseName="owner_project" inverseEntity="FlowTask"/>
+    </entity>
+    <entity name="FlowTask" representedClassName="FlowTask" syncable="YES">
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" attributeType="String" defaultValueString=""/>
+        <attribute name="created_at" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="status_raw" optional="YES" attributeType="String"/>
+        <attribute name="config_blob" optional="YES" attributeType="Binary"/>
+        <attribute name="tags_payload" optional="YES" attributeType="Transformable" valueTransformerName="FlowStringListTransformer"/>
+        <attribute name="location" optional="YES" attributeType="Composite" composite="FlowPoint"/>
+        <relationship name="owner_project" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="FlowProject" inverseName="owned_tasks" inverseEntity="FlowProject"/>
+    </entity>
+    <composite name="FlowPoint">
+        <attribute name="lat" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="lng" optional="YES" attributeType="Double" usesScalarValueType="YES"/>
+    </composite>
+    <elements>
+        <element name="FlowProject" positionX="-70" positionY="-20" width="128" height="89"/>
+        <element name="FlowTask" positionX="190" positionY="-20" width="128" height="164"/>
+    </elements>
+</model>

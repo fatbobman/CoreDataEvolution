@@ -54,7 +54,7 @@ struct BootstrapConfigServiceTests {
 
     let locationRule = try #require(itemRules["location"])
     #expect(locationRule.swiftName == nil)
-    #expect(locationRule.storageMethod == .transformed)
+    #expect(locationRule.storageMethod == nil)
     #expect(itemRelationshipRules["tag"]?.swiftName == nil)
 
     let json = try #require(String(data: result.jsonData, encoding: .utf8))

@@ -1,0 +1,135 @@
+{
+  "$schemaVersion": 1,
+  "generate": {
+    "modelPath": "Models/GeneratedFlowModel.xcdatamodeld",
+    "outputDir": "Sources/GeneratedModels",
+    "moduleName": "GeneratedModels",
+    "accessLevel": "public",
+    "singleFile": false,
+    "splitByEntity": true,
+    "overwrite": "all",
+    "cleanStale": true,
+    "dryRun": false,
+    "format": "none",
+    "generateInit": false,
+    "emitExtensionStubs": false,
+    "defaultDecodeFailurePolicy": "fallbackToDefaultValue",
+    "attributeRules": {
+      "FlowTask": {
+        "name": {
+          "swiftName": "title"
+        },
+        "created_at": {
+          "swiftName": "createdAt"
+        },
+        "status_raw": {
+          "swiftName": "status",
+          "swiftType": "FlowTaskStatus",
+          "storageMethod": "raw"
+        },
+        "config_blob": {
+          "swiftName": "config",
+          "swiftType": "FlowTaskConfig",
+          "storageMethod": "codable"
+        },
+        "tags_payload": {
+          "swiftName": "tags",
+          "swiftType": "[String]",
+          "storageMethod": "transformed",
+          "transformerType": "FlowStringListTransformer"
+        },
+        "location": {
+          "swiftType": "FlowPoint",
+          "storageMethod": "composition"
+        }
+      }
+    },
+    "relationshipRules": {
+      "FlowProject": {
+        "owned_tasks": {
+          "swiftName": "tasks"
+        }
+      },
+      "FlowTask": {
+        "owner_project": {
+          "swiftName": "project"
+        }
+      }
+    },
+    "compositionRules": {
+      "FlowPoint": {
+        "lat": {
+          "swiftName": "latitude"
+        },
+        "lng": {
+          "swiftName": "longitude"
+        }
+      }
+    }
+  },
+  "validate": {
+    "modelPath": "Models/GeneratedFlowModel.xcdatamodeld",
+    "sourceDir": "Sources/GeneratedModels",
+    "moduleName": "GeneratedModels",
+    "accessLevel": "public",
+    "singleFile": false,
+    "splitByEntity": true,
+    "level": "exact",
+    "report": "text",
+    "maxIssues": 50,
+    "generateInit": false,
+    "defaultDecodeFailurePolicy": "fallbackToDefaultValue",
+    "attributeRules": {
+      "FlowTask": {
+        "name": {
+          "swiftName": "title"
+        },
+        "created_at": {
+          "swiftName": "createdAt"
+        },
+        "status_raw": {
+          "swiftName": "status",
+          "swiftType": "FlowTaskStatus",
+          "storageMethod": "raw"
+        },
+        "config_blob": {
+          "swiftName": "config",
+          "swiftType": "FlowTaskConfig",
+          "storageMethod": "codable"
+        },
+        "tags_payload": {
+          "swiftName": "tags",
+          "swiftType": "[String]",
+          "storageMethod": "transformed",
+          "transformerType": "FlowStringListTransformer"
+        },
+        "location": {
+          "swiftType": "FlowPoint",
+          "storageMethod": "composition"
+        }
+      }
+    },
+    "relationshipRules": {
+      "FlowProject": {
+        "owned_tasks": {
+          "swiftName": "tasks"
+        }
+      },
+      "FlowTask": {
+        "owner_project": {
+          "swiftName": "project"
+        }
+      }
+    },
+    "compositionRules": {
+      "FlowPoint": {
+        "lat": {
+          "swiftName": "latitude"
+        },
+        "lng": {
+          "swiftName": "longitude"
+        }
+      }
+    }
+  }
+}

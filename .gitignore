@@ -1,5 +1,6 @@
 .DS_Store
 /.build
+**/.build/
 /Packages
 xcuserdata/
 DerivedData/
@@ -7,3 +8,4 @@ DerivedData/
 .netrc
 .vscode/
 *.resolved
+.cache/

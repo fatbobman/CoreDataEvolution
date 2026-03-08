@@ -1,0 +1,16 @@
+import CoreData
+import CoreDataEvolution
+
+@objc(FlowProject)
+@PersistentModel
+final class FlowProject: NSManagedObject {
+  @Relationship(persistentName: "owned_tasks", inverse: "owner_project", deleteRule: .nullify)
+  var tasks: Set<FlowTask>
+}
+
+@objc(FlowTask)
+@PersistentModel
+final class FlowTask: NSManagedObject {
+  @Relationship(persistentName: "owner_project", inverse: "owned_tasks", deleteRule: .nullify)
+  var project: FlowProject?
+}
