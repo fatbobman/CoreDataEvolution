@@ -15,14 +15,6 @@ let persistentModelMacroDomain = "CoreDataEvolution.PersistentModelMacro"
 
 struct PersistentModelArguments {
   let generateInit: Bool
-  let relationshipSetterPolicy: ParsedRelationshipGenerationPolicy
-  let relationshipCountPolicy: ParsedRelationshipGenerationPolicy
-}
-
-enum ParsedRelationshipGenerationPolicy: String {
-  case none
-  case warning
-  case plain
 }
 
 enum PersistentModelPropertyKind {

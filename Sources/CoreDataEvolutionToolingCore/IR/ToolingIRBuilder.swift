@@ -99,8 +99,6 @@ public enum ToolingIRBuilder {
       singleFile: request.singleFile,
       splitByEntity: request.splitByEntity,
       generateInit: request.generateInit,
-      relationshipSetterPolicy: request.relationshipSetterPolicy,
-      relationshipCountPolicy: request.relationshipCountPolicy,
       defaultDecodeFailurePolicy: request.defaultDecodeFailurePolicy
     )
 

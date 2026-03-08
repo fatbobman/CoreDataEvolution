@@ -30,7 +30,6 @@
 ### M1: Macro Skeleton + Hard Constraints
 
 - 完成 `@PersistentModel` 基本展开（`@objc` 规则校验、`CoreDataKeys` conformance、访问权限继承）
-- 完成 `@PersistentModel` 参数：`generateInit`、`relationshipSetterPolicy`、`relationshipCountPolicy`
 - 完成 `@Attribute` 的 `.default/.raw/.codable/.transformed/.composition` 展开，以及 `.unique/.transient` trait 语义
 - 完成 `@Composition` 宏：解析 struct 成员，生成 `[String: Any]` 字典组装/解构代码（`__cdDecodeComposition` / `__cdEncodeComposition`）
 - 完成 `@CompositionField(persistentName:)` 宏：为 composition leaf 提供持久化字段重命名能力
@@ -48,7 +47,6 @@
   - 关系属性名必须与 xcdatamodeld 一致，不支持重命名
   - 对多 getter 固定生成（不提供 getter policy）
   - `Array` to-many 永不生成 setter
-  - `Set` to-many 批量替换 helper 受 `relationshipSetterPolicy` 控制
 - 完成 `convenience init` 自动生成（可通过 `generateInit: false` 关闭）
 
 验收标准：
@@ -204,12 +202,9 @@
 
 已实现：
 
-- 参数解析：`generateInit` / `relationshipSetterPolicy` / `relationshipCountPolicy`
 - `Keys` / `Paths` / `PathRoot` / `path` / `__cdFieldTable`
 - 构造方法生成（仅非关系实例存储属性，含 `@Ignore`，无默认参数）
 - 关系 accessor 与 helper（通过内部 `@_CDRelationship`）
 - 关系声明基础诊断（to-many 不可选、to-one 必须可选）
-- `relationshipSetterPolicy: .warning` 对 setter 与 helper 的 deprecation 提示
 - 关系目标类型 `T: PersistentEntity` 约束（由 `_CDRelationshipMacroValidation.requirePersistentEntity` 编译期强制）
-- `relationshipCountPolicy` 在 v1 仅作规范引导（非 `.none` 给 warning，不生成 `*Count`）
 - `@objc(ClassName)` 显式声明强校验（缺失时报错；当前宏角色不支持自动注入类型属性）

@@ -107,8 +107,6 @@ struct InspectCLITests {
         headerTemplate: nil,
         emitExtensionStubs: false,
         generateInit: false,
-        relationshipSetterPolicy: ToolingRelationshipSetterPolicy.warning,
-        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
         defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy.fallbackToDefaultValue
       ),
       validate: nil

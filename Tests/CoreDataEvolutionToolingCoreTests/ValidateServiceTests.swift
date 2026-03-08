@@ -437,8 +437,6 @@ struct ValidateServiceTests {
       format: .none,
       headerTemplate: nil,
       generateInit: true,
-      relationshipSetterPolicy: .plain,
-      relationshipCountPolicy: .warning,
       defaultDecodeFailurePolicy: .debugAssertNil
     )
   }
@@ -486,8 +484,6 @@ struct ValidateServiceTests {
       splitByEntity: true,
       headerTemplate: nil,
       generateInit: true,
-      relationshipSetterPolicy: .plain,
-      relationshipCountPolicy: .warning,
       defaultDecodeFailurePolicy: .debugAssertNil,
       include: [],
       exclude: [],

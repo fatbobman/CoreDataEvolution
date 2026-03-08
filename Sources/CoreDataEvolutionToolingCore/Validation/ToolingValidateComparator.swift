@@ -210,22 +210,6 @@ public enum ToolingValidateComparator {
         )
       )
     }
-
-    if actual.relationshipSetterPolicy != expected.relationshipSetterPolicy {
-      diagnostics.append(
-        error(
-          "validate found relationshipSetterPolicy mismatch for '\(entityName)'. Expected '\(expected.relationshipSetterPolicy.rawValue)', found '\(actual.relationshipSetterPolicy.rawValue)'."
-        )
-      )
-    }
-
-    if actual.relationshipCountPolicy != expected.relationshipCountPolicy {
-      diagnostics.append(
-        error(
-          "validate found relationshipCountPolicy mismatch for '\(entityName)'. Expected '\(expected.relationshipCountPolicy.rawValue)', found '\(actual.relationshipCountPolicy.rawValue)'."
-        )
-      )
-    }
   }
 
   private static func compareAttribute(

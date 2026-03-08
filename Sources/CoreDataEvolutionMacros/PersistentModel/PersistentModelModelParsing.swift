@@ -194,6 +194,34 @@ func validateRelationshipAnnotations(
 
     let relationship = relationshipsByName[propertyName]
 
+    if let relationship,
+      case .toManySet = relationship.kind,
+      variable.bindings.first?.initializer != nil
+    {
+      MacroDiagnosticReporter.error(
+        "To-many relationship property '\(relationship.propertyName)' must not declare a default value. Use 'Set<T>' without '= []'.",
+        domain: persistentModelMacroDomain,
+        in: context,
+        node: variable
+      )
+      isValid = false
+      continue
+    }
+
+    if let relationship,
+      case .toManyArray = relationship.kind,
+      variable.bindings.first?.initializer != nil
+    {
+      MacroDiagnosticReporter.error(
+        "To-many relationship property '\(relationship.propertyName)' must not declare a default value. Use '[T]' without '= []'.",
+        domain: persistentModelMacroDomain,
+        in: context,
+        node: variable
+      )
+      isValid = false
+      continue
+    }
+
     if let relationshipAttribute {
       guard relationship != nil else {
         MacroDiagnosticReporter.error(
@@ -230,8 +258,7 @@ func validateRelationshipAnnotations(
 }
 
 func autoAttachedAttribute(
-  for variable: VariableDeclSyntax,
-  relationshipSetterPolicy: ParsedRelationshipGenerationPolicy
+  for variable: VariableDeclSyntax
 ) -> AttributeSyntax? {
   guard variable.bindingSpecifier.tokenKind == .keyword(.var) else {
     return nil
@@ -275,13 +302,8 @@ func autoAttachedAttribute(
         // @Relationship(...) is diagnosed later by validateRelationshipAnnotations(...).
         return nil
       }
-      if relationship.kind == .toManySet {
-        return
-          "@_CDRelationship(setterPolicy: \(raw: relationshipSetterPolicyExpression(relationshipSetterPolicy)), persistentName: \"\(raw: relationship.persistentName)\", _fromPersistentModel: true)"
-      } else {
-        return
-          "@_CDRelationship(persistentName: \"\(raw: relationship.persistentName)\", _fromPersistentModel: true)"
-      }
+      return
+        "@_CDRelationship(persistentName: \"\(raw: relationship.persistentName)\", _fromPersistentModel: true)"
     }
     if isLikelyMissingOptionalToOneRelationship(typeAnnotation.type) {
       return "@_CDRelationship(_fromPersistentModel: true)"
@@ -289,19 +311,6 @@ func autoAttachedAttribute(
   }
 
   return "@Attribute"
-}
-
-private func relationshipSetterPolicyExpression(_ policy: ParsedRelationshipGenerationPolicy)
-  -> String
-{
-  switch policy {
-  case .none:
-    return ".none"
-  case .warning:
-    return ".warning"
-  case .plain:
-    return ".plain"
-  }
 }
 
 private func parseRelationshipProperty(

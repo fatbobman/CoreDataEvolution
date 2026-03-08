@@ -27,8 +27,6 @@ extension ToolingAccessLevel: ExpressibleByArgument {
 
 extension ToolingOverwriteMode: ExpressibleByArgument {}
 extension ToolingFormatMode: ExpressibleByArgument {}
-extension ToolingRelationshipSetterPolicy: ExpressibleByArgument {}
-extension ToolingRelationshipCountPolicy: ExpressibleByArgument {}
 extension ToolingDecodeFailurePolicy: ExpressibleByArgument {}
 extension ToolingValidationLevel: ExpressibleByArgument {}
 extension ToolingReportFormat: ExpressibleByArgument {}

@@ -47,8 +47,6 @@ struct GenerateCLITests {
           headerTemplate: nil,
           emitExtensionStubs: false,
           generateInit: true,
-          relationshipSetterPolicy: .plain,
-          relationshipCountPolicy: .warning,
           defaultDecodeFailurePolicy: .debugAssertNil
         ),
         validate: nil

@@ -55,10 +55,6 @@ public func makeGenerateRequest(
     headerTemplate: headerTemplate,
     emitExtensionStubs: overrides.emitExtensionStubs ?? config.emitExtensionStubs ?? false,
     generateInit: overrides.generateInit ?? config.generateInit ?? false,
-    relationshipSetterPolicy: overrides.relationshipSetterPolicy
-      ?? config.relationshipSetterPolicy ?? .warning,
-    relationshipCountPolicy: overrides.relationshipCountPolicy
-      ?? config.relationshipCountPolicy ?? .none,
     defaultDecodeFailurePolicy: overrides.defaultDecodeFailurePolicy
       ?? config.defaultDecodeFailurePolicy ?? .fallbackToDefaultValue
   )

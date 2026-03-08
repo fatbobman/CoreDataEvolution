@@ -28,7 +28,7 @@ struct InitConfigServiceTests {
     #expect(text.contains("\"relationshipRules\""))
     #expect(text.contains("\"compositionRules\""))
     #expect(text.contains("\"Integer 64\""))
-    #expect(text.contains("\"relationshipSetterPolicy\""))
-    #expect(text.contains("\"warning\""))
+    #expect(text.contains("\"generateInit\""))
+    #expect(text.contains("\"conformance\""))
   }
 }

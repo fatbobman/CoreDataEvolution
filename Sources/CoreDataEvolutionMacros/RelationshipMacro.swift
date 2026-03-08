@@ -14,25 +14,6 @@ import SwiftSyntaxMacros
 
 public enum RelationshipMacro {}
 
-extension RelationshipMacro: PeerMacro {
-  public static func expansion(
-    of node: AttributeSyntax,
-    providingPeersOf declaration: some DeclSyntaxProtocol,
-    in context: some MacroExpansionContext
-  ) throws -> [DeclSyntax] {
-    guard
-      let info = buildRelationshipInfo(
-        from: node,
-        declaration: declaration,
-        context: context
-      )
-    else {
-      return []
-    }
-    return makeRelationshipValidationPeers(from: info)
-  }
-}
-
 extension RelationshipMacro: AccessorMacro {
   public static func expansion(
     of node: AttributeSyntax,
@@ -64,7 +45,6 @@ private struct RelationshipInfo {
   let propertyName: String
   let persistentName: String
   let kind: Kind
-  let setterPolicy: ParsedRelationshipGenerationPolicy
 }
 
 private func buildRelationshipInfo(
@@ -164,7 +144,6 @@ private func buildRelationshipInfo(
   }
 
   let propertyName = identifier.identifier.text
-  let setterPolicy = arguments.setterPolicy
   guard
     let kind = parseRelationshipKind(
       from: typeAnnotation.type,
@@ -177,13 +156,11 @@ private func buildRelationshipInfo(
   return RelationshipInfo(
     propertyName: propertyName,
     persistentName: arguments.persistentName ?? propertyName,
-    kind: kind,
-    setterPolicy: setterPolicy
+    kind: kind
   )
 }
 
 private struct ParsedRelationshipMacroArguments {
-  let setterPolicy: ParsedRelationshipGenerationPolicy
   let persistentName: String?
   let fromPersistentModel: Bool
 }
@@ -193,24 +170,17 @@ private func parseRelationshipMacroArguments(
 ) -> ParsedRelationshipMacroArguments {
   guard let list = node.arguments?.as(LabeledExprListSyntax.self) else {
     return ParsedRelationshipMacroArguments(
-      setterPolicy: ParsedRelationshipGenerationPolicy.none,
       persistentName: nil,
       fromPersistentModel: false
     )
   }
-  var setterPolicy: ParsedRelationshipGenerationPolicy = .none
   var persistentName: String?
   var fromPersistentModel = false
   for argument in list {
     guard let label = argument.label?.text else {
       continue
     }
-    if label == "setterPolicy" {
-      setterPolicy =
-        parseRelationshipGenerationPolicy(
-          from: argument.expression.trimmedDescription.replacingOccurrences(of: " ", with: "")
-        ) ?? .none
-    } else if label == "persistentName" {
+    if label == "persistentName" {
       if argument.expression.trimmedDescription == "nil" {
         persistentName = nil
       } else if let literal = argument.expression.as(StringLiteralExprSyntax.self),
@@ -226,7 +196,6 @@ private func parseRelationshipMacroArguments(
     }
   }
   return ParsedRelationshipMacroArguments(
-    setterPolicy: setterPolicy,
     persistentName: persistentName,
     fromPersistentModel: fromPersistentModel
   )
@@ -284,7 +253,7 @@ private func makeRelationshipAccessors(from info: RelationshipInfo) -> [Accessor
     ]
 
   case .toManySet(let targetTypeName):
-    var accessors: [AccessorDeclSyntax] = [
+    return [
       """
       get {
         (value(forKey: "\(raw: key)") as? NSSet)?
@@ -292,24 +261,13 @@ private func makeRelationshipAccessors(from info: RelationshipInfo) -> [Accessor
           .reduce(into: Set<\(raw: targetTypeName)>()) { $0.insert($1) }
           ?? []
       }
+      """,
       """
+      set {
+        setValue(NSSet(set: newValue), forKey: "\(raw: key)")
+      }
+      """,
     ]
-
-    if info.setterPolicy != .none {
-      // Keep the property setter plain even when the policy is `.warning`.
-      //
-      // The warning mode is surfaced through `@PersistentModel`-generated bulk helper methods
-      // (`replaceX(with:)`). Using a deprecated accessor setter here has triggered frontend
-      // crashes in real-world public generated targets.
-      accessors.append(
-        """
-        set {
-          setValue(NSSet(set: newValue), forKey: "\(raw: key)")
-        }
-        """
-      )
-    }
-    return accessors
 
   case .toManyArray(let targetTypeName):
     return [
@@ -319,22 +277,12 @@ private func makeRelationshipAccessors(from info: RelationshipInfo) -> [Accessor
           .compactMap { $0 as? \(raw: targetTypeName) }
           ?? []
       }
+      """,
       """
+      set {
+        setValue(NSOrderedSet(array: newValue), forKey: "\(raw: key)")
+      }
+      """,
     ]
   }
-}
-
-private func makeRelationshipValidationPeers(from info: RelationshipInfo) -> [DeclSyntax] {
-  let targetType: String
-  switch info.kind {
-  case .toOne(let targetTypeName), .toManySet(let targetTypeName), .toManyArray(let targetTypeName):
-    targetType = targetTypeName
-  }
-
-  let memberName = "__cd_relationship_validate_\(info.propertyName)_entity"
-  return [
-    """
-    private static let \(raw: memberName): Void = CoreDataEvolution._CDRelationshipMacroValidation.requirePersistentEntity(\(raw: targetType).self)
-    """
-  ]
 }

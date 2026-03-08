@@ -13,8 +13,6 @@ final class Item: NSManagedObject {
       setValue(newValue, forKey: "tag")
     }
   }
-
-  private static let __cd_relationship_validate_tag_entity: Void = CoreDataEvolution._CDRelationshipMacroValidation.requirePersistentEntity(Tag.self)
   var tags: Set<Tag> {
     get {
       (value(forKey: "tags") as? NSSet)?
@@ -26,13 +24,10 @@ final class Item: NSManagedObject {
       }
         ?? []
     }
-    @available(*, deprecated, message: "Bulk to-many setter may hide relationship mutation costs. Prefer add/remove helpers.")
     set {
       setValue(NSSet(set: newValue), forKey: "tags")
     }
   }
-
-  private static let __cd_relationship_validate_tags_entity: Void = CoreDataEvolution._CDRelationshipMacroValidation.requirePersistentEntity(Tag.self)
   var orderedCategories: [Category] {
     get {
       (value(forKey: "orderedCategories") as? NSOrderedSet)?
@@ -41,7 +36,8 @@ final class Item: NSManagedObject {
       }
         ?? []
     }
+    set {
+      setValue(NSOrderedSet(array: newValue), forKey: "orderedCategories")
+    }
   }
-
-  private static let __cd_relationship_validate_orderedCategories_entity: Void = CoreDataEvolution._CDRelationshipMacroValidation.requirePersistentEntity(Category.self)
 }

@@ -27,12 +27,6 @@ public enum AttributeTrait {
   case transient
 }
 
-public enum RelationshipGenerationPolicy {
-  case none
-  case warning
-  case plain
-}
-
 public enum RelationshipDeleteRule: String, Sendable, Codable {
   case nullify
   case cascade
@@ -81,9 +75,7 @@ public macro Relationship(
 ) = #externalMacro(module: "CoreDataEvolutionMacros", type: "PublicRelationshipMacro")
 
 @attached(accessor)
-@attached(peer, names: arbitrary)
 public macro _CDRelationship(
-  setterPolicy: RelationshipGenerationPolicy = .none,
   persistentName: String? = nil,
   _fromPersistentModel: Bool = false
 ) = #externalMacro(module: "CoreDataEvolutionMacros", type: "RelationshipMacro")
@@ -92,9 +84,7 @@ public macro _CDRelationship(
 @attached(member, names: arbitrary, named(__cdRuntimeEntitySchema))
 @attached(extension, conformances: PersistentEntity, CDRuntimeSchemaProviding)
 public macro PersistentModel(
-  generateInit: Bool = false,
-  relationshipSetterPolicy: RelationshipGenerationPolicy = .none,
-  relationshipCountPolicy: RelationshipGenerationPolicy = .none
+  generateInit: Bool = false
 ) = #externalMacro(module: "CoreDataEvolutionMacros", type: "PersistentModelMacro")
 
 @attached(accessor)

@@ -865,7 +865,6 @@ enum ItemStatus: String {
 }
 
 @objc(Item)
-@PersistentModel(generateInit: true, relationshipSetterPolicy: .warning)
 final class Item: NSManagedObject {
   @Attribute(.unique)
   var slug: String = ""

@@ -50,7 +50,6 @@
 - `[x]` 校验 `attributeRules` 指向不存在的 entity / field
 - `[x]` 将 CLI 可覆盖参数改为可区分“未传入”
 - `[x]` 为 `inspect` 请求补充 `momcBin`
-- `[x]` 拆分 `relationshipSetterPolicy` 与 `relationshipCountPolicy` 枚举
 - `[x]` bootstrap-config 写回实际解析出的 `modelVersion`
 
 ## 3. IR
@@ -76,8 +75,6 @@
 - `[x]` 根据 `attributeRules` 生成重命名属性
 - `[x]` 根据 `attributeRules` 生成类型与 storage method 覆盖
 - `[x]` 支持 `generateInit`
-- `[x]` 支持 `relationshipSetterPolicy`
-- `[x]` 支持 `relationshipCountPolicy`
 - `[x]` 接线 `headerTemplate` 文件解析与 CLI/config 输入
 
 ## 5. File Planning And Writing

@@ -58,12 +58,6 @@ struct ValidateCommand: ParsableCommand {
     help: "Whether generated source is expected to include a convenience init (true/false).")
   var generateInit: Bool?
 
-  @Option(name: .long, help: "Expected relationship setter policy: none/warning/plain.")
-  var relationshipSetterPolicy: ToolingRelationshipSetterPolicy?
-
-  @Option(name: .long, help: "Expected relationship count policy: none/warning/plain.")
-  var relationshipCountPolicy: ToolingRelationshipCountPolicy?
-
   @Option(
     name: .long, help: "Expected decode failure policy: fallbackToDefaultValue/debugAssertNil.")
   var defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy?

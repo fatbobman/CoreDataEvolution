@@ -165,7 +165,7 @@ var category: Category    // ❌ 编译期报错
 
 | 属性类型 | 识别为 | 底层类型 | 生成内容 |
 |---|---|---|---|
-| `Set<T>` 且 T 符合 `PersistentEntity` | 无序对多 | `NSSet` | getter（`?? []`）+ 增删便利方法 + setter（由主宏策略控制，默认不生成） |
+| `Set<T>` 且 T 符合 `PersistentEntity` | 无序对多 | `NSSet` | getter（`?? []`）+ 增删便利方法 |
 | `[T]` 且 T 符合 `PersistentEntity` | 有序对多 | `NSOrderedSet` | getter（`?? []`）+ 增删便利方法，**永不生成 setter** |
 | `T?` 且 T 符合 `PersistentEntity` | 对一 | 直接引用 | getter/setter |
 
@@ -200,34 +200,17 @@ func tagsCount(in context: NSManagedObjectContext, item: Item) throws -> Int {
 }
 ```
 
-对多关系相关代码的生成行为通过主宏参数控制：
+对多关系相关代码的生成行为当前是固定的：
 
 ```swift
 @PersistentModel(
-    relationshipSetterPolicy: .none,       // 仅影响 Set<T>：plain / warning / none
-    relationshipCountPolicy: .none         // v1 仅作规范引导（不自动生成 *Count）
 )
 ```
 
-建议统一使用同一组策略值（命名可调整）：
-
-```swift
-enum RelationshipGenerationPolicy {
-    case none      // 不生成
-    case warning   // 生成，并在使用点给出编译期警告
-    case plain     // 生成，不附带警告
-}
-```
-
-策略语义：
-
-- 对多 getter（`Set<T>` / `[T]`）在 v1 固定生成，不提供独立策略
-- `relationshipSetterPolicy`：控制 `Set<T>` setter；当为 `.warning` 时，setter 与批量替换 helper 都会带 deprecated 提示
-- `relationshipCountPolicy`：v1 不生成 `*Count`；当值非 `.none` 时给出 warning，引导使用 `context.count(for:)`
-
-当策略为 `.warning` 时，宏可通过 `@available(*, deprecated, message: "...")` 提示“该 API 可能带来性能或语义风险，优先使用 add/remove 或 fetch”。
-
-`[T]`（有序对多，`NSOrderedSet`）无论策略为何值都**不生成 setter**，只能通过关系便利方法显式增删。
+- 对多 getter（`Set<T>` / `[T]`）当前固定生成，不提供独立策略开关。
+- 不生成任何 `*Count` 访问器，建议使用 `NSManagedObjectContext.count(for:)` + `NSPredicate`。
+- `Set<T>` 仅生成 `add/remove` 便利方法，不生成批量替换 helper。
+- `[T]`（有序对多，`NSOrderedSet`）同样只生成关系便利方法，不生成 setter。
 
 ### 关系支持 `persistentName`
 
@@ -354,7 +337,6 @@ func removeFromTags(_ tag: Tag) {
 }
 ```
 
-说明：`relationshipSetterPolicy` 仅作用于 `Set<T>` 关系；`[T]` 关系无论策略为何值都不生成 setter。
 
 **两侧一致性校验**：工具同时检查以下两点，任一不一致均报错：
 
@@ -664,7 +646,6 @@ final class Item: NSManagedObject, Identifiable, CoreDataKeys {
 ### @PersistentModel 状态
 
 1. 关系目标类型已在宏展开阶段强约束（`T: PersistentEntity`）。
-2. `relationshipCountPolicy` 在 v1 作为规范引导，不自动生成 `*Count`。
 
 ### 属性级错误策略（decodeFailurePolicy）
 

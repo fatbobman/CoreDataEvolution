@@ -89,8 +89,6 @@ struct ConfigLoadingAndMergingTests {
       format: .swiftFormat,
       headerTemplate: nil,
       generateInit: false,
-      relationshipSetterPolicy: .warning,
-      relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
       defaultDecodeFailurePolicy: .fallbackToDefaultValue
     )
     var overrides = GenerateRequestOverrides()
@@ -114,7 +112,6 @@ struct ConfigLoadingAndMergingTests {
     #expect(request.accessLevel == .public)
     #expect(request.overwrite == .all)
     #expect(request.generateInit)
-    #expect(request.relationshipSetterPolicy == .warning)
     #expect(request.outputDir.hasSuffix("/Generated/CoreDataEvolution"))
   }
 
@@ -163,8 +160,6 @@ struct ConfigLoadingAndMergingTests {
       splitByEntity: true,
       headerTemplate: nil,
       generateInit: false,
-      relationshipSetterPolicy: .warning,
-      relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
       defaultDecodeFailurePolicy: .fallbackToDefaultValue,
       include: [],
       exclude: [],
@@ -188,7 +183,6 @@ struct ConfigLoadingAndMergingTests {
     #expect(request.singleFile == false)
     #expect(request.splitByEntity == true)
     #expect(request.headerTemplate == nil)
-    #expect(request.relationshipSetterPolicy == .warning)
     #expect(request.defaultDecodeFailurePolicy == .fallbackToDefaultValue)
     #expect(request.level == .conformance)
     #expect(request.report == .text)
@@ -220,8 +214,6 @@ struct ConfigLoadingAndMergingTests {
       format: ToolingFormatMode.none,
       headerTemplate: "header.txt",
       generateInit: false,
-      relationshipSetterPolicy: .warning,
-      relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
       defaultDecodeFailurePolicy: .fallbackToDefaultValue
     )
 

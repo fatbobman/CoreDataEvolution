@@ -5,8 +5,6 @@ import Foundation
 @objc(Item)
 @PersistentModel(
   generateInit: true,
-  relationshipSetterPolicy: .plain,
-  relationshipCountPolicy: .none
 )
 final class Item: NSManagedObject {
   @Attribute(persistentName: "timestamp")

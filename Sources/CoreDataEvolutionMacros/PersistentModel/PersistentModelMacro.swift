@@ -79,15 +79,9 @@ extension PersistentModelMacro: MemberAttributeMacro {
       }
     }
 
-    let arguments = parsePersistentModelArguments(
-      from: node,
-      context: context,
-      emitDiagnostics: false
-    )
     guard
       let attribute = autoAttachedAttribute(
-        for: variable,
-        relationshipSetterPolicy: arguments?.relationshipSetterPolicy ?? .none
+        for: variable
       )
     else {
       return []
@@ -140,15 +134,6 @@ extension PersistentModelMacro: MemberMacro {
     else {
       return []
     }
-    if arguments.relationshipCountPolicy != .none {
-      MacroDiagnosticReporter.warning(
-        "@PersistentModel `relationshipCountPolicy` is guidance-only in v1. No `*Count` accessors are generated. Use NSManagedObjectContext.count(for:) with NSPredicate.",
-        domain: persistentModelMacroDomain,
-        id: "relationship-count-guidance",
-        in: context,
-        node: node
-      )
-    }
 
     let accessModifier = witnessAccessModifierText(from: declaration)
     let modelTypeName = classDecl.name.text
@@ -186,6 +171,10 @@ extension PersistentModelMacro: MemberMacro {
         model: model
       )
     )
+    members += makeRelationshipTargetValidationDecls(
+      accessModifier: accessModifier,
+      model: model
+    )
     members.append(
       makeRuntimeEntitySchemaDecl(
         accessModifier: accessModifier,
@@ -205,8 +194,7 @@ extension PersistentModelMacro: MemberMacro {
 
     members += makeToManyHelpers(
       accessModifier: accessModifier,
-      model: model,
-      setterPolicy: arguments.relationshipSetterPolicy
+      model: model
     )
     return members
   }

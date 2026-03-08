@@ -72,12 +72,6 @@ struct GenerateCommand: ParsableCommand {
   @Option(name: .long, help: "Whether to generate a convenience init (true/false).")
   var generateInit: Bool?
 
-  @Option(name: .long, help: "Relationship setter policy: none/warning/plain.")
-  var relationshipSetterPolicy: ToolingRelationshipSetterPolicy?
-
-  @Option(name: .long, help: "Relationship count policy: none/warning/plain.")
-  var relationshipCountPolicy: ToolingRelationshipCountPolicy?
-
   @Option(name: .long, help: "Decode failure policy: fallbackToDefaultValue/debugAssertNil.")
   var defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy?
 

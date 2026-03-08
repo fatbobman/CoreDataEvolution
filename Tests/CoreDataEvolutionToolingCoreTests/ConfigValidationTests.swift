@@ -37,8 +37,6 @@ struct ConfigValidationTests {
         format: ToolingFormatMode.none,
         headerTemplate: nil,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       validate: nil
@@ -79,8 +77,6 @@ struct ConfigValidationTests {
         format: ToolingFormatMode.none,
         headerTemplate: nil,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       validate: nil
@@ -120,8 +116,6 @@ struct ConfigValidationTests {
         format: ToolingFormatMode.none,
         headerTemplate: nil,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       validate: nil
@@ -157,8 +151,6 @@ struct ConfigValidationTests {
         format: ToolingFormatMode.none,
         headerTemplate: nil,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       validate: nil
@@ -197,8 +189,6 @@ struct ConfigValidationTests {
         format: ToolingFormatMode.none,
         headerTemplate: nil,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       validate: nil
@@ -233,8 +223,6 @@ struct ConfigValidationTests {
         format: ToolingFormatMode.none,
         headerTemplate: nil,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       validate: nil
@@ -274,8 +262,6 @@ struct ConfigValidationTests {
         format: ToolingFormatMode.none,
         headerTemplate: nil,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       validate: nil
@@ -311,8 +297,6 @@ struct ConfigValidationTests {
         format: ToolingFormatMode.none,
         headerTemplate: nil,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       validate: nil
@@ -351,8 +335,6 @@ struct ConfigValidationTests {
         headerTemplate: nil,
         emitExtensionStubs: false,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       validate: nil
@@ -388,8 +370,6 @@ struct ConfigValidationTests {
         headerTemplate: nil,
         emitExtensionStubs: false,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       validate: nil
@@ -425,8 +405,6 @@ struct ConfigValidationTests {
         headerTemplate: nil,
         emitExtensionStubs: false,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       validate: nil
@@ -475,8 +453,6 @@ struct ConfigValidationTests {
         headerTemplate: nil,
         emitExtensionStubs: false,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       validate: nil
@@ -525,8 +501,6 @@ struct ConfigValidationTests {
         headerTemplate: nil,
         emitExtensionStubs: false,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       validate: nil
@@ -557,8 +531,6 @@ struct ConfigValidationTests {
         format: ToolingFormatMode.none,
         headerTemplate: nil,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       validate: nil
@@ -707,8 +679,6 @@ struct ConfigValidationTests {
         format: ToolingFormatMode.none,
         headerTemplate: nil,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       validate: nil

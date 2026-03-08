@@ -78,28 +78,17 @@ Runtime schema / runtime model builder 的 v1 边界：
 
 - 宏生成的所有代码（计算属性、便利方法、`Keys`、`Paths`、`__cdFieldTable`、构造方法）严格继承类型本身的访问权限，不自动提升或降低。
 
-关系生成策略参数（统一枚举）：
-
-```swift
-enum RelationshipGenerationPolicy { case none, warning, plain }
-```
-
 ```swift
 @PersistentModel(
   generateInit: false,
-  relationshipSetterPolicy: .none,   // 仅对 Set<T> 生效
-  relationshipCountPolicy: .none
 )
 ```
 
 当前策略语义：
 
-- 对多 getter（`Set<T>` / `[T]`）在 v1 **固定生成**，不提供单独策略开关。
-- `relationshipSetterPolicy` 影响 `Set<T>` 的属性 setter 以及批量替换 helper（`replaceXxx(with:)`）。
-- `relationshipCountPolicy` 在 v1 为“规范引导参数”：
-  - 非 `.none` 会给出 warning 提示
-  - 不生成任何 `*Count` 访问器
-  - 推荐改用 `NSManagedObjectContext.count(for:)` + `NSPredicate`
+- 对多 getter（`Set<T>` / `[T]`）当前固定生成，不提供单独策略开关。
+- 不生成任何 `*Count` 访问器，推荐改用 `NSManagedObjectContext.count(for:)` + `NSPredicate`。
+- `Set<T>` 仅生成 `add/remove` 便利方法，不生成批量替换 helper。
 
 ### `@Attribute`
 
@@ -226,14 +215,12 @@ relationship declaration 规则：
 
 ### Getter / Setter
 
-- `Set<T>` getter 固定生成，批量 setter helper 由 `relationshipSetterPolicy` 控制。  
 - `[T]` getter 固定生成，setter 永不生成。  
 - `T?` 生成 getter/setter。  
 
 ### Count
 
-- v1 不自动生成 `*Count`。  
-- 若配置 `relationshipCountPolicy != .none`，宏会给出“请使用 `context.count(for:)`”的 warning 引导。  
+- 当前不自动生成 `*Count`。  
 
 ## 5. Constructor Contract
 
@@ -308,7 +295,6 @@ NSPredicate(format: "%K == %@", Item.Keys.status.rawValue, status.rawValue)
    验证：`swift build`
 2. **Doc align**：统一参数与策略说明（无 `relationshipGetterPolicy`）。  
    验证：文档自检 + `rg "relationshipGetterPolicy"`
-3. **Argument parser**：修复并覆盖 `relationshipCountPolicy` / `.none` 解析。  
    验证：`swift test --filter MacroDiagnosticTests` + `swift test --filter MacroExpansionSnapshotTests`
 4. **Snapshot baseline**：补齐 `PersistentModelBasic` 快照。  
    验证：`UPDATE_SNAPSHOTS=1 swift test --filter MacroExpansionSnapshotTests` 后再次无更新模式运行
@@ -321,7 +307,6 @@ NSPredicate(format: "%K == %@", Item.Keys.status.rawValue, status.rawValue)
 
 1. `@objc` 规则：改为“显式声明强校验”（非自动注入）。
 2. 关系目标类型：宏展开阶段已强制 `T: PersistentEntity`。
-3. `relationshipCountPolicy`：改为规范引导 warning，不自动生成 `*Count`。
 
 ## 11. Runtime Schema For Tests / Debugging (Planned)
 

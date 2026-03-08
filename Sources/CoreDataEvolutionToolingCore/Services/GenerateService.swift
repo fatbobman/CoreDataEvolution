@@ -89,8 +89,6 @@ public enum GenerateService {
       headerTemplate: request.headerTemplate,
       emitExtensionStubs: request.emitExtensionStubs,
       generateInit: request.generateInit,
-      relationshipSetterPolicy: request.relationshipSetterPolicy,
-      relationshipCountPolicy: request.relationshipCountPolicy,
       defaultDecodeFailurePolicy: request.defaultDecodeFailurePolicy
     )
 

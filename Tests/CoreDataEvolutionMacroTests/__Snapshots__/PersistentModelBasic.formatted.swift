@@ -44,8 +44,6 @@ final class Item: NSManagedObject {
       setValue(NSSet(set: newValue), forKey: "tags")
     }
   }
-
-  private static let __cd_relationship_validate_tags_entity: Void = CoreDataEvolution._CDRelationshipMacroValidation.requirePersistentEntity(Tag.self)
   var orderedTags: [Tag] {
     get {
       (value(forKey: "orderedTags") as? NSOrderedSet)?
@@ -54,9 +52,10 @@ final class Item: NSManagedObject {
       }
         ?? []
     }
+    set {
+      setValue(NSOrderedSet(array: newValue), forKey: "orderedTags")
+    }
   }
-
-  private static let __cd_relationship_validate_orderedTags_entity: Void = CoreDataEvolution._CDRelationshipMacroValidation.requirePersistentEntity(Tag.self)
   var category: Category? {
     get {
       value(forKey: "category") as? Category
@@ -65,8 +64,6 @@ final class Item: NSManagedObject {
       setValue(newValue, forKey: "category")
     }
   }
-
-  private static let __cd_relationship_validate_category_entity: Void = CoreDataEvolution._CDRelationshipMacroValidation.requirePersistentEntity(Category.self)
 
   enum Keys: String {
     case date = "timestamp"
@@ -215,6 +212,12 @@ final class Item: NSManagedObject {
     return table
   }()
 
+  static let __cd_relationship_validate_tags_entity: Void = CoreDataEvolution._CDRelationshipMacroValidation.requirePersistentEntity(Tag.self)
+
+  static let __cd_relationship_validate_orderedTags_entity: Void = CoreDataEvolution._CDRelationshipMacroValidation.requirePersistentEntity(Tag.self)
+
+  static let __cd_relationship_validate_category_entity: Void = CoreDataEvolution._CDRelationshipMacroValidation.requirePersistentEntity(Category.self)
+
   static var __cdRuntimeEntitySchema: CoreDataEvolution.CDRuntimeEntitySchema {
     .init(
       entityName: "Item",
@@ -291,10 +294,6 @@ final class Item: NSManagedObject {
 
   func removeFromTags(_ value: Tag) {
     mutableSetValue(forKey: "tags").remove(value)
-  }
-
-  func replaceTags(with values: Set<Tag>) {
-    setValue(NSSet(set: values), forKey: "tags")
   }
 
   func addToOrderedTags(_ value: Tag) {

@@ -38,8 +38,6 @@ enum ValidateCommandSupport {
         makeAbsoluteURL(fromCLIPath: $0).path
       }
       overrides.generateInit = command.generateInit
-      overrides.relationshipSetterPolicy = command.relationshipSetterPolicy
-      overrides.relationshipCountPolicy = command.relationshipCountPolicy
       overrides.defaultDecodeFailurePolicy = command.defaultDecodeFailurePolicy
       overrides.include = splitCSVPatterns(command.include)
       overrides.exclude = splitCSVPatterns(command.exclude)
@@ -87,8 +85,6 @@ enum ValidateCommandSupport {
       splitByEntity: command.splitByEntity,
       headerTemplate: command.headerTemplate.map { makeAbsoluteURL(fromCLIPath: $0).path },
       generateInit: command.generateInit,
-      relationshipSetterPolicy: command.relationshipSetterPolicy,
-      relationshipCountPolicy: command.relationshipCountPolicy,
       defaultDecodeFailurePolicy: command.defaultDecodeFailurePolicy,
       include: splitCSVPatterns(command.include),
       exclude: splitCSVPatterns(command.exclude),

@@ -19,7 +19,17 @@ func makeKeysDecl(
   if attributes.isEmpty {
     return
       """
-      \(raw: accessModifier)enum Keys {}
+      \(raw: accessModifier)enum Keys: RawRepresentable {
+        \(raw: accessModifier)typealias RawValue = String
+
+        \(raw: accessModifier)init?(rawValue: String) {
+          return nil
+        }
+
+        \(raw: accessModifier)var rawValue: String {
+          switch self {}
+        }
+      }
       """
   }
   let rows = attributes.map { attribute in
@@ -254,6 +264,18 @@ func makeFieldTableDecl(
     """
 }
 
+func makeRelationshipTargetValidationDecls(
+  accessModifier: String,
+  model: PersistentModelAnalysis
+) -> [DeclSyntax] {
+  model.relationships.map { relationship in
+    return
+      """
+      \(raw: accessModifier)static let __cd_relationship_validate_\(raw: relationship.propertyName)_entity: Void = CoreDataEvolution._CDRelationshipMacroValidation.requirePersistentEntity(\(raw: relationship.targetTypeName).self)
+      """
+  }
+}
+
 func makeRuntimeEntitySchemaDecl(
   accessModifier: String,
   modelTypeName: String,
@@ -367,8 +389,7 @@ func makeInitDecl(
 
 func makeToManyHelpers(
   accessModifier: String,
-  model: PersistentModelAnalysis,
-  setterPolicy: ParsedRelationshipGenerationPolicy
+  model: PersistentModelAnalysis
 ) -> [DeclSyntax] {
   var result: [DeclSyntax] = []
   for relation in model.relationships {
@@ -393,26 +414,6 @@ func makeToManyHelpers(
         }
         """
       )
-      if setterPolicy != .none {
-        if setterPolicy == .warning {
-          result.append(
-            """
-            @available(*, deprecated, message: "Bulk to-many setter may hide relationship mutation costs. Prefer add/remove helpers.")
-            \(raw: accessModifier)func replace\(raw: suffix)(with values: Set<\(raw: type)>) {
-              setValue(NSSet(set: values), forKey: "\(raw: key)")
-            }
-            """
-          )
-        } else {
-          result.append(
-            """
-            \(raw: accessModifier)func replace\(raw: suffix)(with values: Set<\(raw: type)>) {
-              setValue(NSSet(set: values), forKey: "\(raw: key)")
-            }
-            """
-          )
-        }
-      }
     case .toManyArray:
       result.append(
         """

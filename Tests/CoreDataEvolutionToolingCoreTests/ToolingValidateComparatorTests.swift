@@ -28,8 +28,6 @@ struct ToolingValidateComparatorTests {
             objcEntityName: "Document",
             persistentModelArguments: .init(
               generateInit: false,
-              relationshipSetterPolicy: .warning,
-              relationshipCountPolicy: .none
             ),
             properties: [
               .init(
@@ -97,8 +95,6 @@ struct ToolingValidateComparatorTests {
             objcEntityName: "Document",
             persistentModelArguments: .init(
               generateInit: false,
-              relationshipSetterPolicy: .warning,
-              relationshipCountPolicy: .none
             ),
             properties: [
               .init(
@@ -192,8 +188,6 @@ struct ToolingValidateComparatorTests {
             objcEntityName: "Document",
             persistentModelArguments: .init(
               generateInit: false,
-              relationshipSetterPolicy: .warning,
-              relationshipCountPolicy: .none
             ),
             properties: [
               .init(
@@ -242,8 +236,6 @@ struct ToolingValidateComparatorTests {
             objcEntityName: "Document",
             persistentModelArguments: .init(
               generateInit: false,
-              relationshipSetterPolicy: .warning,
-              relationshipCountPolicy: .none
             ),
             properties: [
               .init(
@@ -334,8 +326,6 @@ struct ToolingValidateComparatorTests {
           objcEntityName: "Owner",
           persistentModelArguments: .init(
             generateInit: false,
-            relationshipSetterPolicy: .warning,
-            relationshipCountPolicy: .none
           ),
           properties: [
             .init(
@@ -397,8 +387,6 @@ private func ambiguousRelationshipModelIR() -> ToolingModelIR {
       singleFile: false,
       splitByEntity: true,
       generateInit: false,
-      relationshipSetterPolicy: .warning,
-      relationshipCountPolicy: .none,
       defaultDecodeFailurePolicy: .fallbackToDefaultValue
     ),
     entities: [

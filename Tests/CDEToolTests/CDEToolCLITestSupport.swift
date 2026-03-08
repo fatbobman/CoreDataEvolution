@@ -213,8 +213,6 @@ func makeGenerateRequest(outputDirectory: String, modelPath: String) -> Generate
     format: .none,
     headerTemplate: nil,
     generateInit: true,
-    relationshipSetterPolicy: .plain,
-    relationshipCountPolicy: .warning,
     defaultDecodeFailurePolicy: .debugAssertNil
   )
 }

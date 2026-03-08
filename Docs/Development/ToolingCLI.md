@@ -194,8 +194,6 @@ v1 的版本与发行策略分为两层：
     "format": "none",
     "headerTemplate": null,
     "generateInit": false,
-    "relationshipSetterPolicy": "warning",
-    "relationshipCountPolicy": "none",
     "defaultDecodeFailurePolicy": "fallbackToDefaultValue"
   },
   "validate": {
@@ -519,8 +517,6 @@ v1 的版本与发行策略分为两层：
 
 默认值差异说明：
 
-- CLI `generate` 默认 `relationshipSetterPolicy = warning`（更保守，优先提示关系批量写入成本）。
-- `@PersistentModel` 宏本身默认 `relationshipSetterPolicy = .none`。
 - 这是有意差异：CLI 作为“代码生成入口”采用更安全默认值，宏保持最小侵入默认行为。
 
 ### 4.5 `generate` 配置约束（schema 级别）
@@ -546,8 +542,6 @@ v1 的版本与发行策略分为两层：
   - CLI 显式传入的相对路径相对当前工作目录解析。
 - `emitExtensionStubs`: optional, bool，默认 `false`。
 - `generateInit`: optional, bool，默认 `false`。
-- `relationshipSetterPolicy`: optional, enum(`none`,`warning`,`plain`)，默认 `warning`。
-- `relationshipCountPolicy`: optional, enum(`none`,`warning`,`plain`)，默认 `none`。
 - `defaultDecodeFailurePolicy`: optional, enum(`fallbackToDefaultValue`,`debugAssertNil`)，默认 `fallbackToDefaultValue`。
 
 ## 5. `validate` 参数设计（v1）
@@ -609,8 +603,6 @@ v1 的版本与发行策略分为两层：
 - `headerTemplate`: optional, string/null，默认 `null`。
 - `emitExtensionStubs`: optional, bool，默认 `false`。
 - `generateInit`: optional, bool，默认 `false`。
-- `relationshipSetterPolicy`: optional, enum(`none`,`warning`,`plain`)，默认 `warning`。
-- `relationshipCountPolicy`: optional, enum(`none`,`warning`,`plain`)，默认 `none`。
 - `defaultDecodeFailurePolicy`: optional, enum(`fallbackToDefaultValue`,`debugAssertNil`)，默认 `fallbackToDefaultValue`。
 - `include`: optional, array<string>，默认 `[]`。
 - `exclude`: optional, array<string>，默认 `[]`。

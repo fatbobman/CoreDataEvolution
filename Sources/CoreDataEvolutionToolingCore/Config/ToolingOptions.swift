@@ -29,18 +29,6 @@ public enum ToolingFormatMode: String, Codable, Sendable, Equatable {
   case swiftformat
 }
 
-public enum ToolingRelationshipSetterPolicy: String, Codable, Sendable, Equatable {
-  case none
-  case warning
-  case plain
-}
-
-public enum ToolingRelationshipCountPolicy: String, Codable, Sendable, Equatable {
-  case none
-  case warning
-  case plain
-}
-
 public enum ToolingDecodeFailurePolicy: String, Codable, Sendable, Equatable {
   case fallbackToDefaultValue
   case debugAssertNil

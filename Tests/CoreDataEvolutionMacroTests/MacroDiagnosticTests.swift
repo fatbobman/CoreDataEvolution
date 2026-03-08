@@ -167,14 +167,13 @@ struct MacroDiagnosticTests {
       })
   }
 
-  @Test("PersistentModel count policy emits guidance and no count accessors")
-  func persistentModelCountPolicyEmitsGuidanceAndNoCountAccessors() throws {
+  @Test("PersistentModel does not generate count accessors for to-many relationships")
+  func persistentModelDoesNotGenerateCountAccessors() throws {
     let result = try MacroTestSupport.expand(
       source: """
         import CoreData
         import CoreDataEvolution
         @objc(Item)
-        @PersistentModel(relationshipCountPolicy: .plain)
         final class Item: NSManagedObject {
           @Relationship(inverse: "items", deleteRule: .nullify)
           var tags: Set<Tag>
@@ -183,22 +182,18 @@ struct MacroDiagnosticTests {
         }
         """
     )
-    #expect(
-      result.diagnostics.contains {
-        $0.contains("relationshipCountPolicy` is guidance-only in v1")
-      })
+    #expect(result.diagnostics.isEmpty)
     #expect(result.expandedSource.contains("var tagsCount: Int") == false)
     #expect(result.expandedSource.contains("var orderedTagsCount: Int") == false)
   }
 
-  @Test("PersistentModel warning setter policy marks to-many setter deprecated")
-  func persistentModelWarningSetterPolicyMarksToManySetterDeprecated() throws {
+  @Test("PersistentModel does not generate bulk replacement helpers for to-many relationships")
+  func persistentModelDoesNotGenerateBulkReplacementHelpers() throws {
     let result = try MacroTestSupport.expand(
       source: """
         import CoreData
         import CoreDataEvolution
         @objc(Item)
-        @PersistentModel(relationshipSetterPolicy: .warning)
         final class Item: NSManagedObject {
           @Relationship(inverse: "items", deleteRule: .nullify)
           var tags: Set<Tag>
@@ -206,11 +201,29 @@ struct MacroDiagnosticTests {
         """
     )
     #expect(result.diagnostics.isEmpty)
+    #expect(result.expandedSource.contains("func replaceTags(with values: Set<Tag>)") == false)
     #expect(
-      result.expandedSource.contains(
-        "Bulk to-many setter may hide relationship mutation costs. Prefer add/remove helpers."))
-    #expect(result.expandedSource.contains("\\nfunc replaceTags") == false)
-    #expect(result.expandedSource.contains("setValue(NSSet(set: newValue), forKey: \"tags\")"))
+      result.expandedSource.contains("setValue(NSSet(set: newValue), forKey: \"tags\")") == false)
+  }
+
+  @Test("PersistentModel rejects default values on to-many relationships")
+  func persistentModelRejectsDefaultValuesOnToManyRelationships() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        @objc(Item)
+        @PersistentModel
+        final class Item: NSManagedObject {
+          @Relationship(inverse: "items", deleteRule: .nullify)
+          var tags: Set<Tag> = []
+        }
+        """
+    )
+    #expect(
+      result.diagnostics.contains {
+        $0.contains("must not declare a default value")
+      })
   }
 
   @Test("PersistentModel validates relationship target as PersistentEntity")

@@ -30,8 +30,6 @@ struct ToolingSourceRendererTests {
         singleFile: false,
         splitByEntity: true,
         generateInit: true,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: .none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       entities: [
@@ -125,7 +123,6 @@ struct ToolingSourceRendererTests {
     #expect(rendered.contains("// GENERATED"))
     #expect(rendered.contains("@objc(Item)"))
     #expect(rendered.contains("@PersistentModel("))
-    #expect(rendered.contains("relationshipSetterPolicy: .warning"))
     #expect(rendered.contains(#"@Attribute(persistentName: "name")"#))
     #expect(
       rendered.contains(
@@ -157,8 +154,6 @@ struct ToolingSourceRendererTests {
         singleFile: false,
         splitByEntity: true,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: .none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       entities: [
@@ -222,8 +217,6 @@ struct ToolingSourceRendererTests {
         singleFile: false,
         splitByEntity: true,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: .none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       entities: [
@@ -275,8 +268,6 @@ struct ToolingSourceRendererTests {
         singleFile: false,
         splitByEntity: true,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: .none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       entities: [
@@ -332,8 +323,6 @@ struct ToolingSourceRendererTests {
         singleFile: false,
         splitByEntity: true,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: .none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       entities: [
@@ -389,8 +378,6 @@ struct ToolingSourceRendererTests {
         singleFile: false,
         splitByEntity: true,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: .none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       entities: [
@@ -441,8 +428,6 @@ struct ToolingSourceRendererTests {
         singleFile: false,
         splitByEntity: true,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: .none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       entities: [

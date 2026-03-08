@@ -69,8 +69,6 @@ public struct GenerateRequest: Sendable, Equatable {
   public let headerTemplate: String?
   public let emitExtensionStubs: Bool
   public let generateInit: Bool
-  public let relationshipSetterPolicy: ToolingRelationshipSetterPolicy
-  public let relationshipCountPolicy: ToolingRelationshipCountPolicy
   public let defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy
 
   public init(
@@ -93,8 +91,6 @@ public struct GenerateRequest: Sendable, Equatable {
     headerTemplate: String?,
     emitExtensionStubs: Bool = false,
     generateInit: Bool,
-    relationshipSetterPolicy: ToolingRelationshipSetterPolicy,
-    relationshipCountPolicy: ToolingRelationshipCountPolicy,
     defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy
   ) {
     self.modelPath = modelPath
@@ -116,8 +112,6 @@ public struct GenerateRequest: Sendable, Equatable {
     self.headerTemplate = headerTemplate
     self.emitExtensionStubs = emitExtensionStubs
     self.generateInit = generateInit
-    self.relationshipSetterPolicy = relationshipSetterPolicy
-    self.relationshipCountPolicy = relationshipCountPolicy
     self.defaultDecodeFailurePolicy = defaultDecodeFailurePolicy
   }
 }
@@ -138,8 +132,6 @@ public struct ValidateRequest: Sendable, Equatable {
   public let splitByEntity: Bool
   public let headerTemplate: String?
   public let generateInit: Bool
-  public let relationshipSetterPolicy: ToolingRelationshipSetterPolicy
-  public let relationshipCountPolicy: ToolingRelationshipCountPolicy
   public let defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy
   public let include: [String]
   public let exclude: [String]
@@ -163,8 +155,6 @@ public struct ValidateRequest: Sendable, Equatable {
     splitByEntity: Bool,
     headerTemplate: String?,
     generateInit: Bool,
-    relationshipSetterPolicy: ToolingRelationshipSetterPolicy,
-    relationshipCountPolicy: ToolingRelationshipCountPolicy,
     defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy,
     include: [String],
     exclude: [String],
@@ -187,8 +177,6 @@ public struct ValidateRequest: Sendable, Equatable {
     self.splitByEntity = splitByEntity
     self.headerTemplate = headerTemplate
     self.generateInit = generateInit
-    self.relationshipSetterPolicy = relationshipSetterPolicy
-    self.relationshipCountPolicy = relationshipCountPolicy
     self.defaultDecodeFailurePolicy = defaultDecodeFailurePolicy
     self.include = include
     self.exclude = exclude
@@ -212,8 +200,6 @@ public struct InspectRequest: Sendable, Equatable {
   public let singleFile: Bool
   public let splitByEntity: Bool
   public let generateInit: Bool
-  public let relationshipSetterPolicy: ToolingRelationshipSetterPolicy
-  public let relationshipCountPolicy: ToolingRelationshipCountPolicy
   public let defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy
 
   public init(
@@ -228,8 +214,6 @@ public struct InspectRequest: Sendable, Equatable {
     singleFile: Bool = false,
     splitByEntity: Bool = true,
     generateInit: Bool = false,
-    relationshipSetterPolicy: ToolingRelationshipSetterPolicy = .warning,
-    relationshipCountPolicy: ToolingRelationshipCountPolicy = .none,
     defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy = .fallbackToDefaultValue
   ) {
     self.modelPath = modelPath
@@ -243,8 +227,6 @@ public struct InspectRequest: Sendable, Equatable {
     self.singleFile = singleFile
     self.splitByEntity = splitByEntity
     self.generateInit = generateInit
-    self.relationshipSetterPolicy = relationshipSetterPolicy
-    self.relationshipCountPolicy = relationshipCountPolicy
     self.defaultDecodeFailurePolicy = defaultDecodeFailurePolicy
   }
 }
@@ -264,8 +246,6 @@ extension InspectRequest {
       singleFile: generateRequest.singleFile,
       splitByEntity: generateRequest.splitByEntity,
       generateInit: generateRequest.generateInit,
-      relationshipSetterPolicy: generateRequest.relationshipSetterPolicy,
-      relationshipCountPolicy: generateRequest.relationshipCountPolicy,
       defaultDecodeFailurePolicy: generateRequest.defaultDecodeFailurePolicy
     )
   }
@@ -284,8 +264,6 @@ extension InspectRequest {
       singleFile: validateRequest.singleFile,
       splitByEntity: validateRequest.splitByEntity,
       generateInit: validateRequest.generateInit,
-      relationshipSetterPolicy: validateRequest.relationshipSetterPolicy,
-      relationshipCountPolicy: validateRequest.relationshipCountPolicy,
       defaultDecodeFailurePolicy: validateRequest.defaultDecodeFailurePolicy
     )
   }
@@ -308,8 +286,6 @@ public struct GenerateRequestOverrides: Sendable, Equatable {
   public var headerTemplate: String?
   public var emitExtensionStubs: Bool?
   public var generateInit: Bool?
-  public var relationshipSetterPolicy: ToolingRelationshipSetterPolicy?
-  public var relationshipCountPolicy: ToolingRelationshipCountPolicy?
   public var defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy?
 
   public init() {}
@@ -327,8 +303,6 @@ public struct ValidateRequestOverrides: Sendable, Equatable {
   public var splitByEntity: Bool?
   public var headerTemplate: String?
   public var generateInit: Bool?
-  public var relationshipSetterPolicy: ToolingRelationshipSetterPolicy?
-  public var relationshipCountPolicy: ToolingRelationshipCountPolicy?
   public var defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy?
   public var include: [String]?
   public var exclude: [String]?

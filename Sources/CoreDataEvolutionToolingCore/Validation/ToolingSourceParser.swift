@@ -258,16 +258,10 @@ private func parsePersistentModelArguments(
   from attribute: AttributeSyntax
 ) -> ToolingSourcePersistentModelArgumentsIR {
   guard let list = attribute.arguments?.as(LabeledExprListSyntax.self) else {
-    return .init(
-      generateInit: false,
-      relationshipSetterPolicy: .none,
-      relationshipCountPolicy: .none
-    )
+    return .init(generateInit: false)
   }
 
   var generateInit = false
-  var setterPolicy: ToolingRelationshipSetterPolicy = .none
-  var countPolicy: ToolingRelationshipCountPolicy = .none
 
   for argument in list {
     guard let label = argument.label?.text else { continue }
@@ -276,20 +270,12 @@ private func parsePersistentModelArguments(
     switch label {
     case "generateInit":
       generateInit = raw == "true"
-    case "relationshipSetterPolicy":
-      setterPolicy = parseRelationshipSetterPolicy(from: raw) ?? .none
-    case "relationshipCountPolicy":
-      countPolicy = parseRelationshipCountPolicy(from: raw) ?? .none
     default:
       continue
     }
   }
 
-  return .init(
-    generateInit: generateInit,
-    relationshipSetterPolicy: setterPolicy,
-    relationshipCountPolicy: countPolicy
-  )
+  return .init(generateInit: generateInit)
 }
 
 private func parseAttributeAnnotation(
@@ -523,38 +509,6 @@ private func parseDecodeFailurePolicy(from raw: String) -> ToolingDecodeFailureP
   case ".debugAssertNil", "AttributeDecodeFailurePolicy.debugAssertNil",
     "CoreDataEvolution.AttributeDecodeFailurePolicy.debugAssertNil":
     return .debugAssertNil
-  default:
-    return nil
-  }
-}
-
-private func parseRelationshipSetterPolicy(from raw: String) -> ToolingRelationshipSetterPolicy? {
-  switch raw {
-  case ".none", "RelationshipGenerationPolicy.none",
-    "CoreDataEvolution.RelationshipGenerationPolicy.none":
-    return ToolingRelationshipSetterPolicy.none
-  case ".warning", "RelationshipGenerationPolicy.warning",
-    "CoreDataEvolution.RelationshipGenerationPolicy.warning":
-    return .warning
-  case ".plain", "RelationshipGenerationPolicy.plain",
-    "CoreDataEvolution.RelationshipGenerationPolicy.plain":
-    return .plain
-  default:
-    return nil
-  }
-}
-
-private func parseRelationshipCountPolicy(from raw: String) -> ToolingRelationshipCountPolicy? {
-  switch raw {
-  case ".none", "RelationshipGenerationPolicy.none",
-    "CoreDataEvolution.RelationshipGenerationPolicy.none":
-    return ToolingRelationshipCountPolicy.none
-  case ".warning", "RelationshipGenerationPolicy.warning",
-    "CoreDataEvolution.RelationshipGenerationPolicy.warning":
-    return .warning
-  case ".plain", "RelationshipGenerationPolicy.plain",
-    "CoreDataEvolution.RelationshipGenerationPolicy.plain":
-    return .plain
   default:
     return nil
   }

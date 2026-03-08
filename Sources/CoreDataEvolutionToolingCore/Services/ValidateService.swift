@@ -94,8 +94,6 @@ public enum ValidateService {
       splitByEntity: request.splitByEntity,
       headerTemplate: request.headerTemplate,
       generateInit: request.generateInit,
-      relationshipSetterPolicy: request.relationshipSetterPolicy,
-      relationshipCountPolicy: request.relationshipCountPolicy,
       defaultDecodeFailurePolicy: request.defaultDecodeFailurePolicy,
       include: request.include,
       exclude: request.exclude,

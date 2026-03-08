@@ -61,8 +61,6 @@ struct GenerateServiceTests {
         format: .none,
         headerTemplate: "// GENERATED",
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: .none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       )
     )
@@ -79,7 +77,6 @@ struct GenerateServiceTests {
     #expect(itemSource.suggestedFileName == "CDEItem+CoreDataEvolution.swift")
     #expect(itemSource.contents.contains("// GENERATED"))
     #expect(itemSource.contents.contains("@objc(CDEItem)"))
-    #expect(itemSource.contents.contains("@PersistentModel(relationshipSetterPolicy: .warning)"))
     #expect(itemSource.contents.contains(#"@Attribute(.unique, persistentName: "name")"#))
     #expect(itemSource.contents.contains(#"var title: String = """#))
     #expect(
@@ -153,8 +150,6 @@ struct GenerateServiceTests {
         format: .none,
         headerTemplate: nil,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: .none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       )
     )
@@ -208,8 +203,6 @@ struct GenerateServiceTests {
         format: .none,
         headerTemplate: nil,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: .none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       )
     )
@@ -256,8 +249,6 @@ struct GenerateServiceTests {
         headerTemplate: nil,
         emitExtensionStubs: true,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: .none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       )
     )
@@ -315,8 +306,6 @@ struct GenerateServiceTests {
         format: .none,
         headerTemplate: nil,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: .none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       )
     )

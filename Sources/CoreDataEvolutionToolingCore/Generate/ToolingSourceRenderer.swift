@@ -205,14 +205,6 @@ public enum ToolingSourceRenderer {
     if generationPolicy.generateInit {
       arguments.append("generateInit: true")
     }
-    if generationPolicy.relationshipSetterPolicy != .none {
-      arguments.append(
-        "relationshipSetterPolicy: .\(generationPolicy.relationshipSetterPolicy.rawValue)")
-    }
-    if generationPolicy.relationshipCountPolicy != .none {
-      arguments.append(
-        "relationshipCountPolicy: .\(generationPolicy.relationshipCountPolicy.rawValue)")
-    }
 
     guard arguments.isEmpty == false else {
       return "@PersistentModel"

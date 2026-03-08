@@ -63,8 +63,6 @@ public struct ToolingGenerationPolicyIR: Codable, Sendable, Equatable {
   public let singleFile: Bool
   public let splitByEntity: Bool
   public let generateInit: Bool
-  public let relationshipSetterPolicy: ToolingRelationshipSetterPolicy
-  public let relationshipCountPolicy: ToolingRelationshipCountPolicy
   public let defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy
 
   public init(
@@ -72,16 +70,12 @@ public struct ToolingGenerationPolicyIR: Codable, Sendable, Equatable {
     singleFile: Bool,
     splitByEntity: Bool,
     generateInit: Bool,
-    relationshipSetterPolicy: ToolingRelationshipSetterPolicy,
-    relationshipCountPolicy: ToolingRelationshipCountPolicy,
     defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy
   ) {
     self.accessLevel = accessLevel
     self.singleFile = singleFile
     self.splitByEntity = splitByEntity
     self.generateInit = generateInit
-    self.relationshipSetterPolicy = relationshipSetterPolicy
-    self.relationshipCountPolicy = relationshipCountPolicy
     self.defaultDecodeFailurePolicy = defaultDecodeFailurePolicy
   }
 }

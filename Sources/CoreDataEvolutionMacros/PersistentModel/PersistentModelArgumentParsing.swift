@@ -18,16 +18,10 @@ func parsePersistentModelArguments(
   emitDiagnostics: Bool = true
 ) -> PersistentModelArguments? {
   guard let list = node.arguments?.as(LabeledExprListSyntax.self) else {
-    return PersistentModelArguments(
-      generateInit: false,
-      relationshipSetterPolicy: .none,
-      relationshipCountPolicy: .none
-    )
+    return PersistentModelArguments(generateInit: false)
   }
 
   var generateInit = false
-  var setter: ParsedRelationshipGenerationPolicy = .none
-  var count: ParsedRelationshipGenerationPolicy = .none
 
   for argument in list {
     guard let label = argument.label?.text else { continue }
@@ -45,40 +39,6 @@ func parsePersistentModelArguments(
         return nil
       }
       generateInit = bool.literal.text == "true"
-    case "relationshipSetterPolicy":
-      guard
-        let policy = parseRelationshipGenerationPolicy(
-          from: argument.expression.trimmedDescription.replacingOccurrences(of: " ", with: "")
-        )
-      else {
-        if emitDiagnostics {
-          MacroDiagnosticReporter.error(
-            "@PersistentModel `relationshipSetterPolicy` only supports .none, .warning, .plain.",
-            domain: persistentModelMacroDomain,
-            in: context,
-            node: argument.expression
-          )
-        }
-        return nil
-      }
-      setter = policy
-    case "relationshipCountPolicy":
-      guard
-        let policy = parseRelationshipGenerationPolicy(
-          from: argument.expression.trimmedDescription.replacingOccurrences(of: " ", with: "")
-        )
-      else {
-        if emitDiagnostics {
-          MacroDiagnosticReporter.error(
-            "@PersistentModel `relationshipCountPolicy` only supports .none, .warning, .plain.",
-            domain: persistentModelMacroDomain,
-            in: context,
-            node: argument.expression
-          )
-        }
-        return nil
-      }
-      count = policy
     default:
       if emitDiagnostics {
         MacroDiagnosticReporter.error(
@@ -92,9 +52,5 @@ func parsePersistentModelArguments(
     }
   }
 
-  return PersistentModelArguments(
-    generateInit: generateInit,
-    relationshipSetterPolicy: setter,
-    relationshipCountPolicy: count
-  )
+  return PersistentModelArguments(generateInit: generateInit)
 }

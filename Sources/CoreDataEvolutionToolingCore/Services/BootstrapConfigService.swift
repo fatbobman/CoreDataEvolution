@@ -60,8 +60,6 @@ public enum BootstrapConfigService {
         headerTemplate: nil,
         emitExtensionStubs: false,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       validate: .init(
@@ -79,8 +77,6 @@ public enum BootstrapConfigService {
         splitByEntity: true,
         headerTemplate: nil,
         generateInit: false,
-        relationshipSetterPolicy: .warning,
-        relationshipCountPolicy: ToolingRelationshipCountPolicy.none,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue,
         include: [],
         exclude: [],

@@ -87,7 +87,6 @@ struct ToolingIRBuilderTests {
     )
 
     #expect(result.modelIR.source.selectedVersionName == "V2.xcdatamodel")
-    #expect(result.modelIR.generationPolicy.relationshipSetterPolicy == .warning)
 
     let item = try #require(result.modelIR.entities.first(where: { $0.name == "Item" }))
     let title = try #require(item.attributes.first(where: { $0.persistentName == "name" }))
