@@ -166,7 +166,6 @@ Guide:
 ### SwiftData-style actor isolation for Core Data
 
 ```swift
-import CoreData
 import CoreDataEvolution
 
 @NSModelActor
