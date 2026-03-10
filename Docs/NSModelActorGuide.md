@@ -254,7 +254,7 @@ This keeps the mutation path realistic while still allowing direct assertions.
 If you are testing macro-generated runtime schema instead of `.xcdatamodeld`, use:
 
 ```swift
-let container = try NSPersistentContainer.makeRuntimeTest(Item.self, Tag.self)
+let container = try NSPersistentContainer.makeRuntimeTest(modelTypes: Item.self, Tag.self)
 ```
 
 That path is intended for test and debug workflows only. It is not a replacement for production

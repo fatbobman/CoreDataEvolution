@@ -85,10 +85,13 @@ For a valid model type, the macro generates:
 
 - `Keys`
 - `Paths`
+- `PathRoot`
 - `path`
 - `__cdFieldTable`
 - `__cdRelationshipProjectionTable`
+- internal relationship-target validation helpers
 - `__cdRuntimeEntitySchema`
+- conditional `fetchRequest()` when the type does not already declare one
 - optional convenience `init(...)` when `generateInit: true`
 - to-many add/remove helpers
 - `PersistentEntity` conformance
@@ -956,6 +959,7 @@ enum ItemStatus: String {
 }
 
 @objc(Item)
+@PersistentModel
 final class Item: NSManagedObject {
   @Attribute(.unique)
   var slug: String = ""

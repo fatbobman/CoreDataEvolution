@@ -329,7 +329,7 @@ Use `generate` when:
 
 Useful flags:
 
-- `--dry-run`
+- `--dry-run true`
   - show planned writes without touching disk
 - `--single-file true`
   - emit one managed file
@@ -475,8 +475,12 @@ cde-tool inspect \
 Or with config:
 
 ```bash
-cde-tool inspect --config cde-tool.json
+cde-tool inspect \
+  --model-path Models/AppModel.xcdatamodeld \
+  --config cde-tool.json
 ```
+
+`--config` can supply generation rules, but `inspect` still requires `--model-path`.
 
 Use `inspect` when:
 
@@ -541,8 +545,19 @@ Examples:
 
 ```bash
 cde-tool init-config --output cde-tool.json
+cde-tool init-config --output cde-tool.json --preset minimal
+cde-tool init-config --output cde-tool.json --force
 cde-tool init-config --stdout
 ```
+
+Useful options:
+
+- `--preset minimal`
+  - emit a smaller starter template
+- `--preset full`
+  - emit the full template; this is the default
+- `--force`
+  - overwrite an existing config file when writing to disk
 
 ## What the Tool Does Not Do
 
