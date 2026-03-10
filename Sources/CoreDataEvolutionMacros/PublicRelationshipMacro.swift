@@ -19,77 +19,46 @@ public enum PublicRelationshipMacro: PeerMacro {
     providingPeersOf declaration: some DeclSyntaxProtocol,
     in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
-    guard let variable = declaration.as(VariableDeclSyntax.self) else {
-      MacroDiagnosticReporter.error(
-        "@Relationship can only be attached to a `var` property declaration.",
+    let messages = StoredPropertyValidationMessages(
+      nonVariableDeclaration: "@Relationship can only be attached to a `var` property declaration.",
+      notVar: "@Relationship can only be attached to a stored `var` relationship property.",
+      staticOrClass: "@Relationship only supports instance stored `var` relationship properties.",
+      lazy: "@Relationship does not support lazy properties.",
+      multipleBindings: "@Relationship must be attached to a single property declaration.",
+      computed: "@Relationship can only be attached to a stored `var` relationship property.",
+      nonIdentifierPattern: "@Relationship can only be attached to relationship properties.",
+      missingTypeAnnotation: "@Relationship property must declare an explicit type annotation."
+    )
+
+    let variable: VariableDeclSyntax
+    switch validateStoredPropertyVariable(declaration) {
+    case .success(let parsedVariable):
+      variable = parsedVariable
+    case .failure(let failure):
+      emitStoredPropertyValidationFailure(
+        failure,
+        messages: messages,
         domain: "CoreDataEvolution.PublicRelationshipMacro",
-        in: context,
-        node: declaration
+        in: context
       )
       return []
     }
 
-    guard variable.bindingSpecifier.tokenKind == .keyword(.var) else {
-      MacroDiagnosticReporter.error(
-        "@Relationship can only be attached to a stored `var` relationship property.",
+    let parsedBinding: ValidatedStoredPropertyBinding
+    switch validateSingleStoredPropertyBinding(in: variable) {
+    case .success(let binding):
+      parsedBinding = binding
+    case .failure(let failure):
+      emitStoredPropertyValidationFailure(
+        failure,
+        messages: messages,
         domain: "CoreDataEvolution.PublicRelationshipMacro",
-        in: context,
-        node: variable
+        in: context
       )
       return []
     }
 
-    if variable.modifiers.contains(where: { $0.name.text == "static" || $0.name.text == "class" }) {
-      MacroDiagnosticReporter.error(
-        "@Relationship only supports instance stored `var` relationship properties.",
-        domain: "CoreDataEvolution.PublicRelationshipMacro",
-        in: context,
-        node: variable
-      )
-      return []
-    }
-
-    if variable.modifiers.contains(where: { $0.name.text == "lazy" }) {
-      MacroDiagnosticReporter.error(
-        "@Relationship does not support lazy properties.",
-        domain: "CoreDataEvolution.PublicRelationshipMacro",
-        in: context,
-        node: variable
-      )
-      return []
-    }
-
-    guard variable.bindings.count == 1, let binding = variable.bindings.first else {
-      MacroDiagnosticReporter.error(
-        "@Relationship must be attached to a single property declaration.",
-        domain: "CoreDataEvolution.PublicRelationshipMacro",
-        in: context,
-        node: variable
-      )
-      return []
-    }
-
-    if binding.accessorBlock != nil {
-      MacroDiagnosticReporter.error(
-        "@Relationship can only be attached to a stored `var` relationship property.",
-        domain: "CoreDataEvolution.PublicRelationshipMacro",
-        in: context,
-        node: binding
-      )
-      return []
-    }
-
-    guard let typeAnnotation = binding.typeAnnotation else {
-      MacroDiagnosticReporter.error(
-        "@Relationship property must declare an explicit type annotation.",
-        domain: "CoreDataEvolution.PublicRelationshipMacro",
-        in: context,
-        node: binding.pattern
-      )
-      return []
-    }
-
-    guard parseRelationshipKindForPublicMacro(from: typeAnnotation.type) != nil else {
+    guard parseRelationshipKindForPublicMacro(from: parsedBinding.typeAnnotation.type) != nil else {
       MacroDiagnosticReporter.error(
         "@Relationship can only be attached to relationship properties.",
         domain: "CoreDataEvolution.PublicRelationshipMacro",

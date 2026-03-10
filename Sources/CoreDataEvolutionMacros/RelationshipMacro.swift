@@ -52,82 +52,44 @@ private func buildRelationshipInfo(
   declaration: some DeclSyntaxProtocol,
   context: some MacroExpansionContext
 ) -> RelationshipInfo? {
-  guard let variable = declaration.as(VariableDeclSyntax.self) else {
-    MacroDiagnosticReporter.error(
+  let messages = StoredPropertyValidationMessages(
+    nonVariableDeclaration:
       "@_CDRelationship can only be attached to an instance stored `var` relationship property.",
-      domain: relationshipMacroDomain,
-      in: context,
-      node: declaration
-    )
-    return nil
-  }
-
-  guard variable.bindingSpecifier.tokenKind == .keyword(.var) else {
-    MacroDiagnosticReporter.error(
+    notVar:
       "@_CDRelationship can only be attached to an instance stored `var` relationship property.",
-      domain: relationshipMacroDomain,
-      in: context,
-      node: variable
-    )
-    return nil
-  }
-
-  if variable.modifiers.contains(where: { $0.name.text == "static" || $0.name.text == "class" }) {
-    MacroDiagnosticReporter.error(
-      "@_CDRelationship only supports instance stored `var` properties.",
-      domain: relationshipMacroDomain,
-      in: context,
-      node: variable
-    )
-    return nil
-  }
-
-  if variable.modifiers.contains(where: { $0.name.text == "lazy" }) {
-    MacroDiagnosticReporter.error(
-      "@_CDRelationship does not support lazy properties.",
-      domain: relationshipMacroDomain,
-      in: context,
-      node: variable
-    )
-    return nil
-  }
-
-  guard variable.bindings.count == 1, let binding = variable.bindings.first else {
-    MacroDiagnosticReporter.error(
-      "@_CDRelationship must be attached to a single property declaration.",
-      domain: relationshipMacroDomain,
-      in: context,
-      node: variable
-    )
-    return nil
-  }
-
-  if binding.accessorBlock != nil {
-    MacroDiagnosticReporter.error(
+    staticOrClass: "@_CDRelationship only supports instance stored `var` properties.",
+    lazy: "@_CDRelationship does not support lazy properties.",
+    multipleBindings: "@_CDRelationship must be attached to a single property declaration.",
+    computed:
       "@_CDRelationship can only be attached to an instance stored `var` relationship property.",
+    nonIdentifierPattern: "@_CDRelationship only supports simple identifier properties.",
+    missingTypeAnnotation: "@_CDRelationship property must declare an explicit type annotation."
+  )
+
+  let variable: VariableDeclSyntax
+  switch validateStoredPropertyVariable(declaration) {
+  case .success(let parsedVariable):
+    variable = parsedVariable
+  case .failure(let failure):
+    emitStoredPropertyValidationFailure(
+      failure,
+      messages: messages,
       domain: relationshipMacroDomain,
-      in: context,
-      node: binding
+      in: context
     )
     return nil
   }
 
-  guard let identifier = binding.pattern.as(IdentifierPatternSyntax.self) else {
-    MacroDiagnosticReporter.error(
-      "@_CDRelationship only supports simple identifier properties.",
+  let parsedBinding: ValidatedStoredPropertyBinding
+  switch validateSingleStoredPropertyBinding(in: variable) {
+  case .success(let binding):
+    parsedBinding = binding
+  case .failure(let failure):
+    emitStoredPropertyValidationFailure(
+      failure,
+      messages: messages,
       domain: relationshipMacroDomain,
-      in: context,
-      node: binding.pattern
-    )
-    return nil
-  }
-
-  guard let typeAnnotation = binding.typeAnnotation else {
-    MacroDiagnosticReporter.error(
-      "@_CDRelationship property must declare an explicit type annotation.",
-      domain: relationshipMacroDomain,
-      in: context,
-      node: binding.pattern
+      in: context
     )
     return nil
   }
@@ -143,10 +105,10 @@ private func buildRelationshipInfo(
     return nil
   }
 
-  let propertyName = identifier.identifier.text
+  let propertyName = parsedBinding.identifierPattern.identifier.text
   guard
     let kind = parseRelationshipKind(
-      from: typeAnnotation.type,
+      from: parsedBinding.typeAnnotation.type,
       context: context
     )
   else {

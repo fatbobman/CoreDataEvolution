@@ -15,6 +15,19 @@ import SwiftSyntaxMacros
 
 public enum CompositionMacro {}
 
+private let compositionMacroDomain = "CoreDataEvolution.CompositionMacro"
+
+private let compositionStoredFieldMessages = StoredPropertyValidationMessages(
+  nonVariableDeclaration: "@Composition only supports instance stored properties.",
+  notVar: "@Composition only processes `var` stored properties.",
+  staticOrClass: "@Composition only supports instance stored properties.",
+  lazy: "@Composition does not support lazy stored properties.",
+  multipleBindings: "@CompositionField must be attached to a single stored property declaration.",
+  computed: "@Composition does not support computed properties or observing accessors.",
+  nonIdentifierPattern: "@Composition only supports simple identifier stored properties.",
+  missingTypeAnnotation: "@Composition fields must declare an explicit type."
+)
+
 extension CompositionMacro: ExtensionMacro {
   public static func expansion(
     of _: AttributeSyntax,
@@ -86,41 +99,24 @@ extension CompositionMacro: MemberMacro {
         in: variable.attributes
       )
 
-      if variable.modifiers.contains(where: { $0.name.text == "static" || $0.name.text == "class" })
-      {
-        MacroDiagnosticReporter.error(
-          "@Composition only supports instance stored properties.",
-          domain: "CoreDataEvolution.CompositionMacro",
-          in: context,
-          node: variable
+      switch validateStoredPropertyVariable(variable) {
+      case .success:
+        break
+      case .failure(let failure):
+        emitStoredPropertyValidationFailure(
+          failure,
+          messages: compositionStoredFieldMessages,
+          domain: compositionMacroDomain,
+          in: context
         )
         hasError = true
-      }
-
-      if variable.modifiers.contains(where: { $0.name.text == "lazy" }) {
-        MacroDiagnosticReporter.error(
-          "@Composition does not support lazy stored properties.",
-          domain: "CoreDataEvolution.CompositionMacro",
-          in: context,
-          node: variable
-        )
-        hasError = true
+        continue
       }
 
       if hasUnsupportedCompositionFieldAttributes(variable.attributes) {
         MacroDiagnosticReporter.error(
           "@Composition only supports @CompositionField on stored fields in v1.",
-          domain: "CoreDataEvolution.CompositionMacro",
-          in: context,
-          node: variable
-        )
-        hasError = true
-      }
-
-      if variable.bindingSpecifier.tokenKind != .keyword(.var) {
-        MacroDiagnosticReporter.error(
-          "@Composition only processes `var` stored properties.",
-          domain: "CoreDataEvolution.CompositionMacro",
+          domain: compositionMacroDomain,
           in: context,
           node: variable
         )
@@ -128,53 +124,38 @@ extension CompositionMacro: MemberMacro {
       }
 
       if compositionFieldAttribute != nil, variable.bindings.count != 1 {
-        MacroDiagnosticReporter.error(
-          "@CompositionField must be attached to a single stored property declaration.",
-          domain: "CoreDataEvolution.CompositionMacro",
-          in: context,
-          node: variable
+        emitStoredPropertyValidationFailure(
+          .init(reason: .multipleBindings, node: Syntax(variable)),
+          messages: compositionStoredFieldMessages,
+          domain: compositionMacroDomain,
+          in: context
         )
         hasError = true
       }
 
       for binding in variable.bindings {
-        guard let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self) else {
-          MacroDiagnosticReporter.error(
-            "@Composition only supports simple identifier stored properties.",
-            domain: "CoreDataEvolution.CompositionMacro",
-            in: context,
-            node: binding.pattern
+        let parsedBinding: ValidatedStoredPropertyBinding
+        switch validateStoredPropertyBinding(binding) {
+        case .success(let validatedBinding):
+          parsedBinding = validatedBinding
+        case .failure(let failure):
+          emitStoredPropertyValidationFailure(
+            failure,
+            messages: compositionStoredFieldMessages,
+            domain: compositionMacroDomain,
+            in: context
           )
           hasError = true
           continue
         }
 
-        guard let typeAnnotation = binding.typeAnnotation else {
-          MacroDiagnosticReporter.error(
-            "@Composition fields must declare an explicit type.",
-            domain: "CoreDataEvolution.CompositionMacro",
-            in: context,
-            node: binding.pattern
-          )
-          hasError = true
-          continue
-        }
-
-        if binding.accessorBlock != nil {
-          MacroDiagnosticReporter.error(
-            "@Composition does not support computed properties or observing accessors.",
-            domain: "CoreDataEvolution.CompositionMacro",
-            in: context,
-            node: binding
-          )
-          hasError = true
-          continue
-        }
+        let identifierPattern = parsedBinding.identifierPattern
+        let typeAnnotation = parsedBinding.typeAnnotation
 
         guard isAllowedFieldType(typeAnnotation.type) else {
           MacroDiagnosticReporter.error(
             "@Composition field type is unsupported in v1. Allowed: \(coreDataPrimitiveTypeListDescription()).",
-            domain: "CoreDataEvolution.CompositionMacro",
+            domain: compositionMacroDomain,
             in: context,
             node: typeAnnotation.type
           )

@@ -19,101 +19,52 @@ func buildAttributeInfo(
   emitDiagnostics: Bool,
   context: some MacroExpansionContext
 ) -> AttributeInfo? {
-  guard let variable = declaration.as(VariableDeclSyntax.self) else {
+  let messages = StoredPropertyValidationMessages(
+    nonVariableDeclaration: "@Attribute can only be attached to an instance stored `var` property.",
+    notVar: "@Attribute can only be attached to an instance stored `var` property.",
+    staticOrClass: "@Attribute only supports instance stored `var` properties.",
+    lazy: "@Attribute does not support lazy properties.",
+    multipleBindings: "@Attribute must be attached to a single property declaration.",
+    computed: "@Attribute can only be attached to an instance stored `var` property.",
+    nonIdentifierPattern: "@Attribute only supports simple identifier properties.",
+    missingTypeAnnotation: "@Attribute property must declare an explicit type annotation."
+  )
+
+  let variable: VariableDeclSyntax
+  switch validateStoredPropertyVariable(declaration) {
+  case .success(let parsedVariable):
+    variable = parsedVariable
+  case .failure(let failure):
     if emitDiagnostics {
-      MacroDiagnosticReporter.error(
-        "@Attribute can only be attached to an instance stored `var` property.",
+      emitStoredPropertyValidationFailure(
+        failure,
+        messages: messages,
         domain: attributeMacroDomain,
-        in: context,
-        node: declaration
+        in: context
       )
     }
     return nil
   }
 
-  guard variable.bindingSpecifier.tokenKind == .keyword(.var) else {
+  let parsedBinding: ValidatedStoredPropertyBinding
+  switch validateSingleStoredPropertyBinding(in: variable) {
+  case .success(let binding):
+    parsedBinding = binding
+  case .failure(let failure):
     if emitDiagnostics {
-      MacroDiagnosticReporter.error(
-        "@Attribute can only be attached to an instance stored `var` property.",
+      emitStoredPropertyValidationFailure(
+        failure,
+        messages: messages,
         domain: attributeMacroDomain,
-        in: context,
-        node: variable
+        in: context
       )
     }
     return nil
   }
 
-  if variable.modifiers.contains(where: { $0.name.text == "static" || $0.name.text == "class" }) {
-    if emitDiagnostics {
-      MacroDiagnosticReporter.error(
-        "@Attribute only supports instance stored `var` properties.",
-        domain: attributeMacroDomain,
-        in: context,
-        node: variable
-      )
-    }
-    return nil
-  }
-
-  if variable.modifiers.contains(where: { $0.name.text == "lazy" }) {
-    if emitDiagnostics {
-      MacroDiagnosticReporter.error(
-        "@Attribute does not support lazy properties.",
-        domain: attributeMacroDomain,
-        in: context,
-        node: variable
-      )
-    }
-    return nil
-  }
-
-  guard variable.bindings.count == 1, let binding = variable.bindings.first else {
-    if emitDiagnostics {
-      MacroDiagnosticReporter.error(
-        "@Attribute must be attached to a single property declaration.",
-        domain: attributeMacroDomain,
-        in: context,
-        node: variable
-      )
-    }
-    return nil
-  }
-
-  if binding.accessorBlock != nil {
-    if emitDiagnostics {
-      MacroDiagnosticReporter.error(
-        "@Attribute can only be attached to an instance stored `var` property.",
-        domain: attributeMacroDomain,
-        in: context,
-        node: binding
-      )
-    }
-    return nil
-  }
-
-  guard let identifierPattern = binding.pattern.as(IdentifierPatternSyntax.self) else {
-    if emitDiagnostics {
-      MacroDiagnosticReporter.error(
-        "@Attribute only supports simple identifier properties.",
-        domain: attributeMacroDomain,
-        in: context,
-        node: binding.pattern
-      )
-    }
-    return nil
-  }
-
-  guard let typeAnnotation = binding.typeAnnotation else {
-    if emitDiagnostics {
-      MacroDiagnosticReporter.error(
-        "@Attribute property must declare an explicit type annotation.",
-        domain: attributeMacroDomain,
-        in: context,
-        node: binding.pattern
-      )
-    }
-    return nil
-  }
+  let binding = parsedBinding.binding
+  let identifierPattern = parsedBinding.identifierPattern
+  let typeAnnotation = parsedBinding.typeAnnotation
 
   guard
     let arguments = parseAttributeArguments(

@@ -19,62 +19,43 @@ public enum CompositionFieldMacro: PeerMacro {
     providingPeersOf declaration: some DeclSyntaxProtocol,
     in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
-    guard let variable = declaration.as(VariableDeclSyntax.self) else {
-      MacroDiagnosticReporter.error(
+    let messages = StoredPropertyValidationMessages(
+      nonVariableDeclaration:
         "@CompositionField can only be attached to a `var` property declaration.",
-        domain: "CoreDataEvolution.CompositionFieldMacro",
-        in: context,
-        node: declaration
-      )
-      return []
-    }
-
-    guard variable.bindingSpecifier.tokenKind == .keyword(.var) else {
-      MacroDiagnosticReporter.error(
+      notVar: "@CompositionField can only be attached to a stored `var` composition field.",
+      staticOrClass: "@CompositionField only supports instance stored `var` fields.",
+      lazy: "@CompositionField does not support lazy properties.",
+      multipleBindings: "@CompositionField must be attached to a single property declaration.",
+      computed: "@CompositionField can only be attached to a stored `var` composition field.",
+      nonIdentifierPattern:
         "@CompositionField can only be attached to a stored `var` composition field.",
+      missingTypeAnnotation:
+        "@CompositionField can only be attached to a stored `var` composition field."
+    )
+
+    let variable: VariableDeclSyntax
+    switch validateStoredPropertyVariable(declaration) {
+    case .success(let parsedVariable):
+      variable = parsedVariable
+    case .failure(let failure):
+      emitStoredPropertyValidationFailure(
+        failure,
+        messages: messages,
         domain: "CoreDataEvolution.CompositionFieldMacro",
-        in: context,
-        node: variable
+        in: context
       )
       return []
     }
 
-    if variable.modifiers.contains(where: { $0.name.text == "static" || $0.name.text == "class" }) {
-      MacroDiagnosticReporter.error(
-        "@CompositionField only supports instance stored `var` fields.",
+    switch validateSingleStoredPropertyBinding(in: variable) {
+    case .success:
+      break
+    case .failure(let failure):
+      emitStoredPropertyValidationFailure(
+        failure,
+        messages: messages,
         domain: "CoreDataEvolution.CompositionFieldMacro",
-        in: context,
-        node: variable
-      )
-      return []
-    }
-
-    if variable.modifiers.contains(where: { $0.name.text == "lazy" }) {
-      MacroDiagnosticReporter.error(
-        "@CompositionField does not support lazy properties.",
-        domain: "CoreDataEvolution.CompositionFieldMacro",
-        in: context,
-        node: variable
-      )
-      return []
-    }
-
-    guard variable.bindings.count == 1, let binding = variable.bindings.first else {
-      MacroDiagnosticReporter.error(
-        "@CompositionField must be attached to a single property declaration.",
-        domain: "CoreDataEvolution.CompositionFieldMacro",
-        in: context,
-        node: variable
-      )
-      return []
-    }
-
-    if binding.accessorBlock != nil {
-      MacroDiagnosticReporter.error(
-        "@CompositionField can only be attached to a stored `var` composition field.",
-        domain: "CoreDataEvolution.CompositionFieldMacro",
-        in: context,
-        node: binding
+        in: context
       )
       return []
     }
