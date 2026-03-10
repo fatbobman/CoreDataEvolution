@@ -11,6 +11,25 @@
 
 import SwiftSyntax
 
+struct PersistentModelPathEntry: Equatable {
+  enum Kind: Equatable {
+    case attribute
+    case composition
+    case toOneRelationship
+    case toManyRelationship
+  }
+
+  let propertyName: String
+  let kind: Kind
+  let typeReference: String
+  let declaration: String
+}
+
+struct PersistentModelFieldTableRendering: Equatable {
+  let relationshipProjectionTableDecl: String
+  let fieldTableDecl: String
+}
+
 func makeKeysDecl(
   accessModifier: String,
   model: PersistentModelAnalysis
@@ -48,58 +67,13 @@ func makePathsDecl(
   modelTypeName: String,
   model: PersistentModelAnalysis
 ) -> DeclSyntax {
-  var lines: [String] = []
-
-  for attribute in model.attributes {
-    if attribute.storageMethod == .composition {
-      lines.append(
-        """
-        \(accessModifier)static let \(attribute.propertyName) = CoreDataEvolution.CDCompositionPath<\(modelTypeName), \(attribute.typeName), \(attribute.nonOptionalTypeName)>(
-          root: CoreDataEvolution.CDPath<\(modelTypeName), \(attribute.typeName)>(
-            swiftPath: ["\(attribute.propertyName)"],
-            persistentPath: ["\(attribute.persistentName)"],
-            storageMethod: .composition
-          )
-        )
-        """
-      )
-    } else {
-      lines.append(
-        """
-        \(accessModifier)static let \(attribute.propertyName) = CoreDataEvolution.CDPath<\(modelTypeName), \(attribute.typeName)>(
-          swiftPath: ["\(attribute.propertyName)"],
-          persistentPath: ["\(attribute.persistentName)"],
-          storageMethod: \(storageMethodExpression(attribute.storageMethod))
-        )
-        """
-      )
-    }
-  }
-
-  for relation in model.relationships {
-    switch relation.kind {
-    case .toOne:
-      lines.append(
-        """
-        \(accessModifier)static let \(relation.propertyName) = CoreDataEvolution.CDToOneRelationPath<\(modelTypeName), \(relation.targetTypeName)>(
-          swiftPath: ["\(relation.propertyName)"],
-          persistentPath: ["\(relation.persistentName)"]
-        )
-        """
-      )
-    case .toManySet, .toManyArray:
-      lines.append(
-        """
-        \(accessModifier)static let \(relation.propertyName) = CoreDataEvolution.CDToManyRelationPath<\(modelTypeName), \(relation.targetTypeName)>(
-          swiftPath: ["\(relation.propertyName)"],
-          persistentPath: ["\(relation.persistentName)"]
-        )
-        """
-      )
-    }
-  }
-
-  let body = lines.joined(separator: "\n\n")
+  let body = collectPersistentModelPathEntries(
+    accessModifier: accessModifier,
+    modelTypeName: modelTypeName,
+    model: model
+  )
+  .map(\.declaration)
+  .joined(separator: "\n\n")
   return
     """
     \(raw: accessModifier)enum Paths {
@@ -173,6 +147,108 @@ func makeFieldTableDecl(
   modelTypeName: String,
   model: PersistentModelAnalysis
 ) -> DeclSyntax {
+  let rendering = collectPersistentModelFieldTableRendering(
+    accessModifier: accessModifier,
+    model: model
+  )
+  return
+    """
+    \(raw: rendering.relationshipProjectionTableDecl)
+
+    \(raw: rendering.fieldTableDecl)
+    """
+}
+
+func collectPersistentModelPathEntries(
+  accessModifier: String,
+  modelTypeName: String,
+  model: PersistentModelAnalysis
+) -> [PersistentModelPathEntry] {
+  var entries: [PersistentModelPathEntry] = []
+
+  for attribute in model.attributes {
+    if attribute.storageMethod == .composition {
+      entries.append(
+        .init(
+          propertyName: attribute.propertyName,
+          kind: .composition,
+          typeReference:
+            "CoreDataEvolution.CDCompositionPath<\(modelTypeName), \(attribute.typeName), \(attribute.nonOptionalTypeName)>",
+          declaration:
+            """
+            \(accessModifier)static let \(attribute.propertyName) = CoreDataEvolution.CDCompositionPath<\(modelTypeName), \(attribute.typeName), \(attribute.nonOptionalTypeName)>(
+              root: CoreDataEvolution.CDPath<\(modelTypeName), \(attribute.typeName)>(
+                swiftPath: ["\(attribute.propertyName)"],
+                persistentPath: ["\(attribute.persistentName)"],
+                storageMethod: .composition
+              )
+            )
+            """
+        )
+      )
+    } else {
+      entries.append(
+        .init(
+          propertyName: attribute.propertyName,
+          kind: .attribute,
+          typeReference: "CoreDataEvolution.CDPath<\(modelTypeName), \(attribute.typeName)>",
+          declaration:
+            """
+            \(accessModifier)static let \(attribute.propertyName) = CoreDataEvolution.CDPath<\(modelTypeName), \(attribute.typeName)>(
+              swiftPath: ["\(attribute.propertyName)"],
+              persistentPath: ["\(attribute.persistentName)"],
+              storageMethod: \(storageMethodExpression(attribute.storageMethod))
+            )
+            """
+        )
+      )
+    }
+  }
+
+  for relation in model.relationships {
+    switch relation.kind {
+    case .toOne:
+      entries.append(
+        .init(
+          propertyName: relation.propertyName,
+          kind: .toOneRelationship,
+          typeReference:
+            "CoreDataEvolution.CDToOneRelationPath<\(modelTypeName), \(relation.targetTypeName)>",
+          declaration:
+            """
+            \(accessModifier)static let \(relation.propertyName) = CoreDataEvolution.CDToOneRelationPath<\(modelTypeName), \(relation.targetTypeName)>(
+              swiftPath: ["\(relation.propertyName)"],
+              persistentPath: ["\(relation.persistentName)"]
+            )
+            """
+        )
+      )
+    case .toManySet, .toManyArray:
+      entries.append(
+        .init(
+          propertyName: relation.propertyName,
+          kind: .toManyRelationship,
+          typeReference:
+            "CoreDataEvolution.CDToManyRelationPath<\(modelTypeName), \(relation.targetTypeName)>",
+          declaration:
+            """
+            \(accessModifier)static let \(relation.propertyName) = CoreDataEvolution.CDToManyRelationPath<\(modelTypeName), \(relation.targetTypeName)>(
+              swiftPath: ["\(relation.propertyName)"],
+              persistentPath: ["\(relation.persistentName)"]
+            )
+            """
+        )
+      )
+    }
+  }
+
+  return entries
+}
+
+func collectPersistentModelFieldTableRendering(
+  accessModifier: String,
+  model: PersistentModelAnalysis
+) -> PersistentModelFieldTableRendering {
   var attributeRows: [String] = []
   for attribute in model.attributes {
     let supportsStoreSort = supportsStoreSort(attribute.storageMethod)
@@ -260,26 +336,30 @@ func makeFieldTableDecl(
     }
   }
   let relationshipMergeBlock = relationshipMergeLines.joined(separator: "\n")
-  return
-    """
-    \(raw: accessModifier)static let __cdRelationshipProjectionTable: [String: CoreDataEvolution.CDFieldMeta] = {
-      var table: [String: CoreDataEvolution.CDFieldMeta] = \(raw: attributeTableLiteral)
-    \(raw: compositionMergeBlock)
-      return table
-    }()
-
-    \(raw: accessModifier)static let __cdFieldTable: [String: CoreDataEvolution.CDFieldMeta] = {
-      var table: [String: CoreDataEvolution.CDFieldMeta] = __cdRelationshipProjectionTable
-      table.merge(
-        [
-      \(raw: relationshipLiteralBody)
-        ],
-        uniquingKeysWith: { _, new in new }
-      )
-    \(raw: relationshipMergeBlock)
-      return table
-    }()
-    """
+  return .init(
+    relationshipProjectionTableDecl:
+      """
+      \(accessModifier)static let __cdRelationshipProjectionTable: [String: CoreDataEvolution.CDFieldMeta] = {
+        var table: [String: CoreDataEvolution.CDFieldMeta] = \(attributeTableLiteral)
+      \(compositionMergeBlock)
+        return table
+      }()
+      """,
+    fieldTableDecl:
+      """
+      \(accessModifier)static let __cdFieldTable: [String: CoreDataEvolution.CDFieldMeta] = {
+        var table: [String: CoreDataEvolution.CDFieldMeta] = __cdRelationshipProjectionTable
+        table.merge(
+          [
+        \(relationshipLiteralBody)
+          ],
+          uniquingKeysWith: { _, new in new }
+        )
+      \(relationshipMergeBlock)
+        return table
+      }()
+      """
+  )
 }
 
 func makeRelationshipTargetValidationDecls(

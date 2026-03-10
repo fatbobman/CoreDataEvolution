@@ -28,6 +28,15 @@ private let compositionStoredFieldMessages = StoredPropertyValidationMessages(
   missingTypeAnnotation: "@Composition fields must declare an explicit type."
 )
 
+struct CompositionRenderingParts: Equatable {
+  let fieldTableBody: String
+  let pathBody: String
+  let pathRootBody: String
+  let runtimeFieldBody: String
+  let encodeBody: String
+  let decodeBody: String
+}
+
 extension CompositionMacro: ExtensionMacro {
   public static func expansion(
     of _: AttributeSyntax,
@@ -85,147 +94,25 @@ extension CompositionMacro: MemberMacro {
     }
 
     let accessModifier = accessModifierText(from: declaration)
-    var fields: [CompositionField] = []
-    var fieldEntries: [String] = []
-    var hasError = false
-
-    for member in structDecl.memberBlock.members {
-      guard let variable = member.decl.as(VariableDeclSyntax.self) else {
-        continue
-      }
-
-      let compositionFieldAttribute = firstAttribute(
-        named: "CompositionField",
-        in: variable.attributes
-      )
-
-      switch validateStoredPropertyVariable(variable) {
-      case .success:
-        break
-      case .failure(let failure):
-        emitStoredPropertyValidationFailure(
-          failure,
-          messages: compositionStoredFieldMessages,
-          domain: compositionMacroDomain,
-          in: context
-        )
-        hasError = true
-        continue
-      }
-
-      if hasUnsupportedCompositionFieldAttributes(variable.attributes) {
-        MacroDiagnosticReporter.error(
-          "@Composition only supports @CompositionField on stored fields in v1.",
-          domain: compositionMacroDomain,
-          in: context,
-          node: variable
-        )
-        hasError = true
-      }
-
-      if compositionFieldAttribute != nil, variable.bindings.count != 1 {
-        emitStoredPropertyValidationFailure(
-          .init(reason: .multipleBindings, node: Syntax(variable)),
-          messages: compositionStoredFieldMessages,
-          domain: compositionMacroDomain,
-          in: context
-        )
-        hasError = true
-      }
-
-      for binding in variable.bindings {
-        let parsedBinding: ValidatedStoredPropertyBinding
-        switch validateStoredPropertyBinding(binding) {
-        case .success(let validatedBinding):
-          parsedBinding = validatedBinding
-        case .failure(let failure):
-          emitStoredPropertyValidationFailure(
-            failure,
-            messages: compositionStoredFieldMessages,
-            domain: compositionMacroDomain,
-            in: context
-          )
-          hasError = true
-          continue
-        }
-
-        let identifierPattern = parsedBinding.identifierPattern
-        let typeAnnotation = parsedBinding.typeAnnotation
-
-        guard isAllowedFieldType(typeAnnotation.type) else {
-          MacroDiagnosticReporter.error(
-            "@Composition field type is unsupported in v1. Allowed: \(coreDataPrimitiveTypeListDescription()).",
-            domain: compositionMacroDomain,
-            in: context,
-            node: typeAnnotation.type
-          )
-          hasError = true
-          continue
-        }
-
-        let fieldName = identifierPattern.identifier.text
-        let parsedCompositionField = parseCompositionFieldDeclArguments(
-          from: compositionFieldAttribute,
-          emitDiagnostics: true,
-          context: context
-        )
-        if compositionFieldAttribute != nil, parsedCompositionField == nil {
-          hasError = true
-          continue
-        }
-        let persistentName = parsedCompositionField?.persistentName ?? fieldName
-        let typeText = typeAnnotation.type.trimmedDescription
-        let isOptional = isOptionalType(typeAnnotation.type)
-        let decodeCastType = optionalWrappedTypeName(typeAnnotation.type) ?? typeText
-        let defaultValueExpression =
-          binding.initializer?.value.trimmedDescription
-          ?? (isOptional ? "nil" : nil)
-        fields.append(
-          CompositionField(
-            name: fieldName,
-            persistentName: persistentName,
-            typeName: typeText,
-            decodeCastTypeName: decodeCastType,
-            isOptional: isOptional,
-            defaultValueExpression: defaultValueExpression
-          )
-        )
-        fieldEntries.append(
-          """
-          "\(fieldName)": .init(swiftPath: ["\(fieldName)"], persistentPath: ["\(persistentName)"])
-          """
-        )
-      }
-    }
-
-    if hasError {
+    let fieldAnalysis = analyzeCompositionFields(
+      in: structDecl,
+      context: context
+    )
+    if fieldAnalysis.hasError {
       return []
     }
+    let fields = fieldAnalysis.fields
 
     let compositionTypeName = structDecl.name.trimmedDescription
-    let tableBody = fieldEntries.joined(separator: ",\n")
-    let pathBody = fields.map { field in
-      """
-      \(accessModifier)static let \(field.name) = CoreDataEvolution.CDPath<\(compositionTypeName), \(field.typeName)>(
-        swiftPath: ["\(field.name)"],
-        persistentPath: ["\(field.persistentName)"]
-      )
-      """
-    }.joined(separator: "\n\n")
-    let pathRootBody = fields.map { field in
-      """
-      \(accessModifier)var \(field.name): CoreDataEvolution.CDPath<\(compositionTypeName), \(field.typeName)> {
-        Paths.\(field.name)
-      }
-      """
-    }.joined(separator: "\n\n")
-    let runtimeFieldBody = makeRuntimeFieldBody(fields: fields)
-    let encodeBody = makeEncodeBody(fields: fields)
-    let decodeBody = makeDecodeBody(fields: fields)
+    let rendering = makeCompositionRenderingParts(
+      accessModifier: accessModifier,
+      compositionTypeName: compositionTypeName,
+      fields: fields
+    )
     let generated: DeclSyntax =
       """
       \(raw: accessModifier)static let __cdCompositionFieldTable: [String: CoreDataEvolution.CDCompositionFieldMeta] = [
-      \(raw: tableBody)
+      \(raw: rendering.fieldTableBody)
       ]
 
       \(raw: accessModifier)static let __cdFieldTable: [String: CoreDataEvolution.CDFieldMeta] = {
@@ -237,11 +124,11 @@ extension CompositionMacro: MemberMacro {
       }()
 
       \(raw: accessModifier)enum Paths {
-      \(raw: pathBody)
+      \(raw: rendering.pathBody)
       }
 
       \(raw: accessModifier)struct PathRoot: Sendable {
-      \(raw: pathRootBody)
+      \(raw: rendering.pathRootBody)
       }
 
       \(raw: accessModifier)static var path: PathRoot {
@@ -249,15 +136,15 @@ extension CompositionMacro: MemberMacro {
       }
 
       \(raw: accessModifier)static let __cdRuntimeCompositionFields: [CoreDataEvolution.CDRuntimeCompositionFieldSchema] = [
-      \(raw: runtimeFieldBody)
+      \(raw: rendering.runtimeFieldBody)
       ]
 
       \(raw: accessModifier)static func __cdDecodeComposition(from dictionary: [String: Any]) -> Self? {
-      \(raw: decodeBody)
+      \(raw: rendering.decodeBody)
       }
 
       \(raw: accessModifier)var __cdEncodeComposition: [String: Any] {
-      \(raw: encodeBody)
+      \(raw: rendering.encodeBody)
       }
       """
 
@@ -265,13 +152,164 @@ extension CompositionMacro: MemberMacro {
   }
 }
 
-private struct CompositionField {
+struct CompositionField: Equatable {
   let name: String
   let persistentName: String
   let typeName: String
   let decodeCastTypeName: String
   let isOptional: Bool
   let defaultValueExpression: String?
+}
+
+struct CompositionFieldAnalysis: Equatable {
+  let fields: [CompositionField]
+  let hasError: Bool
+}
+
+func analyzeCompositionFields(
+  in structDecl: StructDeclSyntax,
+  context: some MacroExpansionContext
+) -> CompositionFieldAnalysis {
+  var fields: [CompositionField] = []
+  var hasError = false
+
+  for member in structDecl.memberBlock.members {
+    guard let variable = member.decl.as(VariableDeclSyntax.self) else {
+      continue
+    }
+
+    let compositionFieldAttribute = firstAttribute(
+      named: "CompositionField",
+      in: variable.attributes
+    )
+
+    switch validateStoredPropertyVariable(variable) {
+    case .success:
+      break
+    case .failure(let failure):
+      emitStoredPropertyValidationFailure(
+        failure,
+        messages: compositionStoredFieldMessages,
+        domain: compositionMacroDomain,
+        in: context
+      )
+      hasError = true
+      continue
+    }
+
+    if hasUnsupportedCompositionFieldAttributes(variable.attributes) {
+      MacroDiagnosticReporter.error(
+        "@Composition only supports @CompositionField on stored fields in v1.",
+        domain: compositionMacroDomain,
+        in: context,
+        node: variable
+      )
+      hasError = true
+    }
+
+    if compositionFieldAttribute != nil, variable.bindings.count != 1 {
+      emitStoredPropertyValidationFailure(
+        .init(reason: .multipleBindings, node: Syntax(variable)),
+        messages: compositionStoredFieldMessages,
+        domain: compositionMacroDomain,
+        in: context
+      )
+      hasError = true
+    }
+
+    for binding in variable.bindings {
+      let parsedBinding: ValidatedStoredPropertyBinding
+      switch validateStoredPropertyBinding(binding) {
+      case .success(let validatedBinding):
+        parsedBinding = validatedBinding
+      case .failure(let failure):
+        emitStoredPropertyValidationFailure(
+          failure,
+          messages: compositionStoredFieldMessages,
+          domain: compositionMacroDomain,
+          in: context
+        )
+        hasError = true
+        continue
+      }
+
+      let identifierPattern = parsedBinding.identifierPattern
+      let typeAnnotation = parsedBinding.typeAnnotation
+
+      guard isAllowedFieldType(typeAnnotation.type) else {
+        MacroDiagnosticReporter.error(
+          "@Composition field type is unsupported in v1. Allowed: \(coreDataPrimitiveTypeListDescription()).",
+          domain: compositionMacroDomain,
+          in: context,
+          node: typeAnnotation.type
+        )
+        hasError = true
+        continue
+      }
+
+      let fieldName = identifierPattern.identifier.text
+      let parsedCompositionField = parseCompositionFieldDeclArguments(
+        from: compositionFieldAttribute,
+        emitDiagnostics: true,
+        context: context
+      )
+      if compositionFieldAttribute != nil, parsedCompositionField == nil {
+        hasError = true
+        continue
+      }
+      let persistentName = parsedCompositionField?.persistentName ?? fieldName
+      let typeText = typeAnnotation.type.trimmedDescription
+      let isOptional = isOptionalType(typeAnnotation.type)
+      let decodeCastType = optionalWrappedTypeName(typeAnnotation.type) ?? typeText
+      let defaultValueExpression =
+        binding.initializer?.value.trimmedDescription
+        ?? (isOptional ? "nil" : nil)
+      fields.append(
+        CompositionField(
+          name: fieldName,
+          persistentName: persistentName,
+          typeName: typeText,
+          decodeCastTypeName: decodeCastType,
+          isOptional: isOptional,
+          defaultValueExpression: defaultValueExpression
+        )
+      )
+    }
+  }
+
+  return .init(fields: fields, hasError: hasError)
+}
+
+func makeCompositionRenderingParts(
+  accessModifier: String,
+  compositionTypeName: String,
+  fields: [CompositionField]
+) -> CompositionRenderingParts {
+  .init(
+    fieldTableBody: fields.map { field in
+      """
+      "\(field.name)": .init(swiftPath: ["\(field.name)"], persistentPath: ["\(field.persistentName)"])
+      """
+    }.joined(separator: ",\n"),
+    pathBody: fields.map { field in
+      """
+      \(accessModifier)static let \(field.name) = CoreDataEvolution.CDPath<\(compositionTypeName), \(field.typeName)>(
+        swiftPath: ["\(field.name)"],
+        persistentPath: ["\(field.persistentName)"]
+      )
+      """
+    }.joined(separator: "\n\n"),
+    pathRootBody: fields.map { field in
+      """
+      \(accessModifier)var \(field.name): CoreDataEvolution.CDPath<\(compositionTypeName), \(field.typeName)> {
+        Paths.\(field.name)
+      }
+      """
+    }.joined(separator: "\n\n"),
+    runtimeFieldBody: makeRuntimeFieldBody(fields: fields),
+    encodeBody: makeEncodeBody(fields: fields),
+    decodeBody: makeDecodeBody(fields: fields)
+  )
 }
 
 private func makeDecodeBody(fields: [CompositionField]) -> String {
