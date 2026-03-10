@@ -106,6 +106,23 @@ Current model-layer prerequisites in the fixture:
 - `tags_payload` is modeled as `String`, not `Transformable`, because
   `FlowStringListTransformer.transformedValueClass()` returns `NSString`
 
+When validating schema-backed composition paths, do not compare a typed path's `raw` value
+directly with `entity.attributesByName.keys`.
+
+- `FlowTask.path.location.latitude.raw` is a **query-layer persistent key path**, for example
+  `"location.lat"`
+- `entity.attributesByName` is the entity's **top-level schema property table**, where the key is
+  usually just `"location"`
+
+These are different layers of Core Data metadata. A correct composition test should split the
+assertion into:
+
+1. schema shape:
+   - `entity.attributesByName["location"]` exists
+   - that attribute is `.compositeAttributeType`
+2. typed-path mapping:
+   - `FlowTask.path.location.latitude.raw == "location.lat"`
+
 The script intentionally removes `Integration/GeneratedFlowFixture/.build` before rebuilding the
 fixture target. This keeps the black-box flow honest when macro implementations change but the
 generated source files themselves do not.
