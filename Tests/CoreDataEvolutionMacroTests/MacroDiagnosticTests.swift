@@ -425,6 +425,9 @@ struct MacroDiagnosticTests {
 
         struct Payload: Codable {}
         enum Status: String { case draft }
+        final class T: ValueTransformer, CDRegisteredValueTransformer {
+          static let transformerName = NSValueTransformerName("T")
+        }
 
         @Composition
         struct Point {
@@ -443,7 +446,7 @@ struct MacroDiagnosticTests {
           @Attribute(storageMethod: .composition)
           var point: Point? = nil
 
-          @Attribute(storageMethod: .transformed(ValueTransformer.self))
+          @Attribute(storageMethod: .transformed(T.self))
           var keywords: [String]? = nil
 
           @Ignore
@@ -502,7 +505,9 @@ struct MacroDiagnosticTests {
       source: """
         import CoreData
         import CoreDataEvolution
-        final class T: ValueTransformer {}
+        final class T: ValueTransformer, CDRegisteredValueTransformer {
+          static let transformerName = NSValueTransformerName("T")
+        }
         @objc(Item)
         @PersistentModel
         final class Item: NSManagedObject {
@@ -799,7 +804,9 @@ struct MacroDiagnosticTests {
   func attributeTransformedRequiresMetatypeArgument() throws {
     let result = try MacroTestSupport.expand(
       source: """
-        final class T: ValueTransformer {}
+        final class T: ValueTransformer, CDRegisteredValueTransformer {
+          static let transformerName = NSValueTransformerName("T")
+        }
         struct S {
           @Attribute(storageMethod: .transformed(T))
           var color: String? = nil
@@ -813,10 +820,27 @@ struct MacroDiagnosticTests {
   func attributeDecodeFailurePolicySupportsTransformed() throws {
     let result = try MacroTestSupport.expand(
       source: """
-        final class T: ValueTransformer {}
+        final class T: ValueTransformer, CDRegisteredValueTransformer {
+          static let transformerName = NSValueTransformerName("T")
+        }
         struct S {
           @Attribute(storageMethod: .transformed(T.self), decodeFailurePolicy: .debugAssertNil)
           var color: String? = nil
+        }
+        """
+    )
+    #expect(result.diagnostics.isEmpty)
+  }
+
+  @Test("Attribute transformed accepts built-in secure unarchive transformer")
+  func attributeTransformedAcceptsBuiltInSecureUnarchiveTransformer() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import Foundation
+        import CoreDataEvolution
+        struct S {
+          @Attribute(storageMethod: .transformed(NSSecureUnarchiveFromDataTransformer.self))
+          var payload: [String]? = nil
         }
         """
     )
@@ -863,7 +887,9 @@ struct MacroDiagnosticTests {
     let result = try MacroTestSupport.expand(
       source: """
         import Foundation
-        final class T: ValueTransformer {}
+        final class T: ValueTransformer, CDRegisteredValueTransformer {
+          static let transformerName = NSValueTransformerName("T")
+        }
         struct S {
           @Attribute(storageMethod: .transformed(T.self))
           var colors: [String]? = []
@@ -918,7 +944,9 @@ struct MacroDiagnosticTests {
     let transformedResult = try MacroTestSupport.expand(
       source: """
         import Foundation
-        final class T: ValueTransformer {}
+        final class T: ValueTransformer, CDRegisteredValueTransformer {
+          static let transformerName = NSValueTransformerName("T")
+        }
         struct S {
           @Attribute(storageMethod: .transformed(T.self))
           var colors: [String] = []

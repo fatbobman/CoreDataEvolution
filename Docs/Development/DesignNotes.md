@@ -672,7 +672,7 @@ enum AttributeDecodeFailurePolicy {
 可选属性省略初始化器时，视为默认 `nil`（无需显式写 `= nil`）。
 模型侧同构约束：xcdatamodeld 中若 attribute 为 `Optional=false`，必须配置默认值；`Optional=true` 可以不配置默认值。
 `decodeFailurePolicy` 仅适用于 `.raw` / `.codable` / `.transformed`，默认 `.fallbackToDefaultValue`，可选 `.debugAssertNil`。
-`.raw` 会在编译期约束属性类型满足 `RawRepresentable`，`.codable` 约束为 `Codable`，`.transformed` 要求传入 `ValueTransformer` 元类型（如 `T.self`），`.composition` 约束属性类型满足 `@Composition` 生成协议。
+`.raw` 会在编译期约束属性类型满足 `RawRepresentable`，`.codable` 约束为 `Codable`，`.transformed` 要求传入符合 `CDRegisteredValueTransformer` 的元类型（如 `T.self`），`.composition` 约束属性类型满足 `@Composition` 生成协议。
 
 计划中的 trait 扩展：
 
@@ -711,7 +711,7 @@ enum StorageMethod {
     case `default`                             // 原生支持类型 + NSNumber 桥接
     case raw                                   // RawRepresentable 枚举
     case codable                               // Codable → Data
-    case transformed(ValueTransformer.Type)    // ValueTransformer（传统 ObjC 转换）
+    case transformed(CDRegisteredValueTransformer.Type)    // 已注册的 ValueTransformer
     case composition                           // NSCompositeAttributeDescription（v1 支持）
 }
 ```

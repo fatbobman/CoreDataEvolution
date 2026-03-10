@@ -241,6 +241,11 @@ Example:
 - only model the field as `Transformable` when the schema intentionally uses a transformable
   payload path such as `NSSecureUnarchiveFromData`
 
+Transformer-backed attributes now expect the transformer type to conform to
+`CDRegisteredValueTransformer` and publish the same registration name used by the Core Data model.
+Register the transformer before the property is first accessed, for example during app launch or
+test bootstrap.
+
 ### Decode Failure Policy
 
 Decode failure policies only make sense for storage methods that actually decode values.

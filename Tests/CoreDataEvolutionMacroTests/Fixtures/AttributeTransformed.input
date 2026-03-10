@@ -1,7 +1,9 @@
 import CoreDataEvolution
 import Foundation
 
-final class ColorTransformer: ValueTransformer {}
+final class ColorTransformer: ValueTransformer, CDRegisteredValueTransformer {
+  static let transformerName = NSValueTransformerName("ColorTransformer")
+}
 
 struct Item {
   @Attribute(storageMethod: .transformed(ColorTransformer.self))

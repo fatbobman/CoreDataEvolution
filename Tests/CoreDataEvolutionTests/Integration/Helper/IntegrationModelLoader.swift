@@ -129,6 +129,10 @@ enum IntegrationModelLoader {
 }
 
 final class IntegrationModelStack {
+  static let transformerRegistration: Void = {
+    CDEStringListTransformer.register()
+  }()
+
   static let model: NSManagedObjectModel = {
     do {
       return try IntegrationModelLoader.loadModel()
@@ -144,6 +148,7 @@ final class IntegrationModelStack {
     fileID: String = #fileID,
     function: String = #function
   ) {
+    _ = Self.transformerRegistration
     container = NSPersistentContainer.makeTest(
       model: Self.model,
       testName: testName,

@@ -23,6 +23,14 @@ public enum _CDAttributeMacroValidation {
   public static func requireCodable<T: Codable>(_: T.Type) {}
 
   @inlinable
+  public static func requireTransformer<T: CDRegisteredValueTransformer>(_: T.Type) {}
+
+  @available(
+    *,
+    unavailable,
+    message:
+      "@Attribute storageMethod `.transformed(...)` requires a transformer type that conforms to CDRegisteredValueTransformer and publishes a registration name."
+  )
   public static func requireTransformer<T: ValueTransformer>(_: T.Type) {}
 
   @inlinable

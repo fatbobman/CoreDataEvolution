@@ -36,7 +36,7 @@ public enum CDRuntimeAttributeStorage: Sendable, Equatable {
   case primitive(CDRuntimePrimitiveAttributeType)
   case raw(backingTypeName: String)
   case codable
-  case transformed(transformerTypeName: String)
+  case transformed(transformerName: String)
   case composition(fields: [CDRuntimeCompositionFieldSchema])
 }
 

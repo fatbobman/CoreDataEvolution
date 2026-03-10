@@ -245,12 +245,9 @@ public enum CDRuntimeModelBuilder {
       description.attributeType = attributeType(for: primitive)
     case .codable:
       description.attributeType = .binaryDataAttributeType
-    case .transformed(let transformerTypeName):
+    case .transformed(let transformerName):
       description.attributeType = .transformableAttributeType
-      description.valueTransformerName = transformerTypeName.replacingOccurrences(
-        of: ".self",
-        with: ""
-      )
+      description.valueTransformerName = transformerName
     case .composition:
       // Runtime schema models composition as one transformable dictionary payload. That matches the
       // macro-generated `@Attribute(storageMethod: .composition)` accessor contract, but it is not

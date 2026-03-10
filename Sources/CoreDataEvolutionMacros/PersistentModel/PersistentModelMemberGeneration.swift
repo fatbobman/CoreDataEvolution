@@ -502,7 +502,7 @@ private func runtimeStorageExpression(_ attribute: PersistentAttributeProperty) 
   case .codable:
     return ".codable"
   case .transformed(let transformer):
-    return ".transformed(transformerTypeName: \"\(escapeStringLiteral(transformer))\")"
+    return ".transformed(transformerName: \(transformer).transformerName.rawValue)"
   case .composition:
     return ".composition(fields: \(attribute.nonOptionalTypeName).__cdRuntimeCompositionFields)"
   }

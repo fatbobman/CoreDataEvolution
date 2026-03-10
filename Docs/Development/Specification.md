@@ -113,7 +113,7 @@ Runtime schema / runtime model builder 的 v1 边界：
 - 持久化层默认值的真实来源是 xcdatamodeld；工具需校验“模型默认值 vs 代码默认值”一致性。
 - `.raw` 会在编译期约束属性类型满足 `RawRepresentable`。
 - `.codable` 会在编译期约束属性类型满足 `Codable`。
-- `.transformed` 要求传入 `ValueTransformer` 元类型（如 `MyTransformer.self`）。
+- `.transformed` 要求传入符合 `CDRegisteredValueTransformer` 的元类型（如 `MyTransformer.self`）。
 - schema-backed `.transformed(...)` 字段的模型类型应与 transformer 的持久化输出类型一致：
   - 输出 `NSString` -> `String`
   - 输出 `NSData` -> `Binary Data`

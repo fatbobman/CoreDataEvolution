@@ -513,9 +513,7 @@ private func parseAttributeDeclArguments(_ attribute: AttributeSyntax)
         persistentName = segment.content.text
       }
     case "storageMethod":
-      storageMethod = parseAttributeStorageMethod(
-        from: argument.expression.trimmedDescription.replacingOccurrences(of: " ", with: "")
-      )
+      storageMethod = parseAttributeStorageMethod(from: argument.expression)
     default:
       continue
     }
@@ -545,7 +543,10 @@ private func parseAttributeTraitShallow(_ rawText: String) -> ParsedAttributeTra
   return nil
 }
 
-private func parseAttributeStorageMethod(from raw: String) -> ParsedAttributeStorageMethod? {
+private func parseAttributeStorageMethod(from expression: ExprSyntax)
+  -> ParsedAttributeStorageMethod?
+{
+  let raw = expression.trimmedDescription.replacingOccurrences(of: " ", with: "")
   if raw == ".default"
     || raw == "AttributeStorageMethod.default"
     || raw == "CoreDataEvolution.AttributeStorageMethod.default"
@@ -574,7 +575,14 @@ private func parseAttributeStorageMethod(from raw: String) -> ParsedAttributeSto
     || raw.hasPrefix("AttributeStorageMethod.transformed(")
     || raw.hasPrefix("CoreDataEvolution.AttributeStorageMethod.transformed(")
   {
-    return .transformed("ValueTransformer")
+    guard
+      let functionCall = expression.as(FunctionCallExprSyntax.self),
+      functionCall.arguments.count == 1,
+      let argument = functionCall.arguments.first
+    else {
+      return nil
+    }
+    return .transformed(argument.expression.trimmedDescription)
   }
   return nil
 }

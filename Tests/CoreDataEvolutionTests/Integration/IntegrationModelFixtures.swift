@@ -28,7 +28,13 @@ struct CDEItemLocation: Equatable, Sendable {
   var y: Double?
 }
 
-final class CDEStringListTransformer: ValueTransformer {
+final class CDEStringListTransformer: ValueTransformer, CDRegisteredValueTransformer {
+  static let transformerName = NSValueTransformerName("CDEStringListTransformer")
+
+  static func register() {
+    ValueTransformer.setValueTransformer(CDEStringListTransformer(), forName: transformerName)
+  }
+
   override class func transformedValueClass() -> AnyClass {
     NSString.self
   }

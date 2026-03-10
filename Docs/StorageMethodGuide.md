@@ -281,6 +281,9 @@ Use this when:
 
 - you must pass a transformer metatype
 - the declaration must look like `.transformed(MyTransformer.self)`
+- the transformer type must conform to `CDRegisteredValueTransformer`
+- the transformer type must publish the same registration name used by the Core Data model
+- the transformer must be registered before the property is first accessed
 - decode failure behavior can be customized with `decodeFailurePolicy`
 - the property must currently be optional
 - the only supported explicit default is `nil`
@@ -304,7 +307,9 @@ This is the most important rule for `.transformed(...)`:
 Example:
 
 ```swift
-final class StringListTransformer: ValueTransformer {
+final class StringListTransformer: ValueTransformer, CDRegisteredValueTransformer {
+  static let transformerName = NSValueTransformerName("StringListTransformer")
+
   override class func transformedValueClass() -> AnyClass { NSString.self }
 }
 
@@ -313,6 +318,10 @@ var tags: [String]? = nil
 ```
 
 In this example, the Core Data field should be modeled as `String`, not `Transformable`.
+
+The generated accessor resolves the transformer through `ValueTransformer(forName:)` using
+`StringListTransformer.transformerName`. This matches Core Data's model-backed lookup more closely
+than constructing a new transformer instance on every access.
 
 ### Existing-model compatibility
 

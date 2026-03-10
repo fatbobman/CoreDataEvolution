@@ -11,7 +11,7 @@ import Foundation
 ///
 /// Conforming types must expose the same registration name used by the Core Data model. The
 /// generated accessor code resolves the transformer through
-/// `ValueTransformer.valueTransformer(forName:)` instead of
+/// `ValueTransformer(forName:)` instead of
 /// constructing a fresh instance on every access.
 ///
 /// Register the transformer before the property is first accessed, for example during app launch

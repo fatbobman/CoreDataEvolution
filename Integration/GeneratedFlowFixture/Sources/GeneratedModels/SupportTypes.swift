@@ -33,7 +33,9 @@ public struct FlowPoint: Sendable, Equatable {
   }
 }
 
-public final class FlowStringListTransformer: ValueTransformer {
+public final class FlowStringListTransformer: ValueTransformer, CDRegisteredValueTransformer {
+  public static let transformerName = NSValueTransformerName("FlowStringListTransformer")
+
   public override class func transformedValueClass() -> AnyClass {
     NSString.self
   }
@@ -68,7 +70,7 @@ public final class FlowStringListTransformer: ValueTransformer {
   public static func register() {
     ValueTransformer.setValueTransformer(
       FlowStringListTransformer(),
-      forName: NSValueTransformerName("FlowStringListTransformer")
+      forName: transformerName
     )
   }
 }
