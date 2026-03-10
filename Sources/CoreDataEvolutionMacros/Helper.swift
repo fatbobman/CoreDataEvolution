@@ -14,6 +14,20 @@ import SwiftDiagnostics
 import SwiftSyntax
 import SwiftSyntaxMacros
 
+enum ModelActorMacroFlavor {
+  case backgroundActor
+  case mainActorClass
+
+  var conformanceName: String {
+    switch self {
+    case .backgroundActor:
+      return "CoreDataEvolution.NSModelActor"
+    case .mainActorClass:
+      return "CoreDataEvolution.NSMainModelActor"
+    }
+  }
+}
+
 let coreDataPrimitiveTypeNamesInOrder: [String] = [
   "String",
   "Bool",
@@ -176,4 +190,64 @@ private struct MacroDiagnosticMessage: DiagnosticMessage {
   let id: MessageID
 
   var diagnosticID: MessageID { id }
+}
+
+func makeModelActorConformanceExtension(
+  for type: some TypeSyntaxProtocol,
+  flavor: ModelActorMacroFlavor
+) -> ExtensionDeclSyntax? {
+  let decl: DeclSyntax =
+    """
+    extension \(type.trimmed): \(raw: flavor.conformanceName) {}
+    """
+
+  return decl.as(ExtensionDeclSyntax.self)
+}
+
+func makeModelActorMemberDecls(
+  flavor: ModelActorMacroFlavor,
+  accessModifier: String,
+  generateInitializer: Bool
+) -> [DeclSyntax] {
+  switch flavor {
+  case .backgroundActor:
+    let decl: [DeclSyntax] = [
+      """
+      \(raw: accessModifier)nonisolated let modelExecutor: CoreDataEvolution.NSModelObjectContextExecutor
+      """,
+      """
+      \(raw: accessModifier)nonisolated let modelContainer: CoreData.NSPersistentContainer
+      """,
+    ]
+
+    let initializer: DeclSyntax? =
+      generateInitializer
+      ? """
+      \(raw: accessModifier)init(container: CoreData.NSPersistentContainer) {
+        let context: NSManagedObjectContext
+        context = container.newBackgroundContext()
+        modelExecutor = CoreDataEvolution.NSModelObjectContextExecutor(context: context)
+        modelContainer = container
+      }
+      """ : nil
+
+    return decl + (initializer.map { [$0] } ?? [])
+
+  case .mainActorClass:
+    let decl: [DeclSyntax] = [
+      """
+      \(raw: accessModifier)let modelContainer: CoreData.NSPersistentContainer
+      """
+    ]
+
+    let initializer: DeclSyntax? =
+      generateInitializer
+      ? """
+      \(raw: accessModifier)init(modelContainer: CoreData.NSPersistentContainer) {
+        self.modelContainer = modelContainer
+      }
+      """ : nil
+
+    return decl + (initializer.map { [$0] } ?? [])
+  }
 }

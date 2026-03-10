@@ -7,28 +7,10 @@
 
 import Foundation
 import SwiftSyntax
-/// The ModelActor in SwiftData corresponding to the Core Data version.
-/// An interface for providing mutually-exclusive access to the attributes of a conforming model.
-///
-///     @NSModelActor
-///     actor DataHandler {}
-///
-///  will expand to
-///
-///     @NSModelActor
-///     actor DataHandler{}
-///       public nonisolated let modelExecutor: CoreDataEvolution.NSModelObjectContextExecutor
-///       public nonisolated let modelContainer: CoreData.NSPersistentContainer
-///
-///       public init(container: CoreData.NSPersistentContainer, mode: ActorContextMode = .newBackground) {
-///         let context: NSManagedObjectContext
-///         context = container.newBackgroundContext()
-///         modelExecutor = CoreDataEvolution.NSModelObjectContextExecutor(context: context)
-///         modelContainer = container
-///       }
-///     extension DataHandler: CoreDataEvolution.NSModelActor {
-///     }
 import SwiftSyntaxMacros
+
+/// Expands `@NSModelActor` into the stored properties and conformance required by the runtime
+/// `NSModelActor` protocol.
 
 public enum NSModelActorMacro {}
 extension NSModelActorMacro: ExtensionMacro {
@@ -39,12 +21,12 @@ extension NSModelActorMacro: ExtensionMacro {
     conformingTo _: [SwiftSyntax.TypeSyntax],
     in _: some SwiftSyntaxMacros.MacroExpansionContext
   ) throws -> [SwiftSyntax.ExtensionDeclSyntax] {
-    let decl: DeclSyntax =
-      """
-      extension \(type.trimmed): CoreDataEvolution.NSModelActor {}
-      """
-
-    guard let extensionDecl = decl.as(ExtensionDeclSyntax.self) else {
+    guard
+      let extensionDecl = makeModelActorConformanceExtension(
+        for: type,
+        flavor: .backgroundActor
+      )
+    else {
       return []
     }
 
@@ -60,22 +42,10 @@ extension NSModelActorMacro: MemberMacro {
   ) throws -> [DeclSyntax] {
     let generateInitializer = shouldGenerateInitializer(from: node)
     let accessModifier = witnessAccessModifierText(from: declaration)
-    let decl: DeclSyntax =
-      """
-      \(raw: accessModifier)nonisolated let modelExecutor: CoreDataEvolution.NSModelObjectContextExecutor
-      \(raw: accessModifier)nonisolated let modelContainer: CoreData.NSPersistentContainer
-
-      """
-    let initializer: DeclSyntax? =
-      generateInitializer
-      ? """
-      \(raw: accessModifier)init(container: CoreData.NSPersistentContainer) {
-        let context: NSManagedObjectContext
-        context = container.newBackgroundContext()
-        modelExecutor = CoreDataEvolution.NSModelObjectContextExecutor(context: context)
-        modelContainer = container
-      }
-      """ : nil
-    return [decl] + (initializer.map { [$0] } ?? [])
+    return makeModelActorMemberDecls(
+      flavor: .backgroundActor,
+      accessModifier: accessModifier,
+      generateInitializer: generateInitializer
+    )
   }
 }

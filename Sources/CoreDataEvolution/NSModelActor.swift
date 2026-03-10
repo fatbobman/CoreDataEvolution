@@ -37,7 +37,7 @@ extension NSModelActor {
 
   /// Looks up a managed object by ID and downcasts it to the requested type.
   public subscript<T>(id: NSManagedObjectID, as _: T.Type) -> T? where T: NSManagedObject {
-    try? modelContext.existingObject(with: id) as? T
+    modelActorExistingObject(in: modelContext, id: id, as: T.self)
   }
 
   /// Provides direct, synchronous access to the underlying `NSManagedObjectContext`
@@ -70,7 +70,7 @@ extension NSModelActor {
   public func withContext<T: Sendable>(
     _ action: (NSManagedObjectContext) throws -> T
   ) throws -> T {
-    try action(modelContext)
+    try withModelContext(modelContext, action)
   }
 
   /// Provides direct, synchronous access to both the `NSManagedObjectContext` and
@@ -103,6 +103,6 @@ extension NSModelActor {
   public func withContext<T: Sendable>(
     _ action: (NSManagedObjectContext, NSPersistentContainer) throws -> T
   ) throws -> T {
-    try action(modelContext, modelContainer)
+    try withModelContext(modelContext, container: modelContainer, action)
   }
 }
