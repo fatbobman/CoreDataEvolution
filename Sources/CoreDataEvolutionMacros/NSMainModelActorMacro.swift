@@ -15,7 +15,6 @@ import SwiftSyntaxMacros
 
 /// Expands `@NSMainModelActor` into the stored properties and conformance required by the runtime
 /// `NSMainModelActor` protocol.
-
 public enum NSMainModelActorMacro {}
 extension NSMainModelActorMacro: ExtensionMacro {
   public static func expansion(

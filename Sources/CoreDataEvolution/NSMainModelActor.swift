@@ -31,39 +31,18 @@ extension NSMainModelActor {
     modelActorExistingObject(in: modelContext, id: id, as: T.self)
   }
 
-  /// Provides direct, synchronous access to the underlying `NSManagedObjectContext`
-  /// within the main actor's isolation boundary.
+  /// Runs a synchronous closure against `viewContext` on the main actor.
   ///
-  /// This matches `NSModelActor.withContext(_:)`, but runs against `viewContext` on the main actor.
-  ///
-  /// - Parameter action: A synchronous closure that receives the main actor's
-  ///   `NSManagedObjectContext`. The return value must conform to `Sendable`.
-  /// - Returns: The value produced by `action`.
-  /// - Throws: Any error thrown by `action`.
-  ///
-  /// - Note: Although this method is part of the public API, it is primarily intended
-  ///   for testing and debugging. For production writes, prefer dedicated mutation
-  ///   methods so that save/rollback logic remains consistent.
+  /// This is the UI-facing counterpart to `NSModelActor.withContext(_:)`.
   public func withContext<T: Sendable>(
     _ action: (NSManagedObjectContext) throws -> T
   ) throws -> T {
     try withModelContext(modelContext, action)
   }
 
-  /// Provides direct, synchronous access to both the `NSManagedObjectContext` and
-  /// the `NSPersistentContainer` within the main actor's isolation boundary.
+  /// Runs a synchronous closure against `viewContext` and the owning container.
   ///
-  /// This matches `NSModelActor.withContext(_:)`, but runs against `viewContext` on the main actor.
-  ///
-  /// - Parameter action: A synchronous closure that receives both the main actor's
-  ///   `NSManagedObjectContext` and its `NSPersistentContainer`.
-  ///   The return value must conform to `Sendable`.
-  /// - Returns: The value produced by `action`.
-  /// - Throws: Any error thrown by `action`.
-  ///
-  /// - Note: Although this method is part of the public API, it is primarily intended
-  ///   for testing and debugging. For production writes, prefer dedicated mutation
-  ///   methods so that save/rollback logic remains consistent.
+  /// Use this overload for UI tests or debugging flows that also need container-level access.
   public func withContext<T: Sendable>(
     _ action: (NSManagedObjectContext, NSPersistentContainer) throws -> T
   ) throws -> T {

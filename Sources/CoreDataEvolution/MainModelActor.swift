@@ -14,27 +14,25 @@ import Foundation
 #if canImport(SwiftData)
   public import SwiftData
 
+  /// Legacy SwiftData bridge retained from earlier iterations of the project.
+  ///
+  /// This protocol is not part of the main CoreDataEvolution API surface. It exists only as a
+  /// lightweight compatibility helper for code that wants the same convenience subscript and
+  /// `modelContext` access pattern on SwiftData's `ModelContainer`.
   @available(macOS 14.0, iOS 17.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
   @MainActor
   public protocol MainModelActorX: AnyObject {
-    /// Provides access to the NSPersistentContainer associated with the NSMainModelActor.
+    /// The SwiftData container backing this compatibility layer.
     var modelContainer: ModelContainer { get }
   }
   @available(macOS 14.0, iOS 17.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
   extension MainModelActorX {
-    /// Exposes the view context for model operations.
+    /// The main SwiftData context exposed by the container.
     public var modelContext: ModelContext {
       modelContainer.mainContext
     }
 
-    /// Retrieves a model instance based on its identifier, cast to the specified type.
-    ///
-    /// This method attempts to fetch a model instance from the context using the provided identifier. If the model is not found, it constructs a fetch descriptor with a predicate matching the identifier and attempts to fetch the model. The fetched model is then cast to the specified type.
-    ///
-    /// - Parameters:
-    ///   - id: The identifier of the model to fetch.
-    ///   - as: The type to which the fetched model should be cast.
-    /// - Returns: The fetched model instance cast to the specified type, or nil if not found.
+    /// Looks up a SwiftData model by identifier and downcasts it to the requested type.
     public subscript<T>(id: PersistentIdentifier, as: T.Type) -> T? where T: PersistentModel {
       let predicate = #Predicate<T> {
         $0.persistentModelID == id

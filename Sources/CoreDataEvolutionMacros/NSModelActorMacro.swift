@@ -1,9 +1,13 @@
 //
-//  NSModelActorMacro.swift
-//
-//
-//  Created by Yang Xu on 2024/4/9.
-//
+//  ------------------------------------------------
+//  Original project: CoreDataEvolution
+//  Created on 2024/4/9 by Fatbobman(东坡肘子)
+//  X: @fatbobman
+//  Mastodon: @fatbobman@mastodon.social
+//  GitHub: @fatbobman
+//  Blog: https://fatbobman.com
+//  ------------------------------------------------
+//  Copyright © 2024-present Fatbobman. All rights reserved.
 
 import Foundation
 import SwiftSyntax
@@ -11,7 +15,6 @@ import SwiftSyntaxMacros
 
 /// Expands `@NSModelActor` into the stored properties and conformance required by the runtime
 /// `NSModelActor` protocol.
-
 public enum NSModelActorMacro {}
 extension NSModelActorMacro: ExtensionMacro {
   public static func expansion(

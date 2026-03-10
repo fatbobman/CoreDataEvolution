@@ -40,66 +40,20 @@ extension NSModelActor {
     modelActorExistingObject(in: modelContext, id: id, as: T.self)
   }
 
-  /// Provides direct, synchronous access to the underlying `NSManagedObjectContext`
-  /// within the actor's isolation boundary.
+  /// Runs a synchronous closure against the actor-isolated Core Data context.
   ///
-  /// Use this method when you need to perform raw Core Data operations that aren't
-  /// covered by the actor's higher-level API — most commonly in unit tests to inspect
-  /// the persistent store state after a write operation.
-  ///
-  /// The closure runs **synchronously** on the actor's context. There is no scheduling
-  /// overhead; the call returns only after the closure completes.
-  ///
-  /// **Typical usage in tests:**
-  /// ```swift
-  /// try await handler.withContext { context in
-  ///     let request = Item.fetchRequest()
-  ///     let items = try context.fetch(request)
-  ///     #expect(items.count == 1)
-  /// }
-  /// ```
-  ///
-  /// - Parameter action: A synchronous closure that receives the actor's
-  ///   `NSManagedObjectContext`. The return value must conform to `Sendable`.
-  /// - Returns: The value produced by `action`.
-  /// - Throws: Any error thrown by `action`.
-  ///
-  /// - Note: Although this method is part of the public API, it is primarily intended
-  ///   for testing and debugging. For production writes, prefer the actor's dedicated
-  ///   mutation methods so that save/rollback logic remains consistent.
+  /// Use this escape hatch for tests, debugging, or small pieces of raw Core Data work that do
+  /// not justify a dedicated actor API.
   public func withContext<T: Sendable>(
     _ action: (NSManagedObjectContext) throws -> T
   ) throws -> T {
     try withModelContext(modelContext, action)
   }
 
-  /// Provides direct, synchronous access to both the `NSManagedObjectContext` and
-  /// the `NSPersistentContainer` within the actor's isolation boundary.
+  /// Runs a synchronous closure against the actor-isolated context and container.
   ///
-  /// This overload is useful when the closure needs to cross-reference the container —
-  /// for example, to merge changes from another context, inspect store metadata, or
-  /// set up a second context for comparison during tests.
-  ///
-  /// **Typical usage in tests:**
-  /// ```swift
-  /// try await handler.withContext { context, container in
-  ///     // Verify via a fresh context that the data was actually persisted
-  ///     let verification = container.newBackgroundContext()
-  ///     let request = Item.fetchRequest()
-  ///     let items = try verification.fetch(request)
-  ///     #expect(items.count == 1)
-  /// }
-  /// ```
-  ///
-  /// - Parameter action: A synchronous closure that receives both the actor's
-  ///   `NSManagedObjectContext` and its `NSPersistentContainer`.
-  ///   The return value must conform to `Sendable`.
-  /// - Returns: The value produced by `action`.
-  /// - Throws: Any error thrown by `action`.
-  ///
-  /// - Note: Although this method is part of the public API, it is primarily intended
-  ///   for testing and debugging. For production writes, prefer the actor's dedicated
-  ///   mutation methods so that save/rollback logic remains consistent.
+  /// Prefer this overload when the operation needs the container as well as the context, such as
+  /// setting up a second verification context in tests.
   public func withContext<T: Sendable>(
     _ action: (NSManagedObjectContext, NSPersistentContainer) throws -> T
   ) throws -> T {

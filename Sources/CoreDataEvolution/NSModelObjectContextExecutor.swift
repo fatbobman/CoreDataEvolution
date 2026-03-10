@@ -1,4 +1,3 @@
-/// A class that coordinates access to the model actor.
 import CoreData
 import _Concurrency
 
@@ -13,6 +12,10 @@ import _Concurrency
 //  ------------------------------------------------
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
+/// Serial executor that runs actor jobs through `NSManagedObjectContext.perform`.
+///
+/// `@NSModelActor` uses this executor to keep all Core Data work serialized onto the context that
+/// backs the generated actor instance.
 public final class NSModelObjectContextExecutor: @unchecked Sendable, SerialExecutor {
   public final let context: NSManagedObjectContext
   public init(context: NSManagedObjectContext) {
