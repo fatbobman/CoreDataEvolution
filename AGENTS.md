@@ -164,6 +164,9 @@ The macros currently mirror `public` access from the attached type, but otherwis
 - `@NSMainModelActor` binds `modelContext` to `container.viewContext`.
 - `@NSMainModelActor` types are expected to be `@MainActor` classes. The macro does not currently enforce this itself.
 - `disableGenerateInit: true` means the custom initializer must assign the generated stored properties correctly.
+- `@PersistentModel` relationship generation keeps setters only for to-one properties; to-many
+  relationships (`Set<T>` / `[T]`) are getter-only and must be mutated through generated helper
+  methods.
 - `NSModelObjectContextExecutor` is `@unchecked Sendable`; changes here are concurrency-sensitive and need careful review.
 - `module.swift` intentionally uses `@_exported import CoreData`; avoid removing it without checking downstream API impact.
 

@@ -93,7 +93,11 @@ For a valid model type, the macro generates:
 - `__cdRuntimeEntitySchema`
 - conditional `fetchRequest()` when the type does not already declare one
 - optional convenience `init(...)` when `generateInit: true`
-- to-many add/remove helpers
+- to-many relationship getters
+- unordered to-many helpers: single-value and batch `addTo*` / `removeFrom*`
+- ordered to-many helpers: single-value and batch `addTo*` / `removeFrom*`, plus
+  `insertInto*(_:at:)`
+- no generated to-many setters
 - `PersistentEntity` conformance
 - `CDRuntimeSchemaProviding` conformance
 
@@ -331,6 +335,30 @@ That bridge constructs a new Swift collection on every read. This is the intende
 but it also means repeated access to a large to-many relationship is not free. For hot paths,
 prefer a fetch request or another query-oriented API instead of repeatedly reading the relationship
 property.
+
+To-many relationships intentionally generate getters only.
+
+- `T?` generates a getter and setter
+- `Set<T>` generates a getter, but no setter
+- `[T]` generates a getter, but no setter
+
+Mutate to-many relationships through the generated helper methods instead. Helper names derive from
+the Swift property name, not `persistentName`.
+
+```swift
+// Unordered to-many: var tags: Set<Tag>
+func addToTags(_ value: Tag)
+func removeFromTags(_ value: Tag)
+func addToTags(_ values: Set<Tag>)
+func removeFromTags(_ values: Set<Tag>)
+
+// Ordered to-many: var orderedTags: [Tag]
+func addToOrderedTags(_ value: Tag)
+func removeFromOrderedTags(_ value: Tag)
+func addToOrderedTags(_ values: [Tag])
+func removeFromOrderedTags(_ values: [Tag])
+func insertIntoOrderedTags(_ value: Tag, at index: Int)
+```
 
 ### Required Relationship Rules
 

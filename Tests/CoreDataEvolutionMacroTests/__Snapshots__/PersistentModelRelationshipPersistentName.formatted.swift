@@ -16,9 +16,6 @@ final class FlowProject: NSManagedObject {
       }
         ?? []
     }
-    set {
-      setValue(NSSet(set: newValue), forKey: "owned_tasks")
-    }
   }
 
   enum Keys: RawRepresentable {
@@ -124,6 +121,20 @@ final class FlowProject: NSManagedObject {
 
   func removeFromTasks(_ value: FlowTask) {
     mutableSetValue(forKey: "owned_tasks").remove(value)
+  }
+
+  func addToTasks(_ values: Set<FlowTask>) {
+    let mutable = mutableSetValue(forKey: "owned_tasks")
+    for value in values {
+      mutable.add(value)
+    }
+  }
+
+  func removeFromTasks(_ values: Set<FlowTask>) {
+    let mutable = mutableSetValue(forKey: "owned_tasks")
+    for value in values {
+      mutable.remove(value)
+    }
   }
 }
 

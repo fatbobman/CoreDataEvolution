@@ -141,6 +141,7 @@ It gives you:
 
 - explicit attribute/relationship metadata
 - generated Core Data accessors
+- generated to-many relationship helper APIs
 - typed key/path metadata for sort and predicate construction
 - runtime schema metadata for tests and debug workflows
 
@@ -201,6 +202,13 @@ This is the most important thing to understand:
 - the source is Swift-first
 - the runtime is still Core Data
 - the model file is still part of the system
+
+For relationships:
+
+- to-one properties generate a getter and setter
+- to-many properties (`Set<T>` / `[T]`) generate a getter only
+- mutate to-many relationships through generated helpers such as `addToTags`,
+  `removeFromTags`, and `insertIntoOrderedTags(_:at:)`
 
 ### Typed key/path mapping for sort and predicate code
 

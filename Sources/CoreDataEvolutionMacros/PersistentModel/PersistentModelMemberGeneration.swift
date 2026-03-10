@@ -523,6 +523,26 @@ func makeToManyHelpers(
         }
         """
       )
+      result.append(
+        """
+        \(raw: accessModifier)func addTo\(raw: suffix)(_ values: Set<\(raw: type)>) {
+          let mutable = mutableSetValue(forKey: "\(raw: key)")
+          for value in values {
+            mutable.add(value)
+          }
+        }
+        """
+      )
+      result.append(
+        """
+        \(raw: accessModifier)func removeFrom\(raw: suffix)(_ values: Set<\(raw: type)>) {
+          let mutable = mutableSetValue(forKey: "\(raw: key)")
+          for value in values {
+            mutable.remove(value)
+          }
+        }
+        """
+      )
     case .toManyArray:
       result.append(
         """
@@ -535,6 +555,33 @@ func makeToManyHelpers(
         """
         \(raw: accessModifier)func removeFrom\(raw: suffix)(_ value: \(raw: type)) {
           mutableOrderedSetValue(forKey: "\(raw: key)").remove(value)
+        }
+        """
+      )
+      result.append(
+        """
+        \(raw: accessModifier)func addTo\(raw: suffix)(_ values: [\(raw: type)]) {
+          let mutable = mutableOrderedSetValue(forKey: "\(raw: key)")
+          for value in values {
+            mutable.add(value)
+          }
+        }
+        """
+      )
+      result.append(
+        """
+        \(raw: accessModifier)func removeFrom\(raw: suffix)(_ values: [\(raw: type)]) {
+          let mutable = mutableOrderedSetValue(forKey: "\(raw: key)")
+          for value in values {
+            mutable.remove(value)
+          }
+        }
+        """
+      )
+      result.append(
+        """
+        \(raw: accessModifier)func insertInto\(raw: suffix)(_ value: \(raw: type), at index: Int) {
+          mutableOrderedSetValue(forKey: "\(raw: key)").insert(value, at: index)
         }
         """
       )

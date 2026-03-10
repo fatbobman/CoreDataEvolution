@@ -225,12 +225,7 @@ private func makeRelationshipAccessors(from info: RelationshipInfo) -> [Accessor
           .reduce(into: Set<\(raw: targetTypeName)>()) { $0.insert($1) }
           ?? []
       }
-      """,
       """
-      set {
-        setValue(NSSet(set: newValue), forKey: "\(raw: key)")
-      }
-      """,
     ]
 
   case .toManyArray(let targetTypeName):
@@ -243,12 +238,7 @@ private func makeRelationshipAccessors(from info: RelationshipInfo) -> [Accessor
           .compactMap { $0 as? \(raw: targetTypeName) }
           ?? []
       }
-      """,
       """
-      set {
-        setValue(NSOrderedSet(array: newValue), forKey: "\(raw: key)")
-      }
-      """,
     ]
   }
 }

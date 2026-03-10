@@ -28,9 +28,6 @@ final class Item: NSManagedObject {
       }
         ?? []
     }
-    set {
-      setValue(NSSet(set: newValue), forKey: "tags")
-    }
   }
   var orderedCategories: [Category] {
     get {
@@ -41,9 +38,6 @@ final class Item: NSManagedObject {
         $0 as? Category
       }
         ?? []
-    }
-    set {
-      setValue(NSOrderedSet(array: newValue), forKey: "orderedCategories")
     }
   }
 }

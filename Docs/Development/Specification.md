@@ -48,7 +48,7 @@ Runtime schema / runtime model builder 的 v1 边界：
 4. 代码层 to-many 必须非可选（`Set<T>` / `[T]`）。
 5. 代码层 to-one 必须可选（`T?`）。
 6. 构造方法不接收任何关系参数；关系只能在双方对象创建并 `insert` 后显式建立。
-7. 有序 to-many (`[T]`) 永不生成 setter。
+7. 所有 to-many（`Set<T>` / `[T]`）都不生成 setter。
 8. `@Ignore` 仅用于 `var`；`let` 默认忽略。
 9. 关系属性名必须与 xcdatamodeld 中的关系名保持一致，不支持重命名映射。
 10. 模型层 attribute 必须满足“可选或有默认值”：若 `Optional=false`，则必须在 xcdatamodeld 中提供默认值。
@@ -88,7 +88,8 @@ Runtime schema / runtime model builder 的 v1 边界：
 
 - 对多 getter（`Set<T>` / `[T]`）当前固定生成，不提供单独策略开关。
 - 不生成任何 `*Count` 访问器，推荐改用 `NSManagedObjectContext.count(for:)` + `NSPredicate`。
-- `Set<T>` 仅生成 `add/remove` 便利方法，不生成批量替换 helper。
+- `Set<T>` 生成单个和批量 `add/remove` 便利方法。
+- `[T]` 生成单个和批量 `add/remove`，以及 `insertInto*(_:at:)` 便利方法。
 
 ### `@Attribute`
 
@@ -216,10 +217,22 @@ relationship declaration 规则：
 - 自连接按同一规则处理
 - 缺少 `@Relationship(...)` 时，主宏应在编译期报错并拒绝展开
 
-### Getter / Setter
+### Getter / Setter / Helper Methods
 
-- `[T]` getter 固定生成，setter 永不生成。  
+- `Set<T>` 生成 getter，不生成 setter。  
+- `[T]` 生成 getter，不生成 setter。  
 - `T?` 生成 getter/setter。  
+- `Set<T>` 额外生成：
+  - `addTo*(_ value: T)`
+  - `removeFrom*(_ value: T)`
+  - `addTo*(_ values: Set<T>)`
+  - `removeFrom*(_ values: Set<T>)`
+- `[T]` 额外生成：
+  - `addTo*(_ value: T)`
+  - `removeFrom*(_ value: T)`
+  - `addTo*(_ values: [T])`
+  - `removeFrom*(_ values: [T])`
+  - `insertInto*(_ value: T, at index: Int)`
 
 ### Count
 

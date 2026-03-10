@@ -165,8 +165,8 @@ var category: Category    // ❌ 编译期报错
 
 | 属性类型 | 识别为 | 底层类型 | 生成内容 |
 |---|---|---|---|
-| `Set<T>` 且 T 符合 `PersistentEntity` | 无序对多 | `NSSet` | getter（`?? []`）+ 增删便利方法 |
-| `[T]` 且 T 符合 `PersistentEntity` | 有序对多 | `NSOrderedSet` | getter（`?? []`）+ 增删便利方法，**永不生成 setter** |
+| `Set<T>` 且 T 符合 `PersistentEntity` | 无序对多 | `NSSet` | getter（`?? []`）+ 单个/批量增删便利方法，**不生成 setter** |
+| `[T]` 且 T 符合 `PersistentEntity` | 有序对多 | `NSOrderedSet` | getter（`?? []`）+ 单个/批量增删便利方法 + `insertInto*(_:at:)`，**不生成 setter** |
 | `T?` 且 T 符合 `PersistentEntity` | 对一 | 直接引用 | getter/setter |
 
 **无序对多展开示例**：
@@ -174,15 +174,12 @@ var category: Category    // ❌ 编译期报错
 ```swift
 // var tags: Set<Tag> 展开后
 var tags: Set<Tag> {
-    // ⚠️ 访问此属性会加载整个关系集合，数据量大时性能较差
-    // 建议：获取数量用 tagsCount，获取列表用 NSFetchRequest
     get {
         (value(forKey: "tags") as? NSSet)?
             .compactMap { $0 as? Tag }
             .reduce(into: Set()) { $0.insert($1) }
             ?? []
     }
-    // 默认不生成 setter，通过便利方法操作
 }
 
 func addToTags(_ tag: Tag) {
@@ -193,10 +190,18 @@ func removeFromTags(_ tag: Tag) {
     mutableSetValue(forKey: "tags").remove(tag)
 }
 
-func tagsCount(in context: NSManagedObjectContext, item: Item) throws -> Int {
-    let request = NSFetchRequest<Tag>(entityName: "Tag")
-    request.predicate = NSPredicate(format: "ANY items == %@", item)
-    return try context.count(for: request)
+func addToTags(_ tags: Set<Tag>) {
+    let mutable = mutableSetValue(forKey: "tags")
+    for tag in tags {
+        mutable.add(tag)
+    }
+}
+
+func removeFromTags(_ tags: Set<Tag>) {
+    let mutable = mutableSetValue(forKey: "tags")
+    for tag in tags {
+        mutable.remove(tag)
+    }
 }
 ```
 
@@ -209,8 +214,9 @@ func tagsCount(in context: NSManagedObjectContext, item: Item) throws -> Int {
 
 - 对多 getter（`Set<T>` / `[T]`）当前固定生成，不提供独立策略开关。
 - 不生成任何 `*Count` 访问器，建议使用 `NSManagedObjectContext.count(for:)` + `NSPredicate`。
-- `Set<T>` 仅生成 `add/remove` 便利方法，不生成批量替换 helper。
-- `[T]`（有序对多，`NSOrderedSet`）同样只生成关系便利方法，不生成 setter。
+- 所有对多关系都不生成 setter，统一通过便利方法进行关系修改。
+- `Set<T>` 生成单个和批量 `add/remove` 便利方法。
+- `[T]` 生成单个和批量 `add/remove`，以及 `insertInto*(_:at:)` 便利方法。
 
 ### 关系支持 `persistentName`
 
@@ -325,7 +331,6 @@ var tags: [Tag] {
     get {
         (value(forKey: "tags") as? NSOrderedSet)?.array.compactMap { $0 as? Tag } ?? []
     }
-    // 有序对多永不生成 setter
 }
 
 func addToTags(_ tag: Tag) {
@@ -334,6 +339,24 @@ func addToTags(_ tag: Tag) {
 
 func removeFromTags(_ tag: Tag) {
     mutableOrderedSetValue(forKey: "tags").remove(tag)
+}
+
+func addToTags(_ tags: [Tag]) {
+    let mutable = mutableOrderedSetValue(forKey: "tags")
+    for tag in tags {
+        mutable.add(tag)
+    }
+}
+
+func removeFromTags(_ tags: [Tag]) {
+    let mutable = mutableOrderedSetValue(forKey: "tags")
+    for tag in tags {
+        mutable.remove(tag)
+    }
+}
+
+func insertIntoTags(_ tag: Tag, at index: Int) {
+    mutableOrderedSetValue(forKey: "tags").insert(tag, at: index)
 }
 ```
 
@@ -618,7 +641,7 @@ NSPredicate(format: "%K > %@", Item.Keys.date.rawValue, someDate as CVarArg)
   - 关系属性 -> 内部 `@_CDRelationship`
 - 收集所有 `@Attribute` 声明，自动生成 `Keys` / `Paths` / `__cdFieldTable`
 - 为类添加 `CoreDataKeys` conformance
-- 提供关系代码生成策略（getter/setter/count；其中 setter 仅 `Set<T>` 生效）
+- 提供关系代码生成策略（to-one getter/setter；to-many getter + helper methods）
 
 ```swift
 @PersistentModel

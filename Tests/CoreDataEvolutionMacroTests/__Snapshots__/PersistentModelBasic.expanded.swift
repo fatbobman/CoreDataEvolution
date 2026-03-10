@@ -42,9 +42,6 @@ final class Item: NSManagedObject {
       }
         ?? []
     }
-    set {
-      setValue(NSSet(set: newValue), forKey: "tags")
-    }
   }
   var orderedTags: [Tag] {
     get {
@@ -55,9 +52,6 @@ final class Item: NSManagedObject {
         $0 as? Tag
       }
         ?? []
-    }
-    set {
-      setValue(NSOrderedSet(array: newValue), forKey: "orderedTags")
     }
   }
   var category: Category? {
@@ -305,12 +299,44 @@ final class Item: NSManagedObject {
     mutableSetValue(forKey: "tags").remove(value)
   }
 
+  func addToTags(_ values: Set<Tag>) {
+    let mutable = mutableSetValue(forKey: "tags")
+    for value in values {
+      mutable.add(value)
+    }
+  }
+
+  func removeFromTags(_ values: Set<Tag>) {
+    let mutable = mutableSetValue(forKey: "tags")
+    for value in values {
+      mutable.remove(value)
+    }
+  }
+
   func addToOrderedTags(_ value: Tag) {
     mutableOrderedSetValue(forKey: "orderedTags").add(value)
   }
 
   func removeFromOrderedTags(_ value: Tag) {
     mutableOrderedSetValue(forKey: "orderedTags").remove(value)
+  }
+
+  func addToOrderedTags(_ values: [Tag]) {
+    let mutable = mutableOrderedSetValue(forKey: "orderedTags")
+    for value in values {
+      mutable.add(value)
+    }
+  }
+
+  func removeFromOrderedTags(_ values: [Tag]) {
+    let mutable = mutableOrderedSetValue(forKey: "orderedTags")
+    for value in values {
+      mutable.remove(value)
+    }
+  }
+
+  func insertIntoOrderedTags(_ value: Tag, at index: Int) {
+    mutableOrderedSetValue(forKey: "orderedTags").insert(value, at: index)
   }
 }
 

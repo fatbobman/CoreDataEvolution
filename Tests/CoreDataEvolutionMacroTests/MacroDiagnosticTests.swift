@@ -232,6 +232,69 @@ struct MacroDiagnosticTests {
       result.expandedSource.contains("setValue(NSSet(set: newValue), forKey: \"tags\")") == false)
   }
 
+  @Test("Relationship to-many accessors keep getters and omit setters")
+  func relationshipToManyAccessorsOmitSetters() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        final class Tag: NSManagedObject, PersistentEntity {}
+        final class Category: NSManagedObject, PersistentEntity {}
+
+        final class Item: NSManagedObject {
+          @_CDRelationship(_fromPersistentModel: true)
+          var tag: Tag?
+
+          @_CDRelationship(_fromPersistentModel: true)
+          var tags: Set<Tag>
+
+          @_CDRelationship(_fromPersistentModel: true)
+          var orderedCategories: [Category]
+        }
+        """
+    )
+    #expect(result.diagnostics.isEmpty)
+    #expect(result.expandedSource.contains("setValue(newValue, forKey: \"tag\")"))
+    #expect(
+      result.expandedSource.contains("setValue(NSSet(set: newValue), forKey: \"tags\")") == false)
+    #expect(
+      result.expandedSource.contains(
+        "setValue(NSOrderedSet(array: newValue), forKey: \"orderedCategories\")") == false)
+  }
+
+  @Test("PersistentModel generates collection helpers for to-many relationships")
+  func persistentModelGeneratesToManyCollectionHelpers() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        @objc(Item)
+        @PersistentModel
+        final class Item: NSManagedObject {
+          @Relationship(inverse: "items", deleteRule: .nullify)
+          var tags: Set<Tag>
+          @Relationship(inverse: "orderedItems", deleteRule: .nullify)
+          var orderedTags: [Tag]
+        }
+        """
+    )
+    #expect(result.diagnostics.isEmpty)
+    #expect(result.expandedSource.contains("func addToTags(_ value: Tag)"))
+    #expect(result.expandedSource.contains("func addToTags(_ values: Set<Tag>)"))
+    #expect(result.expandedSource.contains("func removeFromTags(_ values: Set<Tag>)"))
+    #expect(result.expandedSource.contains("func addToOrderedTags(_ value: Tag)"))
+    #expect(result.expandedSource.contains("func addToOrderedTags(_ values: [Tag])"))
+    #expect(result.expandedSource.contains("func removeFromOrderedTags(_ values: [Tag])"))
+    #expect(
+      result.expandedSource.contains(
+        "func insertIntoOrderedTags(_ value: Tag, at index: Int)"))
+    #expect(
+      result.expandedSource.contains("setValue(NSSet(set: newValue), forKey: \"tags\")") == false)
+    #expect(
+      result.expandedSource.contains(
+        "setValue(NSOrderedSet(array: newValue), forKey: \"orderedTags\")") == false)
+  }
+
   @Test("PersistentModel rejects default values on to-many relationships")
   func persistentModelRejectsDefaultValuesOnToManyRelationships() throws {
     let result = try MacroTestSupport.expand(
