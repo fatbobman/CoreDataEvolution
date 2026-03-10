@@ -142,21 +142,19 @@ func makePathEntryDecl(accessModifier: String) -> DeclSyntax {
   """
 }
 
-func makeFieldTableDecl(
+func makeFieldTableDecls(
   accessModifier: String,
   modelTypeName: String,
   model: PersistentModelAnalysis
-) -> DeclSyntax {
+) -> [DeclSyntax] {
   let rendering = collectPersistentModelFieldTableRendering(
     accessModifier: accessModifier,
     model: model
   )
-  return
-    """
-    \(raw: rendering.relationshipProjectionTableDecl)
-
-    \(raw: rendering.fieldTableDecl)
-    """
+  return [
+    "\(raw: rendering.relationshipProjectionTableDecl)",
+    "\(raw: rendering.fieldTableDecl)",
+  ]
 }
 
 func collectPersistentModelPathEntries(

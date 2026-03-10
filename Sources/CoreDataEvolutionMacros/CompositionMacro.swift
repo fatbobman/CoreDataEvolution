@@ -109,12 +109,13 @@ extension CompositionMacro: MemberMacro {
       compositionTypeName: compositionTypeName,
       fields: fields
     )
-    let generated: DeclSyntax =
+    return [
       """
       \(raw: accessModifier)static let __cdCompositionFieldTable: [String: CoreDataEvolution.CDCompositionFieldMeta] = [
       \(raw: rendering.fieldTableBody)
       ]
-
+      """,
+      """
       \(raw: accessModifier)static let __cdFieldTable: [String: CoreDataEvolution.CDFieldMeta] = {
         CoreDataEvolution.CDCompositionTableBuilder.makeModelFieldEntries(
           modelSwiftPathPrefix: [],
@@ -122,33 +123,38 @@ extension CompositionMacro: MemberMacro {
           composition: Self.self
         )
       }()
-
+      """,
+      """
       \(raw: accessModifier)enum Paths {
       \(raw: rendering.pathBody)
       }
-
+      """,
+      """
       \(raw: accessModifier)struct PathRoot: Sendable {
       \(raw: rendering.pathRootBody)
       }
-
+      """,
+      """
       \(raw: accessModifier)static var path: PathRoot {
         .init()
       }
-
+      """,
+      """
       \(raw: accessModifier)static let __cdRuntimeCompositionFields: [CoreDataEvolution.CDRuntimeCompositionFieldSchema] = [
       \(raw: rendering.runtimeFieldBody)
       ]
-
+      """,
+      """
       \(raw: accessModifier)static func __cdDecodeComposition(from dictionary: [String: Any]) -> Self? {
       \(raw: rendering.decodeBody)
       }
-
+      """,
+      """
       \(raw: accessModifier)var __cdEncodeComposition: [String: Any] {
       \(raw: rendering.encodeBody)
       }
-      """
-
-    return [generated]
+      """,
+    ]
   }
 }
 

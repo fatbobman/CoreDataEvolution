@@ -164,12 +164,10 @@ extension PersistentModelMacro: MemberMacro {
       )
     )
     members.append(makePathEntryDecl(accessModifier: accessModifier))
-    members.append(
-      makeFieldTableDecl(
-        accessModifier: accessModifier,
-        modelTypeName: modelTypeName,
-        model: model
-      )
+    members += makeFieldTableDecls(
+      accessModifier: accessModifier,
+      modelTypeName: modelTypeName,
+      model: model
     )
     members += makeRelationshipTargetValidationDecls(
       accessModifier: accessModifier,

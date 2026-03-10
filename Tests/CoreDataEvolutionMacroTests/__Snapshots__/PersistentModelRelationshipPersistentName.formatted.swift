@@ -68,22 +68,22 @@ final class FlowProject: NSManagedObject {
     storageMethod: .default,
     supportsStoreSort: false,
     isToManyRelationship: true
-  )
+      )
       ],
       uniquingKeysWith: { _, new in
         new
       }
     )
-  table.merge(
-    CoreDataEvolution.CDRelationshipTableBuilder.makeToManyFieldEntries(
-      modelSwiftPathPrefix: ["tasks"],
-      modelPersistentPathPrefix: ["owned_tasks"],
-      target: FlowTask.self
-    ),
-    uniquingKeysWith: { _, new in
+    table.merge(
+      CoreDataEvolution.CDRelationshipTableBuilder.makeToManyFieldEntries(
+        modelSwiftPathPrefix: ["tasks"],
+        modelPersistentPathPrefix: ["owned_tasks"],
+        target: FlowTask.self
+      ),
+      uniquingKeysWith: { _, new in
       new
     }
-  )
+    )
     return table
   }()
 
@@ -185,22 +185,22 @@ final class FlowTask: NSManagedObject {
     storageMethod: .default,
     supportsStoreSort: false,
     isToManyRelationship: false
-  )
+      )
       ],
       uniquingKeysWith: { _, new in
         new
       }
     )
-  table.merge(
-    CoreDataEvolution.CDRelationshipTableBuilder.makeToOneFieldEntries(
-      modelSwiftPathPrefix: ["project"],
-      modelPersistentPathPrefix: ["owner_project"],
-      target: FlowProject.self
-    ),
-    uniquingKeysWith: { _, new in
+    table.merge(
+      CoreDataEvolution.CDRelationshipTableBuilder.makeToOneFieldEntries(
+        modelSwiftPathPrefix: ["project"],
+        modelPersistentPathPrefix: ["owner_project"],
+        target: FlowProject.self
+      ),
+      uniquingKeysWith: { _, new in
       new
     }
-  )
+    )
     return table
   }()
 

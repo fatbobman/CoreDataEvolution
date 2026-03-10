@@ -17,25 +17,25 @@ public struct Coordinate {
   }()
 
   public enum Paths {
-  public static let latitude = CoreDataEvolution.CDPath<Coordinate, Double>(
-    swiftPath: ["latitude"],
-    persistentPath: ["lat"]
-  )
+    public static let latitude = CoreDataEvolution.CDPath<Coordinate, Double>(
+      swiftPath: ["latitude"],
+      persistentPath: ["lat"]
+    )
 
-  public static let longitude = CoreDataEvolution.CDPath<Coordinate, Double?>(
-    swiftPath: ["longitude"],
-    persistentPath: ["lng"]
-  )
+    public static let longitude = CoreDataEvolution.CDPath<Coordinate, Double?>(
+      swiftPath: ["longitude"],
+      persistentPath: ["lng"]
+    )
   }
 
   public struct PathRoot: Sendable {
-  public var latitude: CoreDataEvolution.CDPath<Coordinate, Double> {
-    Paths.latitude
-  }
+    public var latitude: CoreDataEvolution.CDPath<Coordinate, Double> {
+      Paths.latitude
+    }
 
-  public var longitude: CoreDataEvolution.CDPath<Coordinate, Double?> {
-    Paths.longitude
-  }
+    public var longitude: CoreDataEvolution.CDPath<Coordinate, Double?> {
+      Paths.longitude
+    }
   }
 
   public static var path: PathRoot {
@@ -43,20 +43,20 @@ public struct Coordinate {
   }
 
   public static let __cdRuntimeCompositionFields: [CoreDataEvolution.CDRuntimeCompositionFieldSchema] = [
-  .init(
-    persistentName: "lat",
-    swiftTypeName: "Double",
-    primitiveType: .double,
-    isOptional: false,
-    defaultValueExpression: nil
-  ),
-  .init(
-    persistentName: "lng",
-    swiftTypeName: "Double?",
-    primitiveType: .double,
-    isOptional: true,
-    defaultValueExpression: "nil"
-  )
+    .init(
+      persistentName: "lat",
+      swiftTypeName: "Double",
+      primitiveType: .double,
+      isOptional: false,
+      defaultValueExpression: nil
+    ),
+    .init(
+      persistentName: "lng",
+      swiftTypeName: "Double?",
+      primitiveType: .double,
+      isOptional: true,
+      defaultValueExpression: "nil"
+    )
   ]
 
   public static func __cdDecodeComposition(from dictionary: [String: Any]) -> Self? {

@@ -15,16 +15,16 @@ struct Magnitude {
   }()
 
   enum Paths {
-  static let richter = CoreDataEvolution.CDPath<Magnitude, Double>(
-    swiftPath: ["richter"],
-    persistentPath: ["richter"]
-  )
+    static let richter = CoreDataEvolution.CDPath<Magnitude, Double>(
+      swiftPath: ["richter"],
+      persistentPath: ["richter"]
+    )
   }
 
   struct PathRoot: Sendable {
-  var richter: CoreDataEvolution.CDPath<Magnitude, Double> {
-    Paths.richter
-  }
+    var richter: CoreDataEvolution.CDPath<Magnitude, Double> {
+      Paths.richter
+    }
   }
 
   static var path: PathRoot {
@@ -32,13 +32,13 @@ struct Magnitude {
   }
 
   static let __cdRuntimeCompositionFields: [CoreDataEvolution.CDRuntimeCompositionFieldSchema] = [
-  .init(
-    persistentName: "richter",
-    swiftTypeName: "Double",
-    primitiveType: .double,
-    isOptional: false,
-    defaultValueExpression: nil
-  )
+    .init(
+      persistentName: "richter",
+      swiftTypeName: "Double",
+      primitiveType: .double,
+      isOptional: false,
+      defaultValueExpression: nil
+    )
   ]
 
   static func __cdDecodeComposition(from dictionary: [String: Any]) -> Self? {

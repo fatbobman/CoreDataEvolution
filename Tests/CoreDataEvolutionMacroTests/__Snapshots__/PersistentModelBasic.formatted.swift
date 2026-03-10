@@ -161,58 +161,58 @@ final class Item: NSManagedObject {
     storageMethod: .default,
     supportsStoreSort: false,
     isToManyRelationship: true
-  ),
-  "orderedTags": .init(
-    kind: .relationship,
-    swiftPath: ["orderedTags"],
-    persistentPath: ["orderedTags"],
-    storageMethod: .default,
-    supportsStoreSort: false,
-    isToManyRelationship: true
-  ),
-  "category": .init(
-    kind: .relationship,
-    swiftPath: ["category"],
-    persistentPath: ["category"],
-    storageMethod: .default,
-    supportsStoreSort: false,
-    isToManyRelationship: false
-  )
+      ),
+    "orderedTags": .init(
+      kind: .relationship,
+      swiftPath: ["orderedTags"],
+      persistentPath: ["orderedTags"],
+      storageMethod: .default,
+      supportsStoreSort: false,
+      isToManyRelationship: true
+      ),
+    "category": .init(
+      kind: .relationship,
+      swiftPath: ["category"],
+      persistentPath: ["category"],
+      storageMethod: .default,
+      supportsStoreSort: false,
+      isToManyRelationship: false
+      )
       ],
       uniquingKeysWith: { _, new in
         new
       }
     )
-  table.merge(
-    CoreDataEvolution.CDRelationshipTableBuilder.makeToManyFieldEntries(
-      modelSwiftPathPrefix: ["tags"],
-      modelPersistentPathPrefix: ["tags"],
-      target: Tag.self
-    ),
-    uniquingKeysWith: { _, new in
+    table.merge(
+      CoreDataEvolution.CDRelationshipTableBuilder.makeToManyFieldEntries(
+        modelSwiftPathPrefix: ["tags"],
+        modelPersistentPathPrefix: ["tags"],
+        target: Tag.self
+      ),
+      uniquingKeysWith: { _, new in
       new
     }
-  )
-  table.merge(
-    CoreDataEvolution.CDRelationshipTableBuilder.makeToManyFieldEntries(
-      modelSwiftPathPrefix: ["orderedTags"],
-      modelPersistentPathPrefix: ["orderedTags"],
-      target: Tag.self
-    ),
-    uniquingKeysWith: { _, new in
+    )
+    table.merge(
+      CoreDataEvolution.CDRelationshipTableBuilder.makeToManyFieldEntries(
+        modelSwiftPathPrefix: ["orderedTags"],
+        modelPersistentPathPrefix: ["orderedTags"],
+        target: Tag.self
+      ),
+      uniquingKeysWith: { _, new in
       new
     }
-  )
-  table.merge(
-    CoreDataEvolution.CDRelationshipTableBuilder.makeToOneFieldEntries(
-      modelSwiftPathPrefix: ["category"],
-      modelPersistentPathPrefix: ["category"],
-      target: Category.self
-    ),
-    uniquingKeysWith: { _, new in
+    )
+    table.merge(
+      CoreDataEvolution.CDRelationshipTableBuilder.makeToOneFieldEntries(
+        modelSwiftPathPrefix: ["category"],
+        modelPersistentPathPrefix: ["category"],
+        target: Category.self
+      ),
+      uniquingKeysWith: { _, new in
       new
     }
-  )
+    )
     return table
   }()
 
