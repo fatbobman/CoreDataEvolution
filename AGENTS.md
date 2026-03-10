@@ -46,16 +46,33 @@ Use these first:
 
 ```bash
 swift build
-swift test
+bash Scripts/run-tests.sh
 ```
+
+`run-tests.sh` wraps `swift test` and always injects `com.apple.CoreData.ConcurrencyDebug=1`
+as a process environment variable via `env`. macOS UserDefaults reads this from the process
+environment, activating Core Data thread-violation detection without requiring `--` argument
+passing (which current `swift test` versions do not support for arbitrary keys).
+Prefer this script over bare `swift test` so concurrency violations are caught on every local run,
+not only in Xcode via the test plan.
 
 Useful targeted runs:
 
 ```bash
-swift test --filter NSModelActorTests
-swift test --filter WithContextTests
-swift test --filter IntegrationModel
+bash Scripts/run-tests.sh --filter NSModelActorTests
+bash Scripts/run-tests.sh --filter WithContextTests
+bash Scripts/run-tests.sh --filter IntegrationModel
+bash Scripts/run-tests.sh --target CoreDataEvolutionTests
 ```
+
+Options:
+
+- `--filter <pattern>` — forward `--filter` to `swift test`
+- `--target <name>` — forward `--target` to `swift test`
+- `--no-parallel` — add `--no-parallel` to `swift test`
+- `--sql-debug` — also enable `-com.apple.CoreData.SQLDebug 1` (verbose)
+
+Bare `swift test` still works but does not carry the Core Data concurrency flag.
 
 Tooling CLI build:
 
@@ -175,7 +192,9 @@ The tests encode several important constraints. Preserve them.
 -com.apple.CoreData.ConcurrencyDebug 1
 ```
 
-This is useful when running the package tests through Xcode with the test plan. Do not assume plain `swift test` will automatically pick up the same runtime argument.
+This covers Xcode runs. For CLI runs, use `bash Scripts/run-tests.sh` which injects the same flag
+via `env "com.apple.CoreData.ConcurrencyDebug=1" swift test`. Bare `swift test` does not pick up
+the test plan argument automatically.
 
 ## Implementation Guidance
 
