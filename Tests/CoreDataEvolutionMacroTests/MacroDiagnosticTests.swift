@@ -847,6 +847,40 @@ struct MacroDiagnosticTests {
     #expect(result.diagnostics.isEmpty)
   }
 
+  @Test("Attribute transformed name requires string literal transformer name")
+  func attributeTransformedNameRequiresStringLiteralTransformerName() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreDataEvolution
+        struct S {
+          @Attribute(storageMethod: .transformed(name: name))
+          var payload: [String]? = nil
+        }
+        """
+    )
+    #expect(
+      result.diagnostics.contains {
+        $0.contains("`.transformed(name: ...)` requires a string literal transformer name")
+      })
+  }
+
+  @Test("Attribute transformed name rejects empty transformer name")
+  func attributeTransformedNameRejectsEmptyTransformerName() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreDataEvolution
+        struct S {
+          @Attribute(storageMethod: .transformed(name: ""))
+          var payload: [String]? = nil
+        }
+        """
+    )
+    #expect(
+      result.diagnostics.contains {
+        $0.contains("`.transformed(name: ...)` requires a non-empty transformer name")
+      })
+  }
+
   @Test("Attribute decodeFailurePolicy rejects unsupported storage")
   func attributeDecodeFailurePolicyRejectsUnsupportedStorage() throws {
     let result = try MacroTestSupport.expand(

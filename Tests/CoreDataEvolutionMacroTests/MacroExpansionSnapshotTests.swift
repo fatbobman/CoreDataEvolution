@@ -33,6 +33,11 @@ struct MacroExpansionSnapshotTests {
     try MacroTestSupport.assertExpansionSnapshot(fixtureName: "AttributeTransformed")
   }
 
+  @Test("Attribute transformed name snapshot")
+  func attributeTransformedNameSnapshot() throws {
+    try MacroTestSupport.assertExpansionSnapshot(fixtureName: "AttributeTransformedName")
+  }
+
   @Test("Attribute composition snapshot")
   func attributeCompositionSnapshot() throws {
     try MacroTestSupport.assertExpansionSnapshot(fixtureName: "AttributeComposition")
