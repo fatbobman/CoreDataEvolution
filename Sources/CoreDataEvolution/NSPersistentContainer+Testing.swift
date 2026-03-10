@@ -104,7 +104,7 @@ extension NSPersistentContainer {
       }
     }
 
-    let container = NSPersistentContainer(name: resolvedTestName, managedObjectModel: model)
+    let container = NSPersistentContainer(name: sanitizedStoreName, managedObjectModel: model)
 
     let description = NSPersistentStoreDescription(url: storeURL)
     description.shouldAddStoreAsynchronously = false

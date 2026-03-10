@@ -62,13 +62,11 @@ Useful targeted runs:
 bash Scripts/run-tests.sh --filter NSModelActorTests
 bash Scripts/run-tests.sh --filter WithContextTests
 bash Scripts/run-tests.sh --filter IntegrationModel
-bash Scripts/run-tests.sh --target CoreDataEvolutionTests
 ```
 
 Options:
 
 - `--filter <pattern>` — forward `--filter` to `swift test`
-- `--target <name>` — forward `--target` to `swift test`
 - `--no-parallel` — add `--no-parallel` to `swift test`
 - `--sql-debug` — also enable `-com.apple.CoreData.SQLDebug 1` (verbose)
 

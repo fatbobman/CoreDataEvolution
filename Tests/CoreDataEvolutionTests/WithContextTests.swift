@@ -97,14 +97,16 @@ struct WithContextTests {
 
     _ = try await handler.createNemItem()
 
-    // Verify via a fresh background context created from the container
-    let countViaNewContext = try await handler.withContext { _, container in
-      let verificationContext = container.newBackgroundContext()
+    let countViaContext = try await handler.withContext { context, container in
+      #expect(ObjectIdentifier(container) == ObjectIdentifier(stack.container))
+      #expect(
+        container.viewContext.persistentStoreCoordinator === context.persistentStoreCoordinator)
+
       let request = Item.fetchRequest()
-      return try verificationContext.fetch(request).count
+      return try context.fetch(request).count
     }
 
-    #expect(countViaNewContext == 1)
+    #expect(countViaContext == 1)
   }
 
   /// Verifies that the container overload also returns values correctly.
@@ -117,8 +119,10 @@ struct WithContextTests {
       container.name
     }
 
-    // container.name includes the call-site identity (default #fileID-#function).
-    #expect(containerName.hasSuffix(#function))
+    // container.name is sanitized before it is passed into NSPersistentContainer.
+    #expect(
+      containerName == "CoreDataEvolutionTests_WithContextTests.swift-containerOverloadReturnsValue"
+    )
   }
 
   // MARK: - NSMainModelActor.withContext

@@ -14,7 +14,6 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FILTER=""
-TARGET=""
 PARALLEL=true
 SQL_DEBUG=false
 EXTRA_SWIFT_ARGS=()
@@ -29,7 +28,6 @@ Runs swift test with Core Data concurrency checking enabled
 
 Options:
   --filter <pattern>   Forward --filter to swift test (run matching tests only).
-  --target <name>      Forward --target to swift test (run one target only).
   --no-parallel        Disable parallel test execution (--no-parallel).
   --sql-debug          Also enable -com.apple.CoreData.SQLDebug 1 (verbose).
   -h, --help           Show this help.
@@ -37,7 +35,6 @@ Options:
 Examples:
   bash Scripts/run-tests.sh
   bash Scripts/run-tests.sh --filter ModelActorTests
-  bash Scripts/run-tests.sh --target CoreDataEvolutionTests
   bash Scripts/run-tests.sh --no-parallel --sql-debug
 EOF
 }
@@ -46,10 +43,6 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --filter)
       FILTER="${2:-}"
-      shift 2
-      ;;
-    --target)
-      TARGET="${2:-}"
       shift 2
       ;;
     --no-parallel)
@@ -82,10 +75,6 @@ export SWIFTPM_CUSTOM_CACHE_DIR="$CACHE_ROOT/swiftpm"
 
 if [[ -n "$FILTER" ]]; then
   EXTRA_SWIFT_ARGS+=(--filter "$FILTER")
-fi
-
-if [[ -n "$TARGET" ]]; then
-  EXTRA_SWIFT_ARGS+=(--target "$TARGET")
 fi
 
 if [[ "$PARALLEL" != true ]]; then

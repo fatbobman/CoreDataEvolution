@@ -15,6 +15,8 @@ struct NSModelActorTests {
     // TestStack provides a pre-configured NSPersistentContainer for testing
     let stack = TestStack()
 
+    #expect(stack.container.name == "CoreDataEvolutionTests_NSModelActorTests.swift-createNewItem")
+
     // Create a DataHandler actor instance with custom executor
     // The DataHandler is decorated with @NSModelActor(disableGenerateInit: true)
     // This creates an actor that operates on a background thread with its own managed object context
