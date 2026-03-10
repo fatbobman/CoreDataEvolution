@@ -316,7 +316,7 @@ private func parseAttributeArguments(
         }
         return nil
       }
-      if let persistentName, isValidCoreDataAttributeName(persistentName) == false {
+      if let persistentName, isValidCoreDataFieldName(persistentName) == false {
         if emitDiagnostics {
           MacroDiagnosticReporter.error(
             "@Attribute argument `\(label)` must be a valid Core Data attribute name (letters, numbers, underscore; cannot start with number).",
@@ -409,28 +409,6 @@ private func isTransformedStorageMethod(_ storageMethod: ParsedAttributeStorageM
     return true
   }
   return false
-}
-
-private func isValidCoreDataAttributeName(_ name: String) -> Bool {
-  guard name.isEmpty == false else {
-    return false
-  }
-  let scalars = name.unicodeScalars
-  guard let first = scalars.first else {
-    return false
-  }
-  let letters = CharacterSet.letters
-  let digits = CharacterSet.decimalDigits
-  if letters.contains(first) == false && first != "_" {
-    return false
-  }
-  for scalar in scalars.dropFirst() {
-    if letters.contains(scalar) || digits.contains(scalar) || scalar == "_" {
-      continue
-    }
-    return false
-  }
-  return true
 }
 
 private func parseStorageMethod(

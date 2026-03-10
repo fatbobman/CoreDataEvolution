@@ -372,55 +372,6 @@ private func isAllowedFieldType(_ type: TypeSyntax) -> Bool {
   return coreDataPrimitiveTypeNames.contains(base)
 }
 
-private func runtimePrimitiveTypeExpression(typeName: String) -> String {
-  switch typeName {
-  case "String":
-    return ".string"
-  case "Bool":
-    return ".bool"
-  case "Int16":
-    return ".int16"
-  case "Int32":
-    return ".int32"
-  case "Int", "Int64":
-    return ".int64"
-  case "Float":
-    return ".float"
-  case "Double":
-    return ".double"
-  case "Decimal":
-    return ".decimal"
-  case "Date":
-    return ".date"
-  case "Data":
-    return ".data"
-  case "UUID":
-    return ".uuid"
-  case "URL":
-    return ".url"
-  default:
-    return """
-      ({
-        #warning("Unsupported composition runtime primitive type '\(typeName)'. Falling back to .string.")
-        return CoreDataEvolution.CDRuntimePrimitiveAttributeType.string
-      }())
-      """
-  }
-}
-
-private func runtimeDefaultValueExpression(_ expression: String?) -> String {
-  if let expression {
-    return "\"\(escapeRuntimeLiteral(expression))\""
-  }
-  return "nil"
-}
-
-private func escapeRuntimeLiteral(_ text: String) -> String {
-  text
-    .replacingOccurrences(of: "\\", with: "\\\\")
-    .replacingOccurrences(of: "\"", with: "\\\"")
-}
-
 private func isOptionalType(_ type: TypeSyntax) -> Bool {
   type.as(OptionalTypeSyntax.self) != nil
     || type.as(ImplicitlyUnwrappedOptionalTypeSyntax.self) != nil
