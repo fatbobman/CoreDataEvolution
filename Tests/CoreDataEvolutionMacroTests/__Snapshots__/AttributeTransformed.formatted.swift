@@ -9,7 +9,7 @@ struct Item {
   var color: String? {
     get {
       guard let transformer = ValueTransformer(forName: ColorTransformer.transformerName) else {
-        assertionFailure("Transformer 'ColorTransformer.transformerName' is not registered for `color` (color).")
+        assertionFailure("Transformer '\\(ColorTransformer.transformerName.rawValue)' is not registered for `color` (color).")
         return nil
       }
       let storedValue = value(forKey: "color")
@@ -23,7 +23,7 @@ struct Item {
     }
     set {
       guard let transformer = ValueTransformer(forName: ColorTransformer.transformerName) else {
-        assertionFailure("Transformer 'ColorTransformer.transformerName' is not registered for `color` (color).")
+        assertionFailure("Transformer '\\(ColorTransformer.transformerName.rawValue)' is not registered for `color` (color).")
         setValue(nil, forKey: "color")
         return
       }
