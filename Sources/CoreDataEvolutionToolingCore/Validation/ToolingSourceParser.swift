@@ -99,7 +99,7 @@ public enum ToolingSourceParser {
       return []
     }
 
-    let pathScope = ToolingValidationPathScope(include: include, exclude: exclude)
+    let pathScope = try ToolingValidationPathScope(include: include, exclude: exclude)
     var files: [URL] = []
 
     for case let fileURL as URL in enumerator {

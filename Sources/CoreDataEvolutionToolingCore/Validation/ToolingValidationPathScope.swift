@@ -17,9 +17,9 @@ struct ToolingValidationPathScope {
   let includeMatchers: [ToolingGlobMatcher]
   let excludeMatchers: [ToolingGlobMatcher]
 
-  init(include: [String], exclude: [String]) {
-    includeMatchers = include.map(ToolingGlobMatcher.init)
-    excludeMatchers = exclude.map(ToolingGlobMatcher.init)
+  init(include: [String], exclude: [String]) throws {
+    includeMatchers = try include.map(ToolingGlobMatcher.init)
+    excludeMatchers = try exclude.map(ToolingGlobMatcher.init)
   }
 
   func contains(_ relativePath: String) -> Bool {
@@ -40,11 +40,18 @@ struct ToolingValidationPathScope {
 struct ToolingGlobMatcher {
   private let regex: NSRegularExpression
 
-  init(_ pattern: String) {
+  init(_ pattern: String) throws {
     let escaped = NSRegularExpression.escapedPattern(for: pattern)
       .replacingOccurrences(of: #"\*"#, with: ".*")
       .replacingOccurrences(of: #"\?"#, with: ".")
-    self.regex = try! NSRegularExpression(pattern: "^\(escaped)$")
+    do {
+      self.regex = try NSRegularExpression(pattern: "^\(escaped)$")
+    } catch {
+      throw ToolingFailure.user(
+        .configInvalid,
+        "invalid glob pattern '\(pattern)': \(error.localizedDescription)."
+      )
+    }
   }
 
   func matches(_ text: String) -> Bool {

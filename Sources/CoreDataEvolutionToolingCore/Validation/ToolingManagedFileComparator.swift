@@ -25,7 +25,7 @@ enum ToolingManagedFileComparator {
   ) throws -> [ToolingDiagnostic] {
     let sourceDirectoryURL = URL(fileURLWithPath: sourceDirectory, isDirectory: true)
       .resolvingSymlinksInPath()
-    let pathScope = ToolingValidationPathScope(include: include, exclude: exclude)
+    let pathScope = try ToolingValidationPathScope(include: include, exclude: exclude)
     let expectedByRelativePath = Dictionary(
       uniqueKeysWithValues:
         plan

@@ -419,8 +419,17 @@ public enum ToolingModelLoader {
     }
 
     let pattern = #"<entity\b[^>]*\bname="([^"]+)"([^>]*)>"#
-    let regex = try! NSRegularExpression(pattern: pattern)
-    let codegenRegex = try! NSRegularExpression(pattern: #"\bcodeGenerationType="([^"]+)""#)
+    let regex: NSRegularExpression
+    let codegenRegex: NSRegularExpression
+    do {
+      regex = try NSRegularExpression(pattern: pattern)
+      codegenRegex = try NSRegularExpression(pattern: #"\bcodeGenerationType="([^"]+)""#)
+    } catch {
+      throw ToolingFailure.runtime(
+        .internalError,
+        "internal regex compilation failed: \(error.localizedDescription)."
+      )
+    }
     let range = NSRange(contents.startIndex..<contents.endIndex, in: contents)
 
     for match in regex.matches(in: contents, range: range) {

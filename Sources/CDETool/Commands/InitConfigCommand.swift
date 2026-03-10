@@ -80,6 +80,8 @@ struct InitConfigCommand: ParsableCommand {
     do {
       try result.jsonData.write(to: url, options: [.atomic])
       emitWriteSuccess(kind: "config template", path: url.path)
+    } catch let failure as ToolingFailure {
+      try fail(failure)
     } catch {
       try failUser(
         code: .writeDenied,
