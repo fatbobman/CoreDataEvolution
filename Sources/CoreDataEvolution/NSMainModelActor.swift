@@ -28,34 +28,13 @@ extension NSMainModelActor {
 
   /// Looks up a managed object by ID and downcasts it to the requested type.
   public subscript<T>(id: NSManagedObjectID, as _: T.Type) -> T? where T: NSManagedObject {
-    try? modelContext.existingObject(with: id) as? T
+    modelActorExistingObject(in: modelContext, id: id, as: T.self)
   }
 
   /// Provides direct, synchronous access to the underlying `NSManagedObjectContext`
   /// within the main actor's isolation boundary.
   ///
-  /// Use this method when you need to perform raw Core Data operations that aren't
-  /// covered by the type's higher-level API — most commonly in unit tests to inspect
-  /// the persistent store state after a write operation.
-  ///
-  /// The closure runs **synchronously** on the main actor context. There is no
-  /// additional scheduling overhead; the call returns only after the closure completes.
-  ///
-  /// **Typical usage in tests:**
-  /// ```swift
-  /// @MainActor
-  /// @Test func verifyMainHandlerState() throws {
-  ///     let container = NSPersistentContainer.makeTest(model: MySchema.objectModel)
-  ///     let handler = MainHandler(modelContainer: container)
-  ///     _ = try handler.createItem()
-  ///
-  ///     let count = try handler.withContext { context in
-  ///         let request = Item.fetchRequest()
-  ///         return try context.fetch(request).count
-  ///     }
-  ///     #expect(count == 1)
-  /// }
-  /// ```
+  /// This matches `NSModelActor.withContext(_:)`, but runs against `viewContext` on the main actor.
   ///
   /// - Parameter action: A synchronous closure that receives the main actor's
   ///   `NSManagedObjectContext`. The return value must conform to `Sendable`.
@@ -68,30 +47,13 @@ extension NSMainModelActor {
   public func withContext<T: Sendable>(
     _ action: (NSManagedObjectContext) throws -> T
   ) throws -> T {
-    try action(modelContext)
+    try withModelContext(modelContext, action)
   }
 
   /// Provides direct, synchronous access to both the `NSManagedObjectContext` and
   /// the `NSPersistentContainer` within the main actor's isolation boundary.
   ///
-  /// This overload is useful when the closure needs to cross-reference the container —
-  /// for example, to inspect store metadata or create a verification context in tests.
-  ///
-  /// **Typical usage in tests:**
-  /// ```swift
-  /// @MainActor
-  /// @Test func verifyWithContainerOverload() throws {
-  ///     let container = NSPersistentContainer.makeTest(model: MySchema.objectModel)
-  ///     let handler = MainHandler(modelContainer: container)
-  ///
-  ///     let count = try handler.withContext { _, container in
-  ///         let verification = container.newBackgroundContext()
-  ///         let request = Item.fetchRequest()
-  ///         return try verification.fetch(request).count
-  ///     }
-  ///     #expect(count == 0)
-  /// }
-  /// ```
+  /// This matches `NSModelActor.withContext(_:)`, but runs against `viewContext` on the main actor.
   ///
   /// - Parameter action: A synchronous closure that receives both the main actor's
   ///   `NSManagedObjectContext` and its `NSPersistentContainer`.
@@ -105,6 +67,6 @@ extension NSMainModelActor {
   public func withContext<T: Sendable>(
     _ action: (NSManagedObjectContext, NSPersistentContainer) throws -> T
   ) throws -> T {
-    try action(modelContext, modelContainer)
+    try withModelContext(modelContext, container: modelContainer, action)
   }
 }
