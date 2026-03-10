@@ -107,6 +107,11 @@ Path/toolchain behavior for integration model scripts:
   - generates source into `Integration/GeneratedFlowFixture`
   - validates generated output
   - builds and runs the external fixture package
+- `Scripts/test-generated-flow.sh` dependency modes:
+  - default `path` mode keeps the checked-in fixture pointed at the current workspace via `.package(path: "../..")`
+  - `tag` / `branch` / `revision` modes copy the fixture to a temp directory and rewrite only the temp `Package.swift` dependency
+  - use those non-`path` modes for release smoke checks without editing tracked fixture files
+  - note: the script still builds `cde-tool` from the current workspace; non-`path` modes only change the external fixture package dependency source
 
 ## Release Tag Convention
 
