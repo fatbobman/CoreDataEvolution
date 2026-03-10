@@ -25,6 +25,7 @@
 - `[x]` 创建配置文件读取与命令行覆盖合并逻辑
 - `[x]` 创建共享 `typeMappings` 与 `attributeRules` 配置模型
 - `[x]` 创建 `bootstrap-config` 请求/结果/服务骨架
+- `[x]` `bootstrap-config` 支持 `compact` / `explicit` 脚手架风格
 
 ## 2. Model Loading
 
@@ -187,6 +188,7 @@
 
 - `[ ]` `bootstrap-config` 仍不会自动识别 enum/raw 候选字段，只保留手动调整空间。
 - `[ ]` `bootstrap-config` 仍不会自动推断 composition 候选字段。
+- `[ ]` `bootstrap-config --style explicit` 当前只显式展开已知默认映射，不会额外推断 enum/raw 候选或更高层语义重命名。
 - `[ ]` `generate.attributeRules` 与 `validate.attributeRules` 仍是两份独立配置，暂不提供引用/复用语法。
 - `[ ]` `generate` / `validate` service 接线后，仍需在“合并 CLI overrides 后”的 request 层再做一次最终校验。
 - `[ ]` 当前 inspect 对未解析字段只发出 diagnostics，不会像 generate/validate 那样直接失败。

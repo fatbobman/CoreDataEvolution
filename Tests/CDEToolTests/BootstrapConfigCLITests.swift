@@ -64,7 +64,7 @@ struct BootstrapConfigCLITests {
     #expect(result.stderr.contains("must not use Xcode code generation mode"))
   }
 
-  @Test("bootstrap-config rewrites generated path fields relative to output config")
+  @Test("bootstrap-config rewrites paths and preserves explicit mappings in output config")
   func bootstrapConfigRewritesPathsRelativeToOutputConfig() throws {
     let modelURL = try makeToolingSourceModelFixture()
     defer { try? FileManager.default.removeItem(at: modelURL.deletingLastPathComponent()) }
@@ -80,6 +80,7 @@ struct BootstrapConfigCLITests {
     let result = try runTool([
       "bootstrap-config",
       "--model-path", modelURL.path,
+      "--style", "explicit",
       "--output-dir", "Generated/CoreDataEvolution",
       "--source-dir", "Sources/AppModels",
       "--output", configURL.path,
@@ -106,5 +107,27 @@ struct BootstrapConfigCLITests {
     #expect(generate.modelPath == makeRelativePath(from: outputDirectory, to: modelURL))
     #expect(generate.outputDir == makeRelativePath(from: outputDirectory, to: generatedOutputURL))
     #expect(validate.sourceDir == makeRelativePath(from: outputDirectory, to: sourceOutputURL))
+    #expect(generate.relationshipRules?.entities["CDEItem"]?["tag"]?.swiftName == "tag")
+    #expect(validate.relationshipRules?.entities["CDEItem"]?["tag"]?.swiftName == "tag")
+    #expect(generate.compositionRules?.types["CDEItemLocation"]?["x"]?.swiftName == "x")
+    #expect(validate.compositionRules?.types["CDEItemLocation"]?["x"]?.swiftName == "x")
+  }
+
+  @Test("bootstrap-config can emit explicit default mappings")
+  func bootstrapConfigCanEmitExplicitDefaultMappings() throws {
+    let modelURL = try makeToolingSourceModelFixture()
+    defer { try? FileManager.default.removeItem(at: modelURL.deletingLastPathComponent()) }
+
+    let result = try runTool([
+      "bootstrap-config",
+      "--model-path", modelURL.path,
+      "--style", "explicit",
+      "--stdout",
+    ])
+
+    #expect(result.exitCode == 0)
+    #expect(result.stdout.contains("\"swiftName\" : \"name\""))
+    #expect(result.stdout.contains("\"storageMethod\" : \"default\""))
+    #expect(result.stdout.contains("\"CDEItemLocation\""))
   }
 }

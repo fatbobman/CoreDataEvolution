@@ -41,6 +41,13 @@ struct BootstrapConfigCommand: ParsableCommand {
   @Option(name: .long, help: "Default source directory used by validate.")
   var sourceDir: String = "Sources/AppModels"
 
+  @Option(
+    name: .long,
+    help:
+      "Scaffold style: 'compact' keeps concise placeholders, 'explicit' writes resolved default mappings."
+  )
+  var style: ToolingBootstrapConfigStyle = .compact
+
   @Option(name: .long, help: "Output config file path.")
   var output: String?
 
@@ -67,7 +74,8 @@ struct BootstrapConfigCommand: ParsableCommand {
           momcBin: momcBin,
           moduleName: moduleName,
           outputDir: outputDir,
-          sourceDir: sourceDir
+          sourceDir: sourceDir,
+          style: style
         )
       )
     } catch let failure as ToolingFailure {
@@ -157,6 +165,8 @@ private func relocateBootstrapTemplate(
         moduleName: generate.moduleName,
         typeMappings: generate.typeMappings,
         attributeRules: generate.attributeRules,
+        relationshipRules: generate.relationshipRules,
+        compositionRules: generate.compositionRules,
         accessLevel: generate.accessLevel,
         singleFile: generate.singleFile,
         splitByEntity: generate.splitByEntity,
@@ -195,6 +205,8 @@ private func relocateBootstrapTemplate(
         moduleName: validate.moduleName,
         typeMappings: validate.typeMappings,
         attributeRules: validate.attributeRules,
+        relationshipRules: validate.relationshipRules,
+        compositionRules: validate.compositionRules,
         accessLevel: validate.accessLevel,
         singleFile: validate.singleFile,
         splitByEntity: validate.splitByEntity,

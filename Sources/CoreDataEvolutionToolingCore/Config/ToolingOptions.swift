@@ -49,3 +49,12 @@ public enum ToolingReportFormat: String, Codable, Sendable, Equatable {
   case json
   case sarif
 }
+
+/// Controls how `bootstrap-config` emits editable config scaffolds.
+///
+/// `compact` keeps only entries that are likely to need human attention. `explicit` writes the
+/// currently resolved default mappings as well, so users can edit a complete manifest in place.
+public enum ToolingBootstrapConfigStyle: String, Codable, Sendable, Equatable {
+  case compact
+  case explicit
+}

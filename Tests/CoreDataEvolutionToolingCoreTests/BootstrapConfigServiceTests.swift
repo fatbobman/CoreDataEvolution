@@ -54,7 +54,7 @@ struct BootstrapConfigServiceTests {
 
     let locationRule = try #require(itemRules["location"])
     #expect(locationRule.swiftName == nil)
-    #expect(locationRule.storageMethod == nil)
+    #expect(locationRule.storageMethod == .composition)
     #expect(itemRelationshipRules["tag"]?.swiftName == nil)
 
     let json = try #require(String(data: result.jsonData, encoding: .utf8))
@@ -65,6 +65,47 @@ struct BootstrapConfigServiceTests {
     #expect(json.contains("\"location\""))
     #expect(result.diagnostics.isEmpty == false)
     #expect(result.diagnostics.contains(where: { $0.message.contains("Binary -> Data") }))
+  }
+
+  @Test("service can emit explicit bootstrap config defaults")
+  func bootstrapConfigCanEmitExplicitDefaults() throws {
+    let modelPath = try makeToolingSourceModelFixture()
+    defer { try? FileManager.default.removeItem(at: modelPath.deletingLastPathComponent()) }
+
+    let result = try BootstrapConfigService.run(
+      .init(
+        modelPath: modelPath.path,
+        modelVersion: nil,
+        momcBin: nil,
+        moduleName: "AppModels",
+        outputDir: "Generated/CoreDataEvolution",
+        sourceDir: "Sources/AppModels",
+        style: .explicit
+      )
+    )
+
+    let itemRules = try #require(result.template.generate?.attributeRules?.entities["CDEItem"])
+    let nameRule = try #require(itemRules["name"])
+    #expect(nameRule.swiftName == "name")
+    #expect(nameRule.storageMethod == .default)
+
+    let locationRule = try #require(itemRules["location"])
+    #expect(locationRule.swiftName == "location")
+    #expect(locationRule.storageMethod == .composition)
+
+    let itemRelationshipRules = try #require(
+      result.template.generate?.relationshipRules?.entities["CDEItem"])
+    #expect(itemRelationshipRules["tag"]?.swiftName == "tag")
+
+    let compositionRules = try #require(result.template.generate?.compositionRules)
+    let itemLocationRules = try #require(compositionRules.types["CDEItemLocation"])
+    #expect(itemLocationRules["x"]?.swiftName == "x")
+    #expect(itemLocationRules["y"]?.swiftName == "y")
+
+    let json = try #require(String(data: result.jsonData, encoding: .utf8))
+    #expect(json.contains("\"swiftName\" : \"name\""))
+    #expect(json.contains("\"storageMethod\" : \"default\""))
+    #expect(json.contains("\"CDEItemLocation\""))
   }
 
 }

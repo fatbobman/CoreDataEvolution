@@ -30,3 +30,4 @@ extension ToolingFormatMode: ExpressibleByArgument {}
 extension ToolingDecodeFailurePolicy: ExpressibleByArgument {}
 extension ToolingValidationLevel: ExpressibleByArgument {}
 extension ToolingReportFormat: ExpressibleByArgument {}
+extension ToolingBootstrapConfigStyle: ExpressibleByArgument {}

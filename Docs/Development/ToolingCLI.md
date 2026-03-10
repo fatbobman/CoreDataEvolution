@@ -53,6 +53,23 @@ CLI v1 先解决两件事：
 
 用途：根据具体 Core Data 模型生成一份“可编辑配置草案”，适合作为首次接入工具时的起点。
 
+输出风格：
+
+- `compact`
+  - 默认模式。
+  - 只保留可能需要人工决策或修改的占位配置。
+- `explicit`
+  - 输出完整显式清单。
+  - 即使 `swiftName == persistentName` 或 storage 使用当前默认值，也会把这些已解析结果写入配置，方便用户整体查看并直接修改。
+
+当前 `explicit` 会展开：
+
+- `attributeRules`
+- `relationshipRules`
+- `compositionRules`
+
+并保留相对于输出配置文件位置重写后的路径字段，保证该配置仍可直接用于 `generate` / `validate` / `inspect`。
+
 推荐工作流：
 
 1. `bootstrap-config` 根据模型生成配置草案。
@@ -404,13 +421,15 @@ v1 的版本与发行策略分为两层：
   - 保持默认 `Binary -> Data` 映射
   - 在 diagnostics 中提示开发者，如需业务类型应改成 `storageMethod: "codable"`
 - 对普通基础字段，不自动写入 `storageMethod`，保持可编辑但不过度冗余。
-- v1 不为 relationship 生成配置规则。
+- `bootstrap-config` 现在也会为 relationship 和 composition 生成对应规则草案。
+- `bootstrap-config --style explicit` 会显式展开默认的 `attributeRules`、`relationshipRules` 和 `compositionRules`，便于用户直接在完整 manifest 上修改。
 
 设计边界：
 
 - `init-config` 是“通用模板”，不依赖具体模型。
 - `bootstrap-config` 是“模型驱动草案”，依赖具体模型。
 - 当 `bootstrap-config` 将配置写入文件时，会把路径字段重写为相对于配置文件位置的路径，保证后续 `generate/validate/inspect` 可复现。
+- `bootstrap-config --style explicit` 会把当前解析出的默认映射也写进配置，便于用户拿到一份完整 manifest 再手工修改。
 - 两者不合并，避免命令语义混淆。
 
 ## 4. `generate` 参数设计（v1）

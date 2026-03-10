@@ -14,11 +14,12 @@ import Foundation
 
 /// Builds an editable config scaffold directly from a Core Data model.
 ///
-/// V1 intentionally prefers a conservative scaffold:
-/// - emit the full default `typeMappings`
-/// - emit lightweight per-attribute placeholders in `attributeRules`
-/// - emit lightweight per-relationship placeholders in `relationshipRules`
-/// - add diagnostics for fields that still require human decisions
+/// The service supports two scaffold styles:
+/// - `compact`: keep placeholders concise and omit same-name mappings
+/// - `explicit`: emit a fully populated manifest with resolved default mappings
+///
+/// Both styles emit the full default `typeMappings` and add diagnostics for fields that still
+/// require human decisions.
 public enum BootstrapConfigService {
   public static func run(_ request: BootstrapConfigRequest) throws -> BootstrapConfigResult {
     let loadedModel = try ToolingModelLoader.loadValidatedSourceModel(
@@ -31,12 +32,17 @@ public enum BootstrapConfigService {
 
     let typeMappings = makeDefaultToolingTypeMappings()
     let attributeRules = makeAttributeRules(
-      from: loadedModel.model
+      from: loadedModel.model,
+      style: request.style
     )
     let relationshipRules = makeRelationshipRules(
-      from: loadedModel.model
+      from: loadedModel.model,
+      style: request.style
     )
-    let compositionRules = ToolingCompositionRules()
+    let compositionRules = makeCompositionRules(
+      from: loadedModel.resolvedInput.selectedSourceURL,
+      style: request.style
+    )
 
     let template = ToolingConfigTemplate(
       schemaVersion: toolingSupportedSchemaVersion,
@@ -108,7 +114,8 @@ public enum BootstrapConfigService {
   }
 
   private static func makeAttributeRules(
-    from model: NSManagedObjectModel
+    from model: NSManagedObjectModel,
+    style: ToolingBootstrapConfigStyle
   ) -> ToolingAttributeRules {
     var entities: [String: [String: ToolingAttributeRule]] = [:]
 
@@ -119,7 +126,11 @@ public enum BootstrapConfigService {
         .sorted(by: { $0.key < $1.key })
         .reduce(into: [String: ToolingAttributeRule]()) { partialResult, item in
           let (persistentName, attribute) = item
-          partialResult[persistentName] = makeRule(for: attribute)
+          partialResult[persistentName] = makeAttributeRule(
+            for: attribute,
+            persistentName: persistentName,
+            style: style
+          )
         }
 
       entities[entityName] = attributeRules
@@ -129,7 +140,8 @@ public enum BootstrapConfigService {
   }
 
   private static func makeRelationshipRules(
-    from model: NSManagedObjectModel
+    from model: NSManagedObjectModel,
+    style: ToolingBootstrapConfigStyle
   ) -> ToolingRelationshipRules {
     var entities: [String: [String: ToolingRelationshipRule]] = [:]
 
@@ -140,7 +152,10 @@ public enum BootstrapConfigService {
         .sorted(by: { $0.key < $1.key })
         .reduce(into: [String: ToolingRelationshipRule]()) { partialResult, item in
           let (persistentName, _) = item
-          partialResult[persistentName] = .init()
+          partialResult[persistentName] = makeRelationshipRule(
+            persistentName: persistentName,
+            style: style
+          )
         }
 
       entities[entityName] = relationshipRules
@@ -149,18 +164,62 @@ public enum BootstrapConfigService {
     return .init(entities: entities)
   }
 
-  // Rules in the bootstrap scaffold should describe only what a developer may want to edit.
-  // Matching names are omitted on purpose to keep the JSON compact and reviewable.
-  private static func makeRule(for attribute: NSAttributeDescription) -> ToolingAttributeRule {
+  // Rules in the bootstrap scaffold describe the editable mapping surface. `compact` keeps
+  // same-name mappings implicit; `explicit` writes the resolved defaults to make the JSON a
+  // complete manifest a developer can modify in place.
+  private static func makeAttributeRule(
+    for attribute: NSAttributeDescription,
+    persistentName: String,
+    style: ToolingBootstrapConfigStyle
+  ) -> ToolingAttributeRule {
     switch attribute.attributeType {
+    case .compositeAttributeType:
+      return .init(
+        swiftName: style == .explicit ? persistentName : nil,
+        storageMethod: .composition
+      )
     case .transformableAttributeType:
       return .init(
+        swiftName: style == .explicit ? persistentName : nil,
         storageMethod: .transformed,
         transformerName: attribute.valueTransformerName
       )
     default:
+      return .init(
+        swiftName: style == .explicit ? persistentName : nil,
+        storageMethod: style == .explicit ? .default : nil
+      )
+    }
+  }
+
+  private static func makeRelationshipRule(
+    persistentName: String,
+    style: ToolingBootstrapConfigStyle
+  ) -> ToolingRelationshipRule {
+    .init(swiftName: style == .explicit ? persistentName : nil)
+  }
+
+  private static func makeCompositionRules(
+    from selectedSourceURL: URL,
+    style: ToolingBootstrapConfigStyle
+  ) -> ToolingCompositionRules {
+    guard style == .explicit else { return .init() }
+    let parser = ToolingCompositeSourceParser()
+    guard let composites = parser.parseCompositeDefinitions(from: selectedSourceURL) else {
       return .init()
     }
+
+    let types = composites.reduce(into: [String: [String: ToolingCompositionFieldRule]]()) {
+      partialResult,
+      item in
+      partialResult[item.key] = item.value.reduce(into: [String: ToolingCompositionFieldRule]()) {
+        fields,
+        persistentName in
+        fields[persistentName] = .init(swiftName: persistentName)
+      }
+    }
+
+    return .init(types: types)
   }
 
   // Diagnostics are used to call out fields that need manual follow-up before `generate`.
@@ -201,5 +260,54 @@ public enum BootstrapConfigService {
     }
 
     return diagnostics
+  }
+}
+
+private final class ToolingCompositeSourceParser: NSObject, XMLParserDelegate {
+  private var composites: [String: [String]] = [:]
+  private var currentCompositeName: String?
+
+  func parseCompositeDefinitions(from selectedSourceURL: URL) -> [String: [String]]? {
+    guard selectedSourceURL.pathExtension == "xcdatamodel" else { return nil }
+    guard let parser = XMLParser(contentsOf: selectedSourceURL.appendingPathComponent("contents"))
+    else {
+      return nil
+    }
+
+    parser.delegate = self
+    guard parser.parse() else { return nil }
+    return composites
+  }
+
+  func parser(
+    _ parser: XMLParser,
+    didStartElement elementName: String,
+    namespaceURI: String?,
+    qualifiedName qName: String?,
+    attributes attributeDict: [String: String] = [:]
+  ) {
+    switch elementName {
+    case "composite":
+      currentCompositeName = attributeDict["name"]
+      if let currentCompositeName {
+        composites[currentCompositeName] = composites[currentCompositeName] ?? []
+      }
+    case "attribute":
+      guard let currentCompositeName, let name = attributeDict["name"] else { return }
+      composites[currentCompositeName, default: []].append(name)
+    default:
+      break
+    }
+  }
+
+  func parser(
+    _ parser: XMLParser,
+    didEndElement elementName: String,
+    namespaceURI: String?,
+    qualifiedName qName: String?
+  ) {
+    if elementName == "composite" {
+      currentCompositeName = nil
+    }
   }
 }

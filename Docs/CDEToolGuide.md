@@ -491,6 +491,9 @@ surprising.
 
 `bootstrap-config` creates an editable config scaffold from a real model.
 
+By default it emits a compact scaffold. That keeps the first draft focused on the rules and
+placeholders you are most likely to edit first.
+
 Example:
 
 ```bash
@@ -499,11 +502,26 @@ cde-tool bootstrap-config \
   --output cde-tool.json
 ```
 
+If you want a complete manifest that also writes the current default mappings explicitly, use:
+
+```bash
+cde-tool bootstrap-config \
+  --model-path Models/AppModel.xcdatamodeld \
+  --style explicit \
+  --output cde-tool.json
+```
+
 Use it when:
 
 - you are adopting `cde-tool` in an existing project
 - you want a starting point for `typeMappings` and `attributeRules`
 - you want generate and validate to share one explicit rule set
+
+Use `--style explicit` when:
+
+- you want to review every attribute, relationship, and composition mapping in one file
+- you want to hand-edit a full config instead of only the non-default parts
+- you want a round-trippable manifest that makes the tool's current defaults visible
 
 The generated config is meant to be edited.
 

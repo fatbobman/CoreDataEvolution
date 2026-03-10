@@ -28,6 +28,7 @@ public struct BootstrapConfigRequest: Sendable, Equatable {
   public let moduleName: String
   public let outputDir: String
   public let sourceDir: String
+  public let style: ToolingBootstrapConfigStyle
 
   public init(
     modelPath: String,
@@ -35,7 +36,8 @@ public struct BootstrapConfigRequest: Sendable, Equatable {
     momcBin: String?,
     moduleName: String,
     outputDir: String,
-    sourceDir: String
+    sourceDir: String,
+    style: ToolingBootstrapConfigStyle = .compact
   ) {
     self.modelPath = modelPath
     self.modelVersion = modelVersion
@@ -43,6 +45,7 @@ public struct BootstrapConfigRequest: Sendable, Equatable {
     self.moduleName = moduleName
     self.outputDir = outputDir
     self.sourceDir = sourceDir
+    self.style = style
   }
 }
 
