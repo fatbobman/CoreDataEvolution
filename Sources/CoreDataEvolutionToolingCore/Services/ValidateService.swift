@@ -79,37 +79,10 @@ public enum ValidateService {
     _ request: ValidateRequest,
     against model: NSManagedObjectModel
   ) throws {
-    let template = ValidateTemplate(
-      modelPath: request.modelPath,
-      modelVersion: request.modelVersion,
-      momcBin: request.momcBin,
-      sourceDir: request.sourceDir,
-      moduleName: request.moduleName,
-      typeMappings: request.typeMappings,
-      attributeRules: request.attributeRules,
-      relationshipRules: request.relationshipRules,
-      compositionRules: request.compositionRules,
-      accessLevel: request.accessLevel,
-      singleFile: request.singleFile,
-      splitByEntity: request.splitByEntity,
-      headerTemplate: request.headerTemplate,
-      generateInit: request.generateInit,
-      defaultDecodeFailurePolicy: request.defaultDecodeFailurePolicy,
-      include: request.include,
-      exclude: request.exclude,
-      level: request.level,
-      report: request.report,
-      failOnWarning: request.failOnWarning,
-      maxIssues: request.maxIssues
-    )
-
-    try validateToolingConfigTemplate(
-      .init(
-        schemaVersion: toolingSupportedSchemaVersion,
-        generate: nil,
-        validate: template
-      ),
-      against: model
+    try validateResolvedToolingSchemaConfig(
+      .init(validateRequest: request),
+      against: model,
+      context: "validate"
     )
   }
 

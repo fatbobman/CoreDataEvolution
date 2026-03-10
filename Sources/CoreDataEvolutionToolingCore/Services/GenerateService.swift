@@ -69,36 +69,10 @@ public enum GenerateService {
     _ request: GenerateRequest,
     against model: NSManagedObjectModel
   ) throws {
-    let template = GenerateTemplate(
-      modelPath: request.modelPath,
-      modelVersion: request.modelVersion,
-      momcBin: request.momcBin,
-      outputDir: request.outputDir,
-      moduleName: request.moduleName,
-      typeMappings: request.typeMappings,
-      attributeRules: request.attributeRules,
-      relationshipRules: request.relationshipRules,
-      compositionRules: request.compositionRules,
-      accessLevel: request.accessLevel,
-      singleFile: request.singleFile,
-      splitByEntity: request.splitByEntity,
-      overwrite: request.overwrite,
-      cleanStale: request.cleanStale,
-      dryRun: request.dryRun,
-      format: request.format,
-      headerTemplate: request.headerTemplate,
-      emitExtensionStubs: request.emitExtensionStubs,
-      generateInit: request.generateInit,
-      defaultDecodeFailurePolicy: request.defaultDecodeFailurePolicy
-    )
-
-    try validateToolingConfigTemplate(
-      .init(
-        schemaVersion: toolingSupportedSchemaVersion,
-        generate: template,
-        validate: nil
-      ),
-      against: model
+    try validateResolvedToolingSchemaConfig(
+      .init(generateRequest: request),
+      against: model,
+      context: "generate"
     )
   }
 }

@@ -46,68 +46,78 @@ public func validateToolingConfigTemplate(
   )
 
   if let generate = template.generate {
-    try validateToolingModelConstraints(
-      entitiesByName: entitiesByName,
-      attributeRules: generate.attributeRules ?? .init(),
-      relationshipRules: generate.relationshipRules ?? .init(),
-      context: "generate"
-    )
-    try validateAttributeRules(
-      generate.attributeRules ?? .init(),
-      context: "generate.attributeRules",
-      entitiesByName: entitiesByName
-    )
-    try validateRelationshipRules(
-      generate.relationshipRules ?? .init(),
-      context: "generate.relationshipRules",
-      entitiesByName: entitiesByName
-    )
-    try validateCompositionRules(
-      generate.compositionRules ?? .init(),
-      context: "generate.compositionRules",
-      entitiesByName: entitiesByName,
-      attributeRules: generate.attributeRules ?? .init()
-    )
-    try validateTypeResolutionCoverage(
-      typeMappings: mergeToolingTypeMappings(generate.typeMappings),
-      attributeRules: generate.attributeRules ?? .init(),
+    try validateResolvedToolingSchemaConfig(
+      .init(generateTemplate: generate),
       context: "generate",
-      entitiesByName: entitiesByName,
-      defaultDecodeFailurePolicy: generate.defaultDecodeFailurePolicy ?? .fallbackToDefaultValue
+      entitiesByName: entitiesByName
     )
   }
 
   if let validate = template.validate {
-    try validateToolingModelConstraints(
-      entitiesByName: entitiesByName,
-      attributeRules: validate.attributeRules ?? .init(),
-      relationshipRules: validate.relationshipRules ?? .init(),
-      context: "validate"
-    )
-    try validateAttributeRules(
-      validate.attributeRules ?? .init(),
-      context: "validate.attributeRules",
-      entitiesByName: entitiesByName
-    )
-    try validateRelationshipRules(
-      validate.relationshipRules ?? .init(),
-      context: "validate.relationshipRules",
-      entitiesByName: entitiesByName
-    )
-    try validateCompositionRules(
-      validate.compositionRules ?? .init(),
-      context: "validate.compositionRules",
-      entitiesByName: entitiesByName,
-      attributeRules: validate.attributeRules ?? .init()
-    )
-    try validateTypeResolutionCoverage(
-      typeMappings: mergeToolingTypeMappings(validate.typeMappings),
-      attributeRules: validate.attributeRules ?? .init(),
+    try validateResolvedToolingSchemaConfig(
+      .init(validateTemplate: validate),
       context: "validate",
-      entitiesByName: entitiesByName,
-      defaultDecodeFailurePolicy: validate.defaultDecodeFailurePolicy ?? .fallbackToDefaultValue
+      entitiesByName: entitiesByName
     )
   }
+}
+
+/// Validates the shared schema-facing rules after defaults have already been resolved.
+///
+/// Generate and validate both consume this entry point so later changes to naming/storage/count
+/// rules stay aligned across services and config templates.
+func validateResolvedToolingSchemaConfig(
+  _ config: ToolingResolvedSchemaConfig,
+  against model: NSManagedObjectModel,
+  context: String
+) throws {
+  let entitiesByName: [String: NSEntityDescription] = Dictionary(
+    uniqueKeysWithValues: model.entities.compactMap { entity in
+      guard let name = entity.name else { return nil }
+      return (name, entity)
+    }
+  )
+  try validateResolvedToolingSchemaConfig(
+    config,
+    context: context,
+    entitiesByName: entitiesByName
+  )
+}
+
+private func validateResolvedToolingSchemaConfig(
+  _ config: ToolingResolvedSchemaConfig,
+  context: String,
+  entitiesByName: [String: NSEntityDescription]
+) throws {
+  try validateToolingModelConstraints(
+    entitiesByName: entitiesByName,
+    attributeRules: config.attributeRules,
+    relationshipRules: config.relationshipRules,
+    context: context
+  )
+  try validateAttributeRules(
+    config.attributeRules,
+    context: "\(context).attributeRules",
+    entitiesByName: entitiesByName
+  )
+  try validateRelationshipRules(
+    config.relationshipRules,
+    context: "\(context).relationshipRules",
+    entitiesByName: entitiesByName
+  )
+  try validateCompositionRules(
+    config.compositionRules,
+    context: "\(context).compositionRules",
+    entitiesByName: entitiesByName,
+    attributeRules: config.attributeRules
+  )
+  try validateTypeResolutionCoverage(
+    typeMappings: config.typeMappings,
+    attributeRules: config.attributeRules,
+    context: context,
+    entitiesByName: entitiesByName,
+    defaultDecodeFailurePolicy: config.defaultDecodeFailurePolicy
+  )
 }
 
 /// Applies model-aware v1 tooling constraints that must hold for both generate and validate.
@@ -244,19 +254,9 @@ private func validateGenerateTemplate(_ template: GenerateTemplate) throws {
     )
   }
 
-  try validateTypeMappings(template.typeMappings, context: "generate.typeMappings")
-  try validateAttributeRulesStatic(
-    template.attributeRules,
-    context: "generate.attributeRules",
-    defaultDecodeFailurePolicy: template.defaultDecodeFailurePolicy ?? .fallbackToDefaultValue
-  )
-  try validateRelationshipRulesStatic(
-    template.relationshipRules,
-    context: "generate.relationshipRules"
-  )
-  try validateCompositionRulesStatic(
-    template.compositionRules,
-    context: "generate.compositionRules"
+  try validateResolvedToolingSchemaConfigStatically(
+    .init(generateTemplate: template),
+    context: "generate"
   )
 }
 
@@ -295,19 +295,29 @@ private func validateValidateTemplate(_ template: ValidateTemplate) throws {
     )
   }
 
-  try validateTypeMappings(template.typeMappings, context: "validate.typeMappings")
+  try validateResolvedToolingSchemaConfigStatically(
+    .init(validateTemplate: template),
+    context: "validate"
+  )
+}
+
+func validateResolvedToolingSchemaConfigStatically(
+  _ config: ToolingResolvedSchemaConfig,
+  context: String
+) throws {
+  try validateTypeMappings(config.typeMappings, context: "\(context).typeMappings")
   try validateAttributeRulesStatic(
-    template.attributeRules,
-    context: "validate.attributeRules",
-    defaultDecodeFailurePolicy: template.defaultDecodeFailurePolicy ?? .fallbackToDefaultValue
+    config.attributeRules,
+    context: "\(context).attributeRules",
+    defaultDecodeFailurePolicy: config.defaultDecodeFailurePolicy
   )
   try validateRelationshipRulesStatic(
-    template.relationshipRules,
-    context: "validate.relationshipRules"
+    config.relationshipRules,
+    context: "\(context).relationshipRules"
   )
   try validateCompositionRulesStatic(
-    template.compositionRules,
-    context: "validate.compositionRules"
+    config.compositionRules,
+    context: "\(context).compositionRules"
   )
 }
 
