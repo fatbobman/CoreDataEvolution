@@ -31,8 +31,13 @@ enum ParsedAttributeStorageMethod: Equatable {
   case `default`
   case raw
   case codable
-  case transformed(String)
+  case transformed(ParsedAttributeTransformedReference)
   case composition
+}
+
+enum ParsedAttributeTransformedReference: Equatable {
+  case type(String)
+  case name(String)
 }
 
 struct ParsedAttributeArguments {

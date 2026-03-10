@@ -582,7 +582,14 @@ private func parseAttributeStorageMethod(from expression: ExprSyntax)
     else {
       return nil
     }
-    return .transformed(argument.expression.trimmedDescription)
+    if argument.label?.text == "name", let name = parseStringLiteral(argument.expression) {
+      return .transformed(.name(name))
+    }
+    let rawTransformer = argument.expression.trimmedDescription
+    guard rawTransformer.hasSuffix(".self") else {
+      return nil
+    }
+    return .transformed(.type(String(rawTransformer.dropLast(5))))
   }
   return nil
 }

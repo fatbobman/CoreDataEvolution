@@ -38,6 +38,11 @@ public enum AttributeStorageMethod {
   /// The transformer type must conform to `CDRegisteredValueTransformer`. The generated accessors
   /// resolve the transformer through the registration name published by that protocol.
   case transformed(CDRegisteredValueTransformer.Type)
+  /// Stores a value through an explicit `ValueTransformer` registration name.
+  ///
+  /// This form mirrors the `valueTransformerName` stored in a Core Data model and is the
+  /// canonical source shape emitted by `cde-tool generate`.
+  case transformed(name: String)
   /// Stores a value through a Core Data composite attribute.
   case composition
 }

@@ -47,7 +47,7 @@ struct GenerateServiceTests {
                 swiftName: "keywords",
                 swiftType: "[String]",
                 storageMethod: .transformed,
-                transformerType: "CDEStringListTransformer"
+                transformerName: "CDEStringListTransformer"
               ),
             ]
           ]
@@ -94,7 +94,7 @@ struct GenerateServiceTests {
     #expect(itemSource.contents.contains("extension CDEItem: PersistentEntity {}") == false)
     #expect(
       itemSource.contents.contains(
-        #"@Attribute(persistentName: "keywords_payload", storageMethod: .transformed(CDEStringListTransformer.self), decodeFailurePolicy: .fallbackToDefaultValue)"#
+        #"@Attribute(persistentName: "keywords_payload", storageMethod: .transformed(name: "CDEStringListTransformer"), decodeFailurePolicy: .fallbackToDefaultValue)"#
       ))
     #expect(itemSource.contents.contains("var keywords: [String]? = nil"))
     #expect(itemSource.contents.contains("var tag: CDETag?"))

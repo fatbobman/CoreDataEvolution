@@ -254,7 +254,7 @@ public enum ToolingSourceRenderer {
       isTransient: backingAttribute.isTransient,
       persistentName: persistentName,
       storageMethod: .composition,
-      transformerType: nil,
+      transformerName: nil,
       decodeFailurePolicy: nil
     )
     lines.append("  \(macro ?? "@Attribute(storageMethod: .composition)")")
@@ -410,7 +410,7 @@ public enum ToolingSourceRenderer {
       isTransient: attribute.isTransient,
       persistentName: persistentName,
       storageMethod: attribute.storage.method,
-      transformerType: attribute.storage.transformerType,
+      transformerName: attribute.storage.transformerName,
       decodeFailurePolicy: attribute.storage.decodeFailurePolicy
     )
   }
@@ -420,7 +420,7 @@ public enum ToolingSourceRenderer {
     isTransient: Bool,
     persistentName: String?,
     storageMethod: ToolingAttributeStorageRule,
-    transformerType: String?,
+    transformerName: String?,
     decodeFailurePolicy: ToolingDecodeFailurePolicy?
   ) -> String? {
     assert(
@@ -452,11 +452,11 @@ public enum ToolingSourceRenderer {
     case .composition:
       arguments.append("storageMethod: .composition")
     case .transformed:
-      guard let transformerType else {
-        arguments.append("storageMethod: .transformed(MissingTransformer.self)")
+      guard let transformerName else {
+        arguments.append(#"storageMethod: .transformed(name: "MissingTransformer")"#)
         break
       }
-      arguments.append("storageMethod: .transformed(\(transformerType).self)")
+      arguments.append(#"storageMethod: .transformed(name: "\#(transformerName)")"#)
     }
 
     if let decodeFailurePolicy {

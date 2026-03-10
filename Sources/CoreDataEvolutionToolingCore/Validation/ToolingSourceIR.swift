@@ -18,13 +18,16 @@ import Foundation
 public struct ToolingSourceModelIR: Codable, Sendable, Equatable {
   public let sourceDirectory: String
   public let entities: [ToolingSourceEntityIR]
+  public let transformerRegistrations: [String: String]
 
   public init(
     sourceDirectory: String,
-    entities: [ToolingSourceEntityIR]
+    entities: [ToolingSourceEntityIR],
+    transformerRegistrations: [String: String] = [:]
   ) {
     self.sourceDirectory = sourceDirectory
     self.entities = entities
+    self.transformerRegistrations = transformerRegistrations
   }
 }
 
@@ -151,7 +154,8 @@ public struct ToolingSourceAttributeAnnotationIR: Codable, Sendable, Equatable {
   public let isTransient: Bool
   public let persistentName: String?
   public let storageMethod: ToolingAttributeStorageRule?
-  public let transformerType: String?
+  public let transformerName: String?
+  public let transformerTypeName: String?
   public let decodeFailurePolicy: ToolingDecodeFailurePolicy?
 
   public init(
@@ -160,7 +164,8 @@ public struct ToolingSourceAttributeAnnotationIR: Codable, Sendable, Equatable {
     isTransient: Bool = false,
     persistentName: String?,
     storageMethod: ToolingAttributeStorageRule?,
-    transformerType: String?,
+    transformerName: String?,
+    transformerTypeName: String?,
     decodeFailurePolicy: ToolingDecodeFailurePolicy?
   ) {
     self.range = range
@@ -168,7 +173,8 @@ public struct ToolingSourceAttributeAnnotationIR: Codable, Sendable, Equatable {
     self.isTransient = isTransient
     self.persistentName = persistentName
     self.storageMethod = storageMethod
-    self.transformerType = transformerType
+    self.transformerName = transformerName
+    self.transformerTypeName = transformerTypeName
     self.decodeFailurePolicy = decodeFailurePolicy
   }
 }

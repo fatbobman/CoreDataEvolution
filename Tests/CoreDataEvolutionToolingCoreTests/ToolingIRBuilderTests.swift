@@ -51,7 +51,7 @@ struct ToolingIRBuilderTests {
             ),
             "payload": .init(
               storageMethod: .transformed,
-              transformerType: "LocationTransformer"
+              transformerName: "LocationTransformer"
             ),
             "geo_blob": .init(
               swiftType: "GeoPayload",

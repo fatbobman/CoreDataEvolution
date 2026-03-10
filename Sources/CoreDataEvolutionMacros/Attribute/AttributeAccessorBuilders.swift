@@ -27,8 +27,8 @@ enum AttributeAccessorBuilderFactory {
       return RawAttributeAccessorBuilder()
     case .codable:
       return CodableAttributeAccessorBuilder()
-    case .transformed(let transformer):
-      return TransformedAttributeAccessorBuilder(transformerType: transformer)
+    case .transformed(let reference):
+      return TransformedAttributeAccessorBuilder(transformerReference: reference)
     case .composition:
       return CompositionAttributeAccessorBuilder()
     }
@@ -379,12 +379,14 @@ struct CodableAttributeAccessorBuilder: AttributeAccessorBuilder {
 }
 
 struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
-  let transformerType: String
+  let transformerReference: ParsedAttributeTransformedReference
 
   // `.transformed(Type.self)` intentionally resolves through the ValueTransformer registration
   // table via `ValueTransformer(forName:)` instead of constructing a fresh
   // instance. This matches Core Data's model-side semantics more closely and requires the
   // transformer type to publish a registration name through `CDRegisteredValueTransformer`.
+  //
+  // `.transformed(name: ...)` is the model-aligned form used by tooling output.
 
   func makeGetter(from info: AttributeInfo) -> AccessorDeclSyntax {
     let key = info.persistentName
@@ -397,8 +399,8 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
       return
         """
         get {
-          guard let transformer = ValueTransformer(forName: \(raw: transformerType).transformerName) else {
-            assertionFailure("Transformer '\\(\(raw: transformerType).transformerName.rawValue)' is not registered for `\(raw: property)` (\(raw: key)).")
+          guard let transformer = \(raw: transformerLookupExpression()) else {
+            assertionFailure("Transformer '\(raw: transformerRegistrationNameExpression())' is not registered for `\(raw: property)` (\(raw: key)).")
             return nil
           }
           let storedValue = value(forKey: "\(raw: key)")
@@ -419,8 +421,8 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
       return
         """
         get {
-          guard let transformer = ValueTransformer(forName: \(raw: transformerType).transformerName) else {
-            assertionFailure("Transformer '\\(\(raw: transformerType).transformerName.rawValue)' is not registered for `\(raw: property)` (\(raw: key)).")
+          guard let transformer = \(raw: transformerLookupExpression()) else {
+            assertionFailure("Transformer '\(raw: transformerRegistrationNameExpression())' is not registered for `\(raw: property)` (\(raw: key)).")
             return \(raw: fallback)
           }
           let storedValue = value(forKey: "\(raw: key)")
@@ -440,8 +442,8 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
       return
         """
         get {
-          guard let transformer = ValueTransformer(forName: \(raw: transformerType).transformerName) else {
-            preconditionFailure("Transformer '\\(\(raw: transformerType).transformerName.rawValue)' is not registered for required transformed property `\(raw: property)` (\(raw: key)).")
+          guard let transformer = \(raw: transformerLookupExpression()) else {
+            preconditionFailure("Transformer '\(raw: transformerRegistrationNameExpression())' is not registered for required transformed property `\(raw: property)` (\(raw: key)).")
           }
           let storedValue = value(forKey: "\(raw: key)")
           if let value = storedValue as? \(raw: type) {
@@ -460,8 +462,8 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
     return
       """
       get {
-        guard let transformer = ValueTransformer(forName: \(raw: transformerType).transformerName) else {
-          preconditionFailure("Transformer '\\(\(raw: transformerType).transformerName.rawValue)' is not registered for required transformed property `\(raw: property)` (\(raw: key)).")
+        guard let transformer = \(raw: transformerLookupExpression()) else {
+          preconditionFailure("Transformer '\(raw: transformerRegistrationNameExpression())' is not registered for required transformed property `\(raw: property)` (\(raw: key)).")
         }
         let storedValue = value(forKey: "\(raw: key)")
         if let value = storedValue as? \(raw: type) {
@@ -487,8 +489,8 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
       return
         """
         set {
-          guard let transformer = ValueTransformer(forName: \(raw: transformerType).transformerName) else {
-            assertionFailure("Transformer '\\(\(raw: transformerType).transformerName.rawValue)' is not registered for `\(raw: property)` (\(raw: key)).")
+          guard let transformer = \(raw: transformerLookupExpression()) else {
+            assertionFailure("Transformer '\(raw: transformerRegistrationNameExpression())' is not registered for `\(raw: property)` (\(raw: key)).")
             setValue(nil, forKey: "\(raw: key)")
             return
           }
@@ -510,8 +512,8 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
       return
         """
         set {
-          guard let transformer = ValueTransformer(forName: \(raw: transformerType).transformerName) else {
-            assertionFailure("Transformer '\\(\(raw: transformerType).transformerName.rawValue)' is not registered for `\(raw: property)` (\(raw: key)).")
+          guard let transformer = \(raw: transformerLookupExpression()) else {
+            assertionFailure("Transformer '\(raw: transformerRegistrationNameExpression())' is not registered for `\(raw: property)` (\(raw: key)).")
             setValue(nil, forKey: "\(raw: key)")
             return
           }
@@ -538,8 +540,8 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
       return
         """
         set {
-          guard let transformer = ValueTransformer(forName: \(raw: transformerType).transformerName) else {
-            preconditionFailure("Transformer '\\(\(raw: transformerType).transformerName.rawValue)' is not registered for required transformed property `\(raw: property)` (\(raw: key)).")
+          guard let transformer = \(raw: transformerLookupExpression()) else {
+            preconditionFailure("Transformer '\(raw: transformerRegistrationNameExpression())' is not registered for required transformed property `\(raw: property)` (\(raw: key)).")
           }
           guard let transformed = transformer.transformedValue(newValue) else {
             assertionFailure("Failed to transform value for `\(raw: property)` (\(raw: key)).")
@@ -554,8 +556,8 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
     return
       """
       set {
-        guard let transformer = ValueTransformer(forName: \(raw: transformerType).transformerName) else {
-          preconditionFailure("Transformer '\\(\(raw: transformerType).transformerName.rawValue)' is not registered for required transformed property `\(raw: property)` (\(raw: key)).")
+        guard let transformer = \(raw: transformerLookupExpression()) else {
+          preconditionFailure("Transformer '\(raw: transformerRegistrationNameExpression())' is not registered for required transformed property `\(raw: property)` (\(raw: key)).")
         }
         if let transformed = transformer.transformedValue(newValue) {
           setValue(transformed, forKey: "\(raw: key)")
@@ -565,6 +567,19 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
         setValue(transformer.transformedValue(fallback), forKey: "\(raw: key)")
       }
       """
+  }
+
+  private func transformerLookupExpression() -> String {
+    "ValueTransformer(forName: \(transformerRegistrationNameExpression()))"
+  }
+
+  private func transformerRegistrationNameExpression() -> String {
+    switch transformerReference {
+    case .type(let transformerType):
+      return "\(transformerType).transformerName"
+    case .name(let transformerName):
+      return #"NSValueTransformerName("\#(escapeStringLiteral(transformerName))")"#
+    }
   }
 }
 

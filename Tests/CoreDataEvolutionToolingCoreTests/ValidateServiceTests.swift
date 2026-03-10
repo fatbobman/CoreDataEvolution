@@ -453,7 +453,7 @@ struct ValidateServiceTests {
               swiftName: "keywords",
               swiftType: "[String]",
               storageMethod: .transformed,
-              transformerType: "CDEStringListTransformer"
+              transformerName: "CDEStringListTransformer"
             ),
           ]
         ]
@@ -504,7 +504,7 @@ struct ValidateServiceTests {
               swiftName: "keywords",
               swiftType: "[String]",
               storageMethod: .transformed,
-              transformerType: "CDEStringListTransformer"
+              transformerName: "CDEStringListTransformer"
             ),
           ]
         ]

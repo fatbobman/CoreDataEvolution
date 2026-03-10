@@ -162,7 +162,7 @@ public struct ToolingStorageIR: Codable, Sendable, Equatable {
   public let method: ToolingAttributeStorageRule
   public let swiftType: String?
   public let nonOptionalSwiftType: String?
-  public let transformerType: String?
+  public let transformerName: String?
   public let decodeFailurePolicy: ToolingDecodeFailurePolicy?
   public let isResolved: Bool
 
@@ -170,14 +170,14 @@ public struct ToolingStorageIR: Codable, Sendable, Equatable {
     method: ToolingAttributeStorageRule,
     swiftType: String?,
     nonOptionalSwiftType: String?,
-    transformerType: String?,
+    transformerName: String?,
     decodeFailurePolicy: ToolingDecodeFailurePolicy?,
     isResolved: Bool
   ) {
     self.method = method
     self.swiftType = swiftType
     self.nonOptionalSwiftType = nonOptionalSwiftType
-    self.transformerType = transformerType
+    self.transformerName = transformerName
     self.decodeFailurePolicy = decodeFailurePolicy
     self.isResolved = isResolved
   }

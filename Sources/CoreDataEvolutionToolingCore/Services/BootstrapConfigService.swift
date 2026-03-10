@@ -156,7 +156,7 @@ public enum BootstrapConfigService {
     case .transformableAttributeType:
       return .init(
         storageMethod: .transformed,
-        transformerType: attribute.valueTransformerName
+        transformerName: attribute.valueTransformerName
       )
     default:
       return .init()
@@ -189,9 +189,9 @@ public enum BootstrapConfigService {
               severity: .note,
               code: nil,
               message:
-                "bootstrap-config emitted a transformable placeholder for '\(entityName).\(attribute.name)'. Fill in swiftType and confirm transformerType before generate/validate.",
+                "bootstrap-config emitted a transformable placeholder for '\(entityName).\(attribute.name)'. Fill in swiftType and confirm transformerName before generate/validate.",
               hint: attribute.valueTransformerName == nil
-                ? "Set attributeRules.\(entityName).\(attribute.name).transformerType if this field should use a specific ValueTransformer."
+                ? "Set attributeRules.\(entityName).\(attribute.name).transformerName if this field should use a specific ValueTransformer."
                 : nil
             )
           )

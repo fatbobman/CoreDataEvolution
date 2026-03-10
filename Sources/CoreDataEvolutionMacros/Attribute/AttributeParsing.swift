@@ -485,8 +485,36 @@ private func parseStorageMethod(
       }
       return nil
     }
+    if let label = argument.label?.text {
+      guard label == "name", let name = parseStringLiteral(argument.expression) else {
+        if emitDiagnostics {
+          MacroDiagnosticReporter.error(
+            "@Attribute storageMethod `.transformed(name: ...)` requires a string literal transformer name.",
+            domain: attributeMacroDomain,
+            id: "invalid-transformed-name",
+            in: context,
+            node: argument.expression
+          )
+        }
+        return nil
+      }
+      if name.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty {
+        if emitDiagnostics {
+          MacroDiagnosticReporter.error(
+            "@Attribute storageMethod `.transformed(name: ...)` requires a non-empty transformer name.",
+            domain: attributeMacroDomain,
+            id: "empty-transformed-name",
+            in: context,
+            node: argument.expression
+          )
+        }
+        return nil
+      }
+      return .transformed(.name(name))
+    }
+
     let transformer = argument.expression.trimmedDescription
-    if transformer.hasSuffix(".self") == false {
+    guard let transformerType = stripSelfSuffix(from: transformer) else {
       if emitDiagnostics {
         MacroDiagnosticReporter.error(
           "@Attribute storageMethod `.transformed(...)` requires a transformer metatype argument, for example `MyTransformer.self`.",
@@ -498,7 +526,7 @@ private func parseStorageMethod(
       }
       return nil
     }
-    return .transformed(transformer)
+    return .transformed(.type(transformerType))
   }
 
   if emitDiagnostics {
@@ -511,6 +539,11 @@ private func parseStorageMethod(
     )
   }
   return nil
+}
+
+private func stripSelfSuffix(from expression: String) -> String? {
+  guard expression.hasSuffix(".self") else { return nil }
+  return String(expression.dropLast(5))
 }
 
 private func parseDecodeFailurePolicy(

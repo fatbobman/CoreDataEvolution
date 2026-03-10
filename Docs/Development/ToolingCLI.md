@@ -281,12 +281,15 @@ v1 的版本与发行策略分为两层：
   - `swiftName`
   - `swiftType`
   - `storageMethod`
-  - `transformerType`
+  - `transformerName`
   - `decodeFailurePolicy`
 - 作用：
   - `generate` 用于生成重命名属性与 `@Attribute(...)` 覆盖
   - `validate` 用于按同一规则校验代码与模型是否一致
 - v1 仅用于 attribute，不用于 relationship
+- 对于 `.transformed`，tool 生成的源码会优先使用
+  - `storageMethod: .transformed(name: "...")`
+  因为 Core Data 模型本身保存的是 transformer registration name，而不是 Swift 类型名。
 
 `relationshipRules` 约定：
 
@@ -395,7 +398,7 @@ v1 的版本与发行策略分为两层：
 - 只有当属性需要重命名时，才显式填写 `swiftName`。
 - 对 `Transformable` 字段：
   - 自动生成 `storageMethod: "transformed"`
-  - 如果模型里已有 transformer 名称，则带出 `transformerType`
+  - 如果模型里已有 transformer 名称，则带出 `transformerName`
   - 同时在 diagnostics 中提示用户补齐/确认 `swiftType`
 - 对 `Binary` 字段：
   - 保持默认 `Binary -> Data` 映射
@@ -616,9 +619,9 @@ v1 的版本与发行策略分为两层：
 - 配置文件除 `"$schemaVersion"` 外，还会做一层语义校验。
 - 当前会提前拒绝：
   - `singleFile == true` 且 `splitByEntity == true`
-  - `storageMethod: "transformed"` 但缺少 `transformerType`
+  - `storageMethod: "transformed"` 但缺少 `transformerName`
   - `decodeFailurePolicy` 用在 `default` 或 `composition`
-  - 非法或空的 `swiftType` / `swiftName` / `transformerType`
+  - 非法或空的 `swiftType` / `swiftName` / `transformerName`
   - `typeMappings` 中未知的 Core Data primitive key
 - 当配置已经结合真实模型做校验时，还会进一步拒绝：
   - `attributeRules` 指向不存在的 entity / attribute
@@ -685,7 +688,7 @@ autofix 边界：
   - 缺失的 `@Relationship(inverse: ..., deleteRule: ...)`
   - `@Relationship` 中错误的 `inverse` / `deleteRule`
   - `@Attribute(...)` 中错误的 `persistentName` / `.unique` / `.transient`
-  - `@Attribute(...)` 中错误的 `storageMethod` / `transformerType` / `decodeFailurePolicy`
+  - `@Attribute(...)` 中错误的 `storageMethod` / `transformerName` / `decodeFailurePolicy`
   - 与模型 literal 完全不一致的直接默认值表达式
 - 当前不会自动修复：
   - `@Ignore` 推断

@@ -42,8 +42,12 @@ public enum ToolingSourceParser {
       fileManager: fileManager
     )
 
-    let entities = try swiftFiles.flatMap { fileURL in
-      try parseEntities(in: fileURL)
+    var entities: [ToolingSourceEntityIR] = []
+    var transformerRegistrations: [String: String] = [:]
+    for fileURL in swiftFiles {
+      let parsed = try parseFile(in: fileURL)
+      entities.append(contentsOf: parsed.entities)
+      transformerRegistrations.merge(parsed.transformerRegistrations) { _, new in new }
     }
 
     return .init(
@@ -52,11 +56,14 @@ public enum ToolingSourceParser {
         ($0.objcEntityName ?? $0.className, $0.filePath) < (
           $1.objcEntityName ?? $1.className, $1.filePath
         )
-      }
+      },
+      transformerRegistrations: transformerRegistrations
     )
   }
 
-  private static func parseEntities(in fileURL: URL) throws -> [ToolingSourceEntityIR] {
+  private static func parseFile(in fileURL: URL) throws
+    -> (entities: [ToolingSourceEntityIR], transformerRegistrations: [String: String])
+  {
     let source: String
     do {
       source = try String(contentsOf: fileURL, encoding: .utf8)
@@ -73,7 +80,7 @@ public enum ToolingSourceParser {
     if let failure = collector.failures.first {
       throw failure
     }
-    return collector.entities
+    return (collector.entities, collector.transformerRegistrations)
   }
 
   private static func findSwiftFiles(
@@ -116,6 +123,7 @@ private final class ToolingSourceEntityCollector: SyntaxVisitor {
   private let filePath: String
   private let source: String
   private(set) var entities: [ToolingSourceEntityIR] = []
+  private(set) var transformerRegistrations: [String: String] = [:]
   private(set) var failures: [ToolingFailure] = []
 
   init(filePath: String, source: String) {
@@ -125,6 +133,10 @@ private final class ToolingSourceEntityCollector: SyntaxVisitor {
   }
 
   override func visit(_ node: ClassDeclSyntax) -> SyntaxVisitorContinueKind {
+    if let registration = parseTransformerRegistration(from: node) {
+      transformerRegistrations[node.name.text] = registration
+    }
+
     guard
       let persistentModelAttribute = firstAttribute(named: "PersistentModel", in: node.attributes)
     else {
@@ -237,6 +249,86 @@ private final class ToolingSourceEntityCollector: SyntaxVisitor {
     let linePrefix = String(prefix[lineStartIndex...])
     return String(linePrefix.prefix { $0 == " " || $0 == "\t" })
   }
+
+  private func parseTransformerRegistration(from node: ClassDeclSyntax) -> String? {
+    guard
+      node.inheritanceClause?.inheritedTypes.contains(where: {
+        let name = $0.type.trimmedDescription
+        return name == "CDRegisteredValueTransformer"
+          || name == "CoreDataEvolution.CDRegisteredValueTransformer"
+      }) == true
+    else {
+      return nil
+    }
+
+    for member in node.memberBlock.members {
+      guard let variable = member.decl.as(VariableDeclSyntax.self),
+        variable.bindings.count == 1,
+        let binding = variable.bindings.first,
+        let identifier = binding.pattern.as(IdentifierPatternSyntax.self),
+        identifier.identifier.text == "transformerName"
+      else {
+        continue
+      }
+
+      if let initializer = binding.initializer?.value,
+        let name = parseTransformerRegistrationName(from: initializer)
+      {
+        return name
+      }
+
+      if let accessorBlock = binding.accessorBlock {
+        if let name = parseComputedTransformerRegistrationName(from: accessorBlock) {
+          return name
+        }
+      }
+    }
+
+    return nil
+  }
+
+  private func parseTransformerRegistrationName(from expression: ExprSyntax) -> String? {
+    if let string = parseStringLiteral(expression) {
+      return string
+    }
+    let raw = normalizedExpression(expression)
+    if raw.hasPrefix("NSValueTransformerName(\""), raw.hasSuffix("\")") {
+      return String(raw.dropFirst("NSValueTransformerName(\"".count).dropLast(2))
+    }
+    return nil
+  }
+
+  private func parseComputedTransformerRegistrationName(from accessorBlock: AccessorBlockSyntax)
+    -> String?
+  {
+    guard case .accessors(let accessors) = accessorBlock.accessors else {
+      return nil
+    }
+    guard
+      let getter = accessors.first(where: {
+        $0.accessorSpecifier.text == "get" || $0.accessorSpecifier.text.isEmpty
+      })
+    else {
+      return nil
+    }
+    guard let body = getter.body else { return nil }
+    for statement in body.statements {
+      if let returnStmt = statement.item.as(ReturnStmtSyntax.self),
+        let expression = returnStmt.expression
+      {
+        let raw = normalizedExpression(expression)
+        if raw == ".secureUnarchiveFromDataTransformerName"
+          || raw == "NSValueTransformerName.secureUnarchiveFromDataTransformerName"
+        {
+          return NSValueTransformerName.secureUnarchiveFromDataTransformerName.rawValue
+        }
+        if let parsed = parseTransformerRegistrationName(from: expression) {
+          return parsed
+        }
+      }
+    }
+    return nil
+  }
 }
 
 private func isPersistentModelStoredVariable(_ variable: VariableDeclSyntax) -> Bool {
@@ -288,7 +380,8 @@ private func parseAttributeAnnotation(
       isTransient: false,
       persistentName: nil,
       storageMethod: nil,
-      transformerType: nil,
+      transformerName: nil,
+      transformerTypeName: nil,
       decodeFailurePolicy: nil
     )
   }
@@ -297,7 +390,8 @@ private func parseAttributeAnnotation(
   var isTransient = false
   var persistentName: String?
   var storageMethod: ToolingAttributeStorageRule?
-  var transformerType: String?
+  var transformerName: String?
+  var transformerTypeName: String?
   var decodeFailurePolicy: ToolingDecodeFailurePolicy?
 
   for argument in list {
@@ -324,7 +418,8 @@ private func parseAttributeAnnotation(
     case "storageMethod":
       let storage = parseStorageMethod(from: raw)
       storageMethod = storage.method
-      transformerType = storage.transformerType
+      transformerName = storage.transformerName
+      transformerTypeName = storage.transformerTypeName
     case "decodeFailurePolicy":
       decodeFailurePolicy = parseDecodeFailurePolicy(from: raw)
     default:
@@ -338,7 +433,8 @@ private func parseAttributeAnnotation(
     isTransient: isTransient,
     persistentName: persistentName,
     storageMethod: storageMethod,
-    transformerType: transformerType,
+    transformerName: transformerName,
+    transformerTypeName: transformerTypeName,
     decodeFailurePolicy: decodeFailurePolicy
   )
 }
@@ -471,34 +567,49 @@ private func parseStringLiteral(_ expression: ExprSyntax) -> String? {
 }
 
 private func parseStorageMethod(from raw: String) -> (
-  method: ToolingAttributeStorageRule?, transformerType: String?
+  method: ToolingAttributeStorageRule?, transformerName: String?, transformerTypeName: String?
 ) {
   switch raw {
   case ".default", "AttributeStorageMethod.default",
     "CoreDataEvolution.AttributeStorageMethod.default":
-    return (.default, nil)
+    return (.default, nil, nil)
   case ".raw", "AttributeStorageMethod.raw", "CoreDataEvolution.AttributeStorageMethod.raw":
-    return (.raw, nil)
+    return (.raw, nil, nil)
   case ".codable", "AttributeStorageMethod.codable",
     "CoreDataEvolution.AttributeStorageMethod.codable":
-    return (.codable, nil)
+    return (.codable, nil, nil)
   case ".composition", "AttributeStorageMethod.composition",
     "CoreDataEvolution.AttributeStorageMethod.composition":
-    return (.composition, nil)
+    return (.composition, nil, nil)
   default:
-    guard
-      raw.hasPrefix(".transformed(") || raw.hasPrefix("AttributeStorageMethod.transformed(")
-        || raw.hasPrefix("CoreDataEvolution.AttributeStorageMethod.transformed(")
-    else {
-      return (nil, nil)
-    }
-    guard let start = raw.firstIndex(of: "("), let end = raw.lastIndex(of: ")") else {
-      return (.transformed, nil)
-    }
-    let inner = String(raw[raw.index(after: start)..<end])
-    let transformerType = inner.hasSuffix(".self") ? String(inner.dropLast(5)) : inner
-    return (.transformed, transformerType)
+    return parseTransformedStorageMethod(from: raw)
   }
+}
+
+private func parseTransformedStorageMethod(from raw: String) -> (
+  method: ToolingAttributeStorageRule?, transformerName: String?, transformerTypeName: String?
+) {
+  guard
+    raw.hasPrefix(".transformed(") || raw.hasPrefix("AttributeStorageMethod.transformed(")
+      || raw.hasPrefix("CoreDataEvolution.AttributeStorageMethod.transformed(")
+  else {
+    return (nil, nil, nil)
+  }
+
+  if let nameRange = raw.range(of: "name:\"") {
+    let tail = raw[nameRange.upperBound...]
+    guard let endQuote = tail.firstIndex(of: "\"") else {
+      return (.transformed, nil, nil)
+    }
+    return (.transformed, String(tail[..<endQuote]), nil)
+  }
+
+  guard let start = raw.firstIndex(of: "("), let end = raw.lastIndex(of: ")") else {
+    return (.transformed, nil, nil)
+  }
+  let inner = String(raw[raw.index(after: start)..<end])
+  let transformerTypeName = inner.hasSuffix(".self") ? String(inner.dropLast(5)) : inner
+  return (.transformed, nil, transformerTypeName)
 }
 
 private func parseDecodeFailurePolicy(from raw: String) -> ToolingDecodeFailurePolicy? {

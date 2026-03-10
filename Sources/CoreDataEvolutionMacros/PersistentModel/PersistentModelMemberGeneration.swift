@@ -502,7 +502,12 @@ private func runtimeStorageExpression(_ attribute: PersistentAttributeProperty) 
   case .codable:
     return ".codable"
   case .transformed(let transformer):
-    return ".transformed(transformerName: \(transformer).transformerName.rawValue)"
+    switch transformer {
+    case .type(let transformerType):
+      return ".transformed(transformerName: \(transformerType).transformerName.rawValue)"
+    case .name(let transformerName):
+      return #".transformed(transformerName: "\#(escapeStringLiteral(transformerName))")"#
+    }
   case .composition:
     return ".composition(fields: \(attribute.nonOptionalTypeName).__cdRuntimeCompositionFields)"
   }
@@ -567,10 +572,4 @@ private func runtimePrimitiveTypeExpression(typeName: String) -> String {
       }())
       """
   }
-}
-
-private func escapeStringLiteral(_ text: String) -> String {
-  text
-    .replacingOccurrences(of: "\\", with: "\\\\")
-    .replacingOccurrences(of: "\"", with: "\\\"")
 }

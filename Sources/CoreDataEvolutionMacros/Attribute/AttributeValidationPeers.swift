@@ -35,14 +35,16 @@ func makeAttributeValidationPeers(from info: AttributeInfo) -> [DeclSyntax] {
         typeName: info.nonOptionalTypeName
       ))
     return peers
-  case .transformed(let transformerType):
-    peers.append(
-      makeTypeValidationPeer(
-        propertyName: info.propertyName,
-        suffix: "transformed",
-        callee: "CoreDataEvolution._CDAttributeMacroValidation.requireTransformer",
-        typeName: transformerType
-      ))
+  case .transformed(let reference):
+    if case .type(let transformerType) = reference {
+      peers.append(
+        makeTypeValidationPeer(
+          propertyName: info.propertyName,
+          suffix: "transformed",
+          callee: "CoreDataEvolution._CDAttributeMacroValidation.requireTransformer",
+          typeName: transformerType
+        ))
+    }
     return peers
   case .composition:
     peers.append(

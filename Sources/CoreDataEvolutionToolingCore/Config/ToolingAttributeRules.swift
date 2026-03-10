@@ -28,20 +28,20 @@ public struct ToolingAttributeRule: Codable, Sendable, Equatable {
   public let swiftName: String?
   public let swiftType: String?
   public let storageMethod: ToolingAttributeStorageRule?
-  public let transformerType: String?
+  public let transformerName: String?
   public let decodeFailurePolicy: ToolingDecodeFailurePolicy?
 
   public init(
     swiftName: String? = nil,
     swiftType: String? = nil,
     storageMethod: ToolingAttributeStorageRule? = nil,
-    transformerType: String? = nil,
+    transformerName: String? = nil,
     decodeFailurePolicy: ToolingDecodeFailurePolicy? = nil
   ) {
     self.swiftName = swiftName
     self.swiftType = swiftType
     self.storageMethod = storageMethod
-    self.transformerType = transformerType
+    self.transformerName = transformerName
     self.decodeFailurePolicy = decodeFailurePolicy
   }
 }

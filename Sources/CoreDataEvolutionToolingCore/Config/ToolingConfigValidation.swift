@@ -338,7 +338,7 @@ private func validateTypeMappings(
 ///
 /// Examples:
 /// - empty names/types are rejected
-/// - `.transformed` requires `transformerType`
+/// - `.transformed` requires `transformerName`
 /// - `decodeFailurePolicy` is only valid for storage methods that can actually fail decoding
 private func validateAttributeRulesStatic(
   _ rules: ToolingAttributeRules?,
@@ -371,24 +371,24 @@ private func validateAttributeRulesStatic(
           "\(context).\(entityName).\(fieldName).swiftType must not be empty.")
       }
 
-      if let transformerType = rule.transformerType,
-        transformerType.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+      if let transformerName = rule.transformerName,
+        transformerName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
       {
         throw configValidationFailure(
-          "\(context).\(entityName).\(fieldName).transformerType must not be empty."
+          "\(context).\(entityName).\(fieldName).transformerName must not be empty."
         )
       }
 
       let storageMethod = resolveToolingAttributeStorageMethod(rule)
-      if storageMethod == .transformed, rule.transformerType == nil {
+      if storageMethod == .transformed, rule.transformerName == nil {
         throw configValidationFailure(
-          "\(context).\(entityName).\(fieldName) uses storageMethod 'transformed' but does not provide transformerType."
+          "\(context).\(entityName).\(fieldName) uses storageMethod 'transformed' but does not provide transformerName."
         )
       }
 
-      if rule.transformerType != nil, storageMethod != .transformed {
+      if rule.transformerName != nil, storageMethod != .transformed {
         throw configValidationFailure(
-          "\(context).\(entityName).\(fieldName).transformerType is only valid with storageMethod 'transformed'."
+          "\(context).\(entityName).\(fieldName).transformerName is only valid with storageMethod 'transformed'."
         )
       }
 

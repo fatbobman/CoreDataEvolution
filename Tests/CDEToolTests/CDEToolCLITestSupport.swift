@@ -237,7 +237,7 @@ func makeIntegrationAttributeRules() -> ToolingAttributeRules {
           swiftName: "keywords",
           swiftType: "[String]",
           storageMethod: .transformed,
-          transformerType: "CDEStringListTransformer"
+          transformerName: "CDEStringListTransformer"
         ),
       ]
     ]

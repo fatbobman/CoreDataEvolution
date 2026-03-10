@@ -50,7 +50,7 @@ struct ToolingSourceRendererTests {
                 method: .default,
                 swiftType: "String",
                 nonOptionalSwiftType: "String",
-                transformerType: nil,
+                transformerName: nil,
                 decodeFailurePolicy: nil,
                 isResolved: true
               )
@@ -67,7 +67,7 @@ struct ToolingSourceRendererTests {
                 method: .raw,
                 swiftType: "ItemStatus?",
                 nonOptionalSwiftType: "ItemStatus",
-                transformerType: nil,
+                transformerName: nil,
                 decodeFailurePolicy: .debugAssertNil,
                 isResolved: true
               )
@@ -84,7 +84,7 @@ struct ToolingSourceRendererTests {
                 method: .composition,
                 swiftType: "ItemLocation?",
                 nonOptionalSwiftType: "ItemLocation",
-                transformerType: nil,
+                transformerName: nil,
                 decodeFailurePolicy: nil,
                 isResolved: true
               )
@@ -288,7 +288,7 @@ struct ToolingSourceRendererTests {
                 method: .codable,
                 swiftType: "ItemConfig",
                 nonOptionalSwiftType: "ItemConfig",
-                transformerType: nil,
+                transformerName: nil,
                 decodeFailurePolicy: .fallbackToDefaultValue,
                 isResolved: true
               )
@@ -343,7 +343,7 @@ struct ToolingSourceRendererTests {
                 method: .default,
                 swiftType: "String",
                 nonOptionalSwiftType: "String",
-                transformerType: nil,
+                transformerName: nil,
                 decodeFailurePolicy: nil,
                 isResolved: true
               )

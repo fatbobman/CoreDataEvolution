@@ -167,7 +167,7 @@ public enum ToolingIRBuilder {
           isOptional: attribute.isOptional
         ),
         nonOptionalSwiftType: resolvedType,
-        transformerType: rule.transformerType,
+        transformerName: rule.transformerName,
         decodeFailurePolicy: decodeFailurePolicy,
         isResolved: resolvedType != nil
       )

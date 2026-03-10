@@ -227,7 +227,7 @@ var config: ItemConfig? = nil
 ### Value Transformer Storage
 
 ```swift
-@Attribute(storageMethod: .transformed(CDEStringListTransformer.self))
+@Attribute(storageMethod: .transformed(name: "CDEStringListTransformer"))
 var keywords: [String]? = nil
 ```
 
@@ -241,10 +241,14 @@ Example:
 - only model the field as `Transformable` when the schema intentionally uses a transformable
   payload path such as `NSSecureUnarchiveFromData`
 
-Transformer-backed attributes now expect the transformer type to conform to
-`CDRegisteredValueTransformer` and publish the same registration name used by the Core Data model.
-Register the transformer before the property is first accessed, for example during app launch or
-test bootstrap.
+Transformer-backed attributes currently support two source forms:
+
+- `.transformed(CDEStringListTransformer.self)`
+- `.transformed(name: "CDEStringListTransformer")`
+
+For schema-backed models, the `name:` form is the canonical shape because Core Data stores the
+transformer registration name in the model itself. In both forms, the transformer must be
+registered before the property is first accessed, for example during app launch or test bootstrap.
 
 ### Decode Failure Policy
 

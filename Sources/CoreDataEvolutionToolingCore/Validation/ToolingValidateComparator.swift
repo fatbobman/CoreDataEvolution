@@ -52,6 +52,7 @@ public enum ToolingValidateComparator {
       compareEntity(
         entity,
         sourceEntity: sourceEntity,
+        sourceIR: sourceIR,
         generationPolicy: modelIR.generationPolicy,
         level: level,
         diagnostics: &diagnostics
@@ -75,6 +76,7 @@ public enum ToolingValidateComparator {
   private static func compareEntity(
     _ entity: ToolingEntityIR,
     sourceEntity: ToolingSourceEntityIR,
+    sourceIR: ToolingSourceModelIR,
     generationPolicy: ToolingGenerationPolicyIR,
     level: ToolingValidationLevel,
     diagnostics: inout [ToolingDiagnostic]
@@ -151,6 +153,7 @@ public enum ToolingValidateComparator {
         expectedPropertyName: expectedName,
         expectedType: expectedType,
         sourceProperty: sourceProperty,
+        sourceIR: sourceIR,
         diagnostics: &diagnostics
       )
     }
@@ -218,6 +221,7 @@ public enum ToolingValidateComparator {
     expectedPropertyName: String,
     expectedType: String,
     sourceProperty: ToolingSourcePropertyIR,
+    sourceIR: ToolingSourceModelIR,
     diagnostics: inout [ToolingDiagnostic]
   ) {
     if sourceProperty.hasIgnore {
@@ -306,12 +310,16 @@ public enum ToolingValidateComparator {
       )
     }
 
+    let actualTransformerName = resolveTransformerName(
+      for: sourceProperty,
+      sourceIR: sourceIR
+    )
     if attribute.storage.method == .transformed,
-      sourceProperty.attribute?.transformerType != attribute.storage.transformerType
+      actualTransformerName != attribute.storage.transformerName
     {
       diagnostics.append(
         error(
-          "validate found transformer mismatch for '\(entityName).\(expectedPropertyName)'. Expected '\(attribute.storage.transformerType ?? "<none>")', found '\(sourceProperty.attribute?.transformerType ?? "<none>")'.",
+          "validate found transformer mismatch for '\(entityName).\(expectedPropertyName)'. Expected '\(attribute.storage.transformerName ?? "<none>")', found '\(actualTransformerName ?? "<none>")'.",
           fix: makeAttributeAnnotationFix(
             entityName: entityName,
             propertyName: expectedPropertyName,
@@ -787,10 +795,10 @@ public enum ToolingValidateComparator {
     case .composition:
       arguments.append("storageMethod: .composition")
     case .transformed:
-      guard let transformerType = attribute.storage.transformerType else {
+      guard let transformerName = attribute.storage.transformerName else {
         return nil
       }
-      arguments.append("storageMethod: .transformed(\(transformerType).self)")
+      arguments.append(#"storageMethod: .transformed(name: "\#(transformerName)")"#)
     }
 
     if let decodeFailurePolicy = attribute.storage.decodeFailurePolicy {
@@ -808,5 +816,18 @@ public enum ToolingValidateComparator {
     fix: ToolingFixSuggestion? = nil
   ) -> ToolingDiagnostic {
     .init(severity: .error, code: .validationFailed, message: message, fix: fix)
+  }
+
+  private static func resolveTransformerName(
+    for sourceProperty: ToolingSourcePropertyIR,
+    sourceIR: ToolingSourceModelIR
+  ) -> String? {
+    if let transformerName = sourceProperty.attribute?.transformerName {
+      return transformerName
+    }
+    guard let transformerTypeName = sourceProperty.attribute?.transformerTypeName else {
+      return nil
+    }
+    return sourceIR.transformerRegistrations[transformerTypeName]
   }
 }

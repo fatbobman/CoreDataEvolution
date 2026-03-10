@@ -8,8 +8,8 @@ final class ColorTransformer: ValueTransformer, CDRegisteredValueTransformer {
 struct Item {
   var color: String? {
     get {
-      guard let transformer = ValueTransformer(forName: ColorTransformer.self.transformerName) else {
-        assertionFailure("Transformer '\(ColorTransformer.self.transformerName.rawValue)' is not registered for `color` (color).")
+      guard let transformer = ValueTransformer(forName: ColorTransformer.transformerName) else {
+        assertionFailure("Transformer 'ColorTransformer.transformerName' is not registered for `color` (color).")
         return nil
       }
       let storedValue = value(forKey: "color")
@@ -22,8 +22,8 @@ struct Item {
       return value
     }
     set {
-      guard let transformer = ValueTransformer(forName: ColorTransformer.self.transformerName) else {
-        assertionFailure("Transformer '\(ColorTransformer.self.transformerName.rawValue)' is not registered for `color` (color).")
+      guard let transformer = ValueTransformer(forName: ColorTransformer.transformerName) else {
+        assertionFailure("Transformer 'ColorTransformer.transformerName' is not registered for `color` (color).")
         setValue(nil, forKey: "color")
         return
       }
@@ -47,5 +47,5 @@ struct Item {
 
   private static let __cd_attribute_validate_color_nonrelationship: Void = CoreDataEvolution._CDAttributeMacroValidation.requireNonRelationship(String?.self)
 
-  private static let __cd_attribute_validate_color_transformed: Void = CoreDataEvolution._CDAttributeMacroValidation.requireTransformer(ColorTransformer.self.self)
+  private static let __cd_attribute_validate_color_transformed: Void = CoreDataEvolution._CDAttributeMacroValidation.requireTransformer(ColorTransformer.self)
 }
