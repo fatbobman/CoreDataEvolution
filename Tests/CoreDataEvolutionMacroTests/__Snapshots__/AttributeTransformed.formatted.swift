@@ -1,13 +1,17 @@
 import CoreDataEvolution
 import Foundation
 
-final class ColorTransformer: ValueTransformer {
+final class ColorTransformer: ValueTransformer, CDRegisteredValueTransformer {
+  static let transformerName = NSValueTransformerName("ColorTransformer")
 }
 
 struct Item {
   var color: String? {
     get {
-      let transformer = ColorTransformer.self.init()
+      guard let transformer = ValueTransformer.valueTransformer(forName: ColorTransformer.self.transformerName) else {
+        assertionFailure("Transformer '\(ColorTransformer.self.transformerName.rawValue)' is not registered for `color` (color).")
+        return nil
+      }
       let storedValue = value(forKey: "color")
       if let value = storedValue as? String {
         return value
@@ -18,7 +22,11 @@ struct Item {
       return value
     }
     set {
-      let transformer = ColorTransformer.self.init()
+      guard let transformer = ValueTransformer.valueTransformer(forName: ColorTransformer.self.transformerName) else {
+        assertionFailure("Transformer '\(ColorTransformer.self.transformerName.rawValue)' is not registered for `color` (color).")
+        setValue(nil, forKey: "color")
+        return
+      }
       if let newValue {
         if let transformed = transformer.transformedValue(newValue) {
           setValue(transformed, forKey: "color")

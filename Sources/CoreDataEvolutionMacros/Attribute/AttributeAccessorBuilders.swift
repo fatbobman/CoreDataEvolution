@@ -227,6 +227,8 @@ struct RawAttributeAccessorBuilder: AttributeAccessorBuilder {
 }
 
 struct CodableAttributeAccessorBuilder: AttributeAccessorBuilder {
+  // JSONEncoder/JSONDecoder are created per access on purpose. Sharing reference-type encoders
+  // across contexts would hide mutable-state and threading assumptions in generated code.
   func makeGetter(from info: AttributeInfo) -> AccessorDeclSyntax {
     let key = info.persistentName
     let property = info.propertyName
@@ -379,6 +381,11 @@ struct CodableAttributeAccessorBuilder: AttributeAccessorBuilder {
 struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
   let transformerType: String
 
+  // `.transformed(Type.self)` intentionally resolves through the ValueTransformer registration
+  // table via `ValueTransformer.valueTransformer(forName:)` instead of constructing a fresh
+  // instance. This matches Core Data's model-side semantics more closely and requires the
+  // transformer type to publish a registration name through `CDRegisteredValueTransformer`.
+
   func makeGetter(from info: AttributeInfo) -> AccessorDeclSyntax {
     let key = info.persistentName
     let property = info.propertyName
@@ -390,7 +397,10 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
       return
         """
         get {
-          let transformer = \(raw: transformerType).init()
+          guard let transformer = ValueTransformer.valueTransformer(forName: \(raw: transformerType).transformerName) else {
+            assertionFailure("Transformer '\\(\(raw: transformerType).transformerName.rawValue)' is not registered for `\(raw: property)` (\(raw: key)).")
+            return nil
+          }
           let storedValue = value(forKey: "\(raw: key)")
           if let value = storedValue as? \(raw: wrappedType) {
             return value
@@ -409,7 +419,10 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
       return
         """
         get {
-          let transformer = \(raw: transformerType).init()
+          guard let transformer = ValueTransformer.valueTransformer(forName: \(raw: transformerType).transformerName) else {
+            assertionFailure("Transformer '\\(\(raw: transformerType).transformerName.rawValue)' is not registered for `\(raw: property)` (\(raw: key)).")
+            return \(raw: fallback)
+          }
           let storedValue = value(forKey: "\(raw: key)")
           if let value = storedValue as? \(raw: wrappedType) {
             return value
@@ -427,7 +440,9 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
       return
         """
         get {
-          let transformer = \(raw: transformerType).init()
+          guard let transformer = ValueTransformer.valueTransformer(forName: \(raw: transformerType).transformerName) else {
+            preconditionFailure("Transformer '\\(\(raw: transformerType).transformerName.rawValue)' is not registered for required transformed property `\(raw: property)` (\(raw: key)).")
+          }
           let storedValue = value(forKey: "\(raw: key)")
           if let value = storedValue as? \(raw: type) {
             return value
@@ -445,7 +460,9 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
     return
       """
       get {
-        let transformer = \(raw: transformerType).init()
+        guard let transformer = ValueTransformer.valueTransformer(forName: \(raw: transformerType).transformerName) else {
+          preconditionFailure("Transformer '\\(\(raw: transformerType).transformerName.rawValue)' is not registered for required transformed property `\(raw: property)` (\(raw: key)).")
+        }
         let storedValue = value(forKey: "\(raw: key)")
         if let value = storedValue as? \(raw: type) {
           return value
@@ -470,7 +487,11 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
       return
         """
         set {
-          let transformer = \(raw: transformerType).init()
+          guard let transformer = ValueTransformer.valueTransformer(forName: \(raw: transformerType).transformerName) else {
+            assertionFailure("Transformer '\\(\(raw: transformerType).transformerName.rawValue)' is not registered for `\(raw: property)` (\(raw: key)).")
+            setValue(nil, forKey: "\(raw: key)")
+            return
+          }
           if let newValue {
             guard let transformed = transformer.transformedValue(newValue) else {
               assertionFailure("Failed to transform value for `\(raw: property)` (\(raw: key)).")
@@ -489,7 +510,11 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
       return
         """
         set {
-          let transformer = \(raw: transformerType).init()
+          guard let transformer = ValueTransformer.valueTransformer(forName: \(raw: transformerType).transformerName) else {
+            assertionFailure("Transformer '\\(\(raw: transformerType).transformerName.rawValue)' is not registered for `\(raw: property)` (\(raw: key)).")
+            setValue(nil, forKey: "\(raw: key)")
+            return
+          }
           if let newValue {
             if let transformed = transformer.transformedValue(newValue) {
               setValue(transformed, forKey: "\(raw: key)")
@@ -513,7 +538,9 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
       return
         """
         set {
-          let transformer = \(raw: transformerType).init()
+          guard let transformer = ValueTransformer.valueTransformer(forName: \(raw: transformerType).transformerName) else {
+            preconditionFailure("Transformer '\\(\(raw: transformerType).transformerName.rawValue)' is not registered for required transformed property `\(raw: property)` (\(raw: key)).")
+          }
           guard let transformed = transformer.transformedValue(newValue) else {
             assertionFailure("Failed to transform value for `\(raw: property)` (\(raw: key)).")
             setValue(nil, forKey: "\(raw: key)")
@@ -527,7 +554,9 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
     return
       """
       set {
-        let transformer = \(raw: transformerType).init()
+        guard let transformer = ValueTransformer.valueTransformer(forName: \(raw: transformerType).transformerName) else {
+          preconditionFailure("Transformer '\\(\(raw: transformerType).transformerName.rawValue)' is not registered for required transformed property `\(raw: property)` (\(raw: key)).")
+        }
         if let transformed = transformer.transformedValue(newValue) {
           setValue(transformed, forKey: "\(raw: key)")
           return

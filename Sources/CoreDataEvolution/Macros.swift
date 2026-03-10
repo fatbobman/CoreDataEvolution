@@ -7,6 +7,19 @@
 
 import Foundation
 
+/// A `ValueTransformer` type that can be referenced from `@Attribute(storageMethod: .transformed(...))`.
+///
+/// Conforming types must expose the same registration name used by the Core Data model. The
+/// generated accessor code resolves the transformer through
+/// `ValueTransformer.valueTransformer(forName:)` instead of
+/// constructing a fresh instance on every access.
+///
+/// Register the transformer before the property is first accessed, for example during app launch
+/// or test bootstrap.
+public protocol CDRegisteredValueTransformer: ValueTransformer {
+  static var transformerName: NSValueTransformerName { get }
+}
+
 // MARK: - Core Data Macro
 
 /// Declares how a persisted property is stored in the Core Data model.
@@ -20,8 +33,11 @@ public enum AttributeStorageMethod {
   case raw
   /// Stores a `Codable` value through encoded binary payload.
   case codable
-  /// Stores a value through a `ValueTransformer`.
-  case transformed(ValueTransformer.Type)
+  /// Stores a value through a registered `ValueTransformer`.
+  ///
+  /// The transformer type must conform to `CDRegisteredValueTransformer`. The generated accessors
+  /// resolve the transformer through the registration name published by that protocol.
+  case transformed(CDRegisteredValueTransformer.Type)
   /// Stores a value through a Core Data composite attribute.
   case composition
 }
