@@ -153,6 +153,11 @@ public macro Ignore() =
 /// - `Set<Target>` for unordered to-many
 /// - `[Target]` for ordered to-many
 ///
+/// To-many relationship getters expose ordinary Swift collections. Reading `Set<Target>` or
+/// `[Target]` bridges from the underlying `NSSet` or `NSOrderedSet` and constructs a new Swift
+/// collection on each access. For large relationships or hot paths, prefer fetch-based APIs rather
+/// than repeatedly reading the relationship property.
+///
 /// `inverse` uses the persistent relationship name from the Core Data model, not the Swift
 /// property name on the target type.
 ///

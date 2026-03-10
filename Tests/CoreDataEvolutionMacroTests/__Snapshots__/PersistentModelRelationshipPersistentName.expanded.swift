@@ -5,6 +5,8 @@ import CoreDataEvolution
 final class FlowProject: NSManagedObject {
   var tasks: Set<FlowTask> {
     get {
+      // Expose a plain Swift Set<T> at the public API boundary.
+      // This bridges and copies the underlying NSSet on every access.
       (value(forKey: "owned_tasks") as? NSSet)?
         .compactMap {
         $0 as? FlowTask

@@ -319,6 +319,16 @@ final class Item: NSManagedObject {
 
 There is no separate public inverse-only relationship macro.
 
+To-many relationship accessors return ordinary Swift collections:
+
+- `Set<Target>` bridges from the underlying `NSSet`
+- `[Target]` bridges from the underlying `NSOrderedSet`
+
+That bridge constructs a new Swift collection on every read. This is the intended convenience API,
+but it also means repeated access to a large to-many relationship is not free. For hot paths,
+prefer a fetch request or another query-oriented API instead of repeatedly reading the relationship
+property.
+
 ### Required Relationship Rules
 
 #### To-one relationships must be optional

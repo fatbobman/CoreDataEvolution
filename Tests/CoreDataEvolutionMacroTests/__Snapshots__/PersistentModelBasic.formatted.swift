@@ -31,6 +31,8 @@ final class Item: NSManagedObject {
   var transientCache: [String: Int] = [:]
   var tags: Set<Tag> {
     get {
+      // Expose a plain Swift Set<T> at the public API boundary.
+      // This bridges and copies the underlying NSSet on every access.
       (value(forKey: "tags") as? NSSet)?
         .compactMap {
         $0 as? Tag
@@ -46,6 +48,8 @@ final class Item: NSManagedObject {
   }
   var orderedTags: [Tag] {
     get {
+      // Expose a plain Swift [T] at the public API boundary.
+      // This bridges and copies the underlying NSOrderedSet on every access.
       (value(forKey: "orderedTags") as? NSOrderedSet)?
         .compactMap {
         $0 as? Tag

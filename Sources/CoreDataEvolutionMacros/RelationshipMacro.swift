@@ -218,6 +218,8 @@ private func makeRelationshipAccessors(from info: RelationshipInfo) -> [Accessor
     return [
       """
       get {
+        // Expose a plain Swift Set<T> at the public API boundary.
+        // This bridges and copies the underlying NSSet on every access.
         (value(forKey: "\(raw: key)") as? NSSet)?
           .compactMap { $0 as? \(raw: targetTypeName) }
           .reduce(into: Set<\(raw: targetTypeName)>()) { $0.insert($1) }
@@ -235,6 +237,8 @@ private func makeRelationshipAccessors(from info: RelationshipInfo) -> [Accessor
     return [
       """
       get {
+        // Expose a plain Swift [T] at the public API boundary.
+        // This bridges and copies the underlying NSOrderedSet on every access.
         (value(forKey: "\(raw: key)") as? NSOrderedSet)?
           .compactMap { $0 as? \(raw: targetTypeName) }
           ?? []
