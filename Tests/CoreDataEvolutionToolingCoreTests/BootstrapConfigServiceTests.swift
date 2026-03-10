@@ -108,4 +108,34 @@ struct BootstrapConfigServiceTests {
     #expect(json.contains("\"CDEItemLocation\""))
   }
 
+  @Test("explicit bootstrap resolves composition rules from xcdatamodeld inputs")
+  func explicitBootstrapResolvesCompositionRulesFromModelPackage() throws {
+    let modelPath = try makeToolingSourceModelFixture()
+    defer { try? FileManager.default.removeItem(at: modelPath.deletingLastPathComponent()) }
+
+    #expect(modelPath.pathExtension == "xcdatamodeld")
+
+    let result = try BootstrapConfigService.run(
+      .init(
+        modelPath: modelPath.path,
+        modelVersion: nil,
+        momcBin: nil,
+        moduleName: "AppModels",
+        outputDir: "Generated/CoreDataEvolution",
+        sourceDir: "Sources/AppModels",
+        style: .explicit
+      )
+    )
+
+    let generateCompositionRules = try #require(result.template.generate?.compositionRules)
+    let validateCompositionRules = try #require(result.template.validate?.compositionRules)
+    let itemLocationRules = try #require(generateCompositionRules.types["CDEItemLocation"])
+    let validateItemLocationRules = try #require(validateCompositionRules.types["CDEItemLocation"])
+
+    #expect(itemLocationRules["x"]?.swiftName == "x")
+    #expect(itemLocationRules["y"]?.swiftName == "y")
+    #expect(validateItemLocationRules["x"]?.swiftName == "x")
+    #expect(validateItemLocationRules["y"]?.swiftName == "y")
+  }
+
 }
