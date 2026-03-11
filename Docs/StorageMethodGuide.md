@@ -218,9 +218,11 @@ Use this when:
 
 ### Current boundary
 
-This follows the general custom-storage rule: non-optional custom storage is intentionally
-restricted. If you need a custom stored type, prefer making it optional or design the model so the
-default/fallback behavior stays explicit.
+`.raw` is the exception among custom storage methods.
+
+Unlike `.codable`, `.transformed(...)`, and `.composition`, `.raw` may still be used with
+non-optional properties, as long as the type is `RawRepresentable` and the property still follows
+the normal non-optional default-value rule.
 
 ## `.codable`
 

@@ -330,67 +330,6 @@ These are translated to Core Data-compatible `NSPredicate` forms.
 
 The important part is that renamed fields still map correctly through the same table.
 
-## Why Computed Properties Are Not Enough
-
-Consider this hand-written bridging approach:
-
-```swift
-@NSManaged private var name: String = ""
-
-var title: String {
-  get { name }
-  set { name = newValue }
-}
-```
-
-This may look acceptable at first, but it fails in exactly the place that matters:
-
-- `title` is not a real persisted field
-- `NSSortDescriptor` cannot sort by that computed property in the store
-- store-backed predicates cannot use it as a persisted key path
-
-This is the exact gap the generated key/path mapping solves:
-
-- your public Swift API can use `title`
-- your persisted field can remain `name`
-- sort and predicate code can still resolve to the real store field
-
-## Recommended Usage Pattern
-
-If you need persistent-name remapping:
-
-1. Keep the stored Core Data field stable
-2. Use a better Swift-facing property name
-3. Use `Keys` or `path` when building sort and predicate expressions
-
-Example:
-
-```swift
-@objc(Item)
-@PersistentModel
-final class Item: NSManagedObject {
-  @Attribute(persistentName: "name")
-  var title: String = ""
-
-  @Attribute(persistentName: "timestamp")
-  var date: Date? = nil
-}
-
-let sort = NSSortDescriptor(Item.self, key: .date, ascending: false)
-
-let predicate = NSPredicate(
-  format: "%K CONTAINS[cd] %@",
-  Item.path.title.raw,
-  "swift"
-)
-```
-
-This keeps:
-
-- the Swift API readable
-- the store schema stable
-- sort and predicate code string-safe
-
 ## Current Boundaries
 
 Currently:

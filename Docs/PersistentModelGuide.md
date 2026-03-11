@@ -381,7 +381,7 @@ Why:
 - the current model rules require relationship declarations to follow a predictable optional/default model
 - non-optional to-one relationships are rejected at macro validation time
 
-#### To-many relationships must not be optional
+#### To-many relationships must not be declared as optional in Swift
 
 Valid:
 
@@ -399,8 +399,9 @@ var orderedTags: [Tag]?
 
 Why:
 
-- the model may mark the relationship optional internally
-- but Swift declarations must use the collection type directly
+- Core Data models for this workflow still represent to-many relationships as optional internally
+- the macro maps that model-level optional to an empty Swift collection on read
+- Swift declarations must therefore use the collection type directly
 - use `Set<T>` or `[T]`, not `Set<T>?` or `[T]?`
 
 #### Every relationship must have an inverse in the model
@@ -835,7 +836,7 @@ Before using `@PersistentModel`, make sure all of these are true.
 
 - to-one relationships must be optional
 - to-many relationships must use `Set<T>` or `[T]`
-- to-many relationships cannot be optional
+- to-many relationships must not be declared as optional in Swift
 - relationships must have inverses in the Core Data model
 - every relationship must declare `@Relationship(persistentName:inverse:deleteRule:)`
 - relationship count bounds are optional source metadata and should only be written when the model

@@ -219,9 +219,6 @@ This helper intentionally:
 - deletes stale sidecar files before loading
 - serializes container creation and `loadPersistentStores`
 
-That last point matters. Parallel Core Data-heavy test suites can crash or hang even when every
-test uses a unique store URL.
-
 Treat this helper as a one-shot test container by default:
 
 - the default name comes from the call site (`#fileID` + `#function`)

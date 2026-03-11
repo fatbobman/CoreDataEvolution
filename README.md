@@ -4,10 +4,12 @@
 
 CoreDataEvolution **does not** replace Core Data. It modernizes how Core Data is expressed, isolated, and maintained in Swift codebases.
 
-CoreDataEvolution brings three ideas together for Core Data projects:
+CoreDataEvolution brings four ideas together for Core Data projects:
 
 - SwiftData-style actor isolation for Core Data
 - a Swift-first source representation for `NSManagedObject` models
+- a typed mapping layer for sort and predicate code that improves naming flexibility and type
+  safety without forcing changes to the underlying model
 - tooling that keeps source declarations aligned with the real Core Data model
 
 This document focuses on the user-facing story:
@@ -20,30 +22,36 @@ This document focuses on the user-facing story:
 
 ## What Problem This Library Solves
 
-Core Data remains the practical choice for many production apps because it offers:
+Core Data is no longer the newest persistence option in Apple's ecosystem.
+
+SwiftData offers a more modern declaration style. GRDB, SQLiteData, and other approaches give many
+teams more direct database control.
+
+And yet Core Data is still a pragmatic choice for many production apps because it offers:
 
 - broad platform support
 - mature migration and store behavior
+- an object-graph model many teams still prefer
 - existing schemas that teams cannot easily replace
 
-But Core Data still has several recurring pain points in modern Swift codebases.
+So the question this library starts from is not:
 
-### Pain Point 1: Concurrency ergonomics
+- "Should everyone still choose Core Data?"
 
-SwiftData introduced a much better concurrency story through `@ModelActor`.
+It is:
 
-Traditional Core Data code often falls back to:
+- "If a project is still using Core Data, how can it fit modern Swift more naturally?"
 
-- manually passing contexts around
-- remembering thread confinement rules
-- reloading objects by `NSManagedObjectID`
-- building ad hoc background helpers
+That is where the real friction shows up today.
 
-CoreDataEvolution brings that actor-isolated workflow to Core Data.
+### Pain Point 1: The model declaration layer no longer feels native to modern Swift
 
-### Pain Point 2: The `NSManagedObject` source layer is awkward
+The problem is not that Core Data cannot model data.
 
-The classic Core Data source representation works, but it does not scale well when you want:
+The problem is that the default `NSManagedObject` source layer becomes awkward when you want
+today's Swift code to express intent clearly.
+
+Typical pressure points include:
 
 - better Swift-facing names than the stored schema names
 - enums instead of raw values
@@ -52,21 +60,62 @@ The classic Core Data source representation works, but it does not scale well wh
 - structured composition values
 - predictable generated boilerplate instead of repeated hand-written bridging
 
-CoreDataEvolution adds a source-layer model DSL around `NSManagedObject` while keeping the real Core Data runtime underneath.
+Without help, teams often end up writing a thick layer of computed properties and bridging code
+just to make the model feel natural in Swift.
 
-### Pain Point 3: Schema drift is easy
+CoreDataEvolution adds a Swift-first declaration layer around `NSManagedObject` while keeping the
+real Core Data runtime underneath.
+
+### Pain Point 2: The concurrency model still feels older than the rest of the codebase
+
+Core Data can absolutely be used safely with concurrency, but its default workflow still tends to
+pull developers back toward `perform`, context passing, and ad hoc thread-confinement discipline.
+
+Compared with the actor-isolated style many Swift developers now expect, traditional Core Data code
+often falls back to:
+
+- manually passing contexts around
+- remembering thread confinement rules
+- reloading objects by `NSManagedObjectID`
+- building one-off background helpers
+
+CoreDataEvolution brings a SwiftData-style actor-isolated workflow to Core Data.
+
+### Pain Point 3: Naming flexibility, type safety, and schema stability pull against each other
 
 Once a Core Data model ships, schema names often become hard to change safely.
 
-That creates pressure to keep old store names while still wanting better Swift-facing names.
+That creates pressure to keep old persistent names while still wanting better Swift-facing names in
+application code.
 
-Without tooling, teams end up with:
+The usual result is some combination of:
 
 - hand-written mapping code
 - stringly-typed sort and predicate keys
-- drift between `.xcdatamodeld` and source declarations
+- growing drift between `.xcdatamodeld`, Swift source, and query code
 
-CoreDataEvolution includes `cde-tool` to generate, validate, inspect, and safely autofix parts of that source layer.
+CoreDataEvolution adds a typed mapping layer for sort and predicate construction so you can improve
+Swift naming and type safety without being forced to rename the underlying schema.
+
+### Pain Point 4: Experience and convention are not enough anymore
+
+Many teams already know how to work around these issues.
+
+The harder problem is that the workarounds often live as:
+
+- tribal knowledge
+- local conventions
+- discipline that must be remembered in code review
+
+That gets less reliable as projects grow, teams change, and AI-assisted coding becomes part of the
+day-to-day workflow.
+
+CoreDataEvolution tries to turn those conventions into clearer APIs, generated structure, and an
+optional toolchain that can verify alignment over time.
+
+Background article:
+
+- [Why I'm Still Thinking About Core Data in 2026](https://fatbobman.com/en/posts/why-i-am-still-thinking-about-core-data-in-2026/)
 
 ## Mental Model
 
@@ -103,7 +152,7 @@ This is the most important mental model for new users:
 
 - keep building the real schema in Xcode
 - use `@PersistentModel` to describe that schema in Swift
-- use `cde-tool` to keep the two layers aligned
+- use `cde-tool` (optional) to keep the two layers aligned
 
 ## The Three Main Parts of the Package
 
@@ -468,7 +517,7 @@ Thanks to [@rnine](https://github.com/rnine) for sharing and validating the iOS 
 
 ## Support the project
 
-- [🎉 Subscribe to my Swift Weekly](https://weekly.fatbobman.com)
+- [🎉 Subscribe to Fatbobman's Swift Weekly](https://weekly.fatbobman.com)
 - [☕️ Buy Me A Coffee](https://buymeacoffee.com/fatbobman)
 
 ## Star History

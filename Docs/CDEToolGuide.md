@@ -301,6 +301,192 @@ That is true for:
 - output/source directories
 - header template paths
 
+## Editing `cde-tool.json`
+
+In practice, most manual edits fall into three buckets:
+
+- rename the Swift-facing property while keeping the Core Data persistent name stable
+- choose the Swift type and storage method for a field
+- rename the Swift-facing relationship property while keeping the Core Data relationship name stable
+
+The important thing to remember is that config rules are keyed by the **persistent model name**,
+not by the generated Swift name.
+
+That means:
+
+- `attributeRules.<Entity>.<persistentAttributeName>`
+- `relationshipRules.<Entity>.<persistentRelationshipName>`
+
+If you use both `generate` and `validate`, keep these rule blocks aligned in both sections.
+
+### Rename a Swift property but keep the persistent field name
+
+Use `attributeRules` when the Core Data model should keep one field name, but the generated Swift
+property should use another.
+
+Example:
+
+```json
+{
+  "generate": {
+    "attributeRules": {
+      "Item": {
+        "name": {
+          "swiftName": "title"
+        }
+      }
+    }
+  }
+}
+```
+
+Here:
+
+- Core Data persistent field name: `name`
+- generated Swift property name: `title`
+- generated macro annotation: `@Attribute(persistentName: "name") var title: String ...`
+
+The key `name` is the persistent field from the model. It is **not** the Swift property name.
+
+### Rename a Swift relationship property but keep the persistent relationship name
+
+Use `relationshipRules` the same way for relationships.
+
+Example:
+
+```json
+{
+  "generate": {
+    "relationshipRules": {
+      "Item": {
+        "primary_category": {
+          "swiftName": "category"
+        }
+      }
+    }
+  }
+}
+```
+
+Here:
+
+- Core Data persistent relationship name: `primary_category`
+- generated Swift property name: `category`
+
+The generated `@Relationship(...)` annotation still uses the persistent relationship name from the
+model. The config only changes the Swift-facing property name.
+
+### Choose the Swift type and storage method for a field
+
+Use `attributeRules` when a field should not stay as the default primitive mapping.
+
+Common examples:
+
+- enum-backed raw storage
+- `Codable` payload storage
+- `ValueTransformer`-backed storage
+
+#### `.raw`
+
+```json
+{
+  "generate": {
+    "attributeRules": {
+      "Item": {
+        "status_raw": {
+          "swiftName": "status",
+          "swiftType": "ItemStatus",
+          "storageMethod": "raw"
+        }
+      }
+    }
+  }
+}
+```
+
+Use this when the model stores a primitive field, but the Swift API should expose a
+`RawRepresentable` type such as an enum.
+
+#### `.codable`
+
+```json
+{
+  "generate": {
+    "attributeRules": {
+      "Item": {
+        "config_blob": {
+          "swiftName": "config",
+          "swiftType": "ItemConfig",
+          "storageMethod": "codable"
+        }
+      }
+    }
+  }
+}
+```
+
+Use this when the model stores an encoded payload but the Swift API should expose a Codable value
+type.
+
+#### `.transformed`
+
+```json
+{
+  "generate": {
+    "attributeRules": {
+      "Item": {
+        "keywords_payload": {
+          "swiftName": "keywords",
+          "swiftType": "[String]",
+          "storageMethod": "transformed",
+          "transformerName": "CDEStringListTransformer"
+        }
+      }
+    }
+  }
+}
+```
+
+For transformed storage:
+
+- `storageMethod` must be `"transformed"`
+- `transformerName` is required
+- `swiftType` should be the Swift-facing property type you want the generated source to use
+
+### Change the default Swift type for one Core Data primitive kind
+
+Use `typeMappings` when you want to change the default Swift type chosen for a Core Data primitive
+kind across the config section.
+
+Example:
+
+```json
+{
+  "generate": {
+    "typeMappings": {
+      "Integer 64": {
+        "swiftType": "Int"
+      }
+    }
+  }
+}
+```
+
+This changes the default mapping for all `Integer 64` fields in that section unless a more
+specific per-field `attributeRules` override is present.
+
+Use `typeMappings` for broad defaults, and `attributeRules` for one-off exceptions.
+
+### Practical advice
+
+- Start with `bootstrap-config --style explicit` if you want a manifest you can review and edit in
+  one place.
+- Use `inspect` before and after a config change when you want to confirm how the tool resolved a
+  field or relationship.
+- Prefer editing one entity at a time, then run `generate` or `validate` immediately.
+- When a field uses `raw`, `codable`, `composition`, or `transformed`, set `swiftType`
+  explicitly so the tool does not have to infer it.
+
 ## Validate Fix Suggestions
 
 `validate` diagnostics can carry fix suggestions.
