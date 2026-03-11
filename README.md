@@ -175,6 +175,10 @@ Guide:
 
 - [Docs/NSModelActorGuide.md](./Docs/NSModelActorGuide.md)
 
+Background article:
+
+- [Core Data Reform: Achieving Elegant Concurrency Operations Like SwiftData](https://fatbobman.com/en/posts/core-data-reform-achieving-elegant-concurrency-operations-like-swiftdata/)
+
 ### 2. `@PersistentModel` and related macros
 
 Use:
@@ -464,6 +468,7 @@ Start here based on what you want to do.
 ### If you want actor-isolated Core Data code
 
 - [Docs/NSModelActorGuide.md](./Docs/NSModelActorGuide.md)
+- [Core Data Reform: Achieving Elegant Concurrency Operations Like SwiftData](https://fatbobman.com/en/posts/core-data-reform-achieving-elegant-concurrency-operations-like-swiftdata/)
 
 ### If you want Swift-first Core Data model declarations
 
