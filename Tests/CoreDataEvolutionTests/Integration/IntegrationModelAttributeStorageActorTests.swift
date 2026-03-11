@@ -41,7 +41,7 @@ struct IntegrationModelAttributeStorageActorTests {
   }
 
   @Test func persistentNameRawAndCodableMapToPersistentFields() async throws {
-    let stack = IntegrationModelStack()
+    let stack = try IntegrationModelStack()
     let handler = IntegrationAttributeStorageHandler(container: stack.container)
     try await handler.seedStorageData()
 

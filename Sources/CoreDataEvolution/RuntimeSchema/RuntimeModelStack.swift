@@ -42,7 +42,7 @@ public final class CDRuntimeModelStack {
     self.modelTypes = modelTypes
     schemas = CDRuntimeSchemaCollection.entitySchemas(modelTypes)
     model = try NSManagedObjectModel.makeRuntimeModel(modelTypes)
-    container = NSPersistentContainer.makeTest(
+    container = try NSPersistentContainer.makeTest(
       model: model,
       testName: testName,
       fileID: fileID,

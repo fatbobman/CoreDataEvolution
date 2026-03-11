@@ -43,7 +43,7 @@ private actor IntegrationSortHandler {
 @Suite("Integration Model Sort Actor Tests")
 struct IntegrationModelSortActorTests {
   @Test func macroGeneratedSortWorksAgainstCompiledModel() async throws {
-    let stack = IntegrationModelStack()
+    let stack = try IntegrationModelStack()
     let handler = IntegrationSortHandler(container: stack.container)
 
     try await handler.seedSortData()

@@ -13,7 +13,7 @@ struct NSModelActorTests {
   @Test func createNewItem() async throws {
     // Initialize the test Core Data stack
     // TestStack provides a pre-configured NSPersistentContainer for testing
-    let stack = TestStack()
+    let stack = try TestStack()
 
     #expect(stack.container.name == "CoreDataEvolutionTests_NSModelActorTests.swift-createNewItem")
 
@@ -23,9 +23,8 @@ struct NSModelActorTests {
     let handler = DataHandler(container: stack.container, viewName: "hello")
 
     // Create a new item asynchronously using the actor
-    // The showThread parameter enables thread information logging for debugging
     // Returns the NSManagedObjectID of the created item
-    let id = try await handler.createNemItem(showThread: true)
+    let id = try await handler.createNemItem()
 
     // Verify that exactly one item was created
     // This tests the actor's ability to perform read operations safely
@@ -46,11 +45,11 @@ struct NSModelActorTests {
   /// This test verifies that:
   /// 1. Main thread actors work correctly with @NSMainModelActor
   /// 2. Items can be created synchronously on the main thread
-  /// 3. Thread information can be logged for verification
+  /// 3. The operation works correctly on the main actor
   @MainActor
   @Test func createNewItemInMainActor() throws {
     // Initialize the test Core Data stack
-    let stack = TestStack()
+    let stack = try TestStack()
 
     // Create a MainHandler instance decorated with @NSMainModelActor
     // Unlike DataHandler, this operates on the main thread and doesn't require async/await
@@ -58,9 +57,8 @@ struct NSModelActorTests {
     let handler = MainHandler(modelContainer: stack.container)
 
     // Create a new item synchronously on the main thread
-    // The showThread parameter will log main thread information
     // Since this is a synchronous operation, we discard the returned object ID
-    _ = try handler.createNemItem(showThread: true)
+    _ = try handler.createNemItem()
 
     // Verify that the item was created successfully
     // This operation also runs synchronously on the main thread

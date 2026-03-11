@@ -54,7 +54,7 @@ struct IntegrationModelCompositionActorTests {
   }
 
   @Test func compositionStorageRoundTripsAgainstCompositeAttribute() async throws {
-    let stack = IntegrationModelStack()
+    let stack = try IntegrationModelStack()
     let handler = IntegrationCompositionHandler(container: stack.container)
     try await handler.seedCompositionData()
 

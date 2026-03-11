@@ -37,7 +37,7 @@ struct IntegrationModelValueTransformerActorTests {
   }
 
   @Test func transformedStorageRoundTripsAndPersistsRawValue() async throws {
-    let stack = IntegrationModelStack()
+    let stack = try IntegrationModelStack()
     let handler = IntegrationValueTransformerHandler(container: stack.container)
     try await handler.seedTransformedData()
 

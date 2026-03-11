@@ -9,9 +9,10 @@
 //  ------------------------------------------------
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
-@preconcurrency import CoreDataEvolution
 import Foundation
 import Testing
+
+@testable import CoreDataEvolution
 
 @NSModelActor(disableGenerateInit: true)
 actor RuntimeDebugHandler {
@@ -51,6 +52,30 @@ actor RuntimeDebugHandler {
 }
 
 struct RuntimeDebugAPITests {
+  @Test("makeTest surfaces store loading failures as thrown errors")
+  func makeTestThrowsInsteadOfAbortingOnStoreLoadFailure() throws {
+    struct SyntheticLoadFailure: LocalizedError {
+      var errorDescription: String? { "synthetic store load failure" }
+    }
+
+    do {
+      _ = try NSPersistentContainer.makeTest(
+        model: TestStack.model,
+        testName: "InjectedStoreLoadFailure",
+        loadStoresUsing: { _ in SyntheticLoadFailure() }
+      )
+      Issue.record("Expected makeTest to throw when the injected loader reports a failure.")
+    } catch let error as CDTestContainerError {
+      switch error {
+      case .failedToLoadPersistentStore(let testName, let storePath, _):
+        #expect(testName == "InjectedStoreLoadFailure")
+        #expect(storePath.contains("InjectedStoreLoadFailure.sqlite"))
+      default:
+        Issue.record("Unexpected CDTestContainerError case: \(error)")
+      }
+    }
+  }
+
   @Test("runtime schema collection and model builder support variadic entry points")
   func variadicRuntimeConveniencesBuildExpectedArtifacts() throws {
     let schemas = CDRuntimeSchemaCollection.entitySchemas(

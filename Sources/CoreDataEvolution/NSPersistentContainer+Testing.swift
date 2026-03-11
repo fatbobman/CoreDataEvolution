@@ -12,6 +12,23 @@ import Foundation
 //  ------------------------------------------------
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
+public enum CDTestContainerError: LocalizedError, Sendable, Equatable {
+  case failedToCreateStoreDirectory(path: String, reason: String)
+  case failedToRemoveStaleStoreFile(path: String, reason: String)
+  case failedToLoadPersistentStore(testName: String, storePath: String, reason: String)
+
+  public var errorDescription: String? {
+    switch self {
+    case .failedToCreateStoreDirectory(let path, let reason):
+      return "Failed to create test store directory at '\(path)': \(reason)"
+    case .failedToRemoveStaleStoreFile(let path, let reason):
+      return "Failed to remove stale test store file at '\(path)': \(reason)"
+    case .failedToLoadPersistentStore(let testName, let storePath, let reason):
+      return "Failed to load test store '\(testName)' at '\(storePath)': \(reason)"
+    }
+  }
+}
+
 extension NSPersistentContainer {
   /// Core Data store loading is not stable under extreme parallel test container creation.
   ///
@@ -31,11 +48,15 @@ extension NSPersistentContainer {
   /// Creates an `NSPersistentContainer` backed by an isolated on-disk SQLite store for use in
   /// unit tests.
   ///
-  /// Each call produces a **fresh, independent store** by:
-  /// 1. Deriving a unique file name from `testName` (or from call-site `#fileID-#function`
-  ///    when `testName` is not provided).
-  /// 2. Deleting any pre-existing SQLite files at that path (`.sqlite`, `.sqlite-shm`,
-  ///    `.sqlite-wal`) before loading the store.
+  /// This helper is intended as a **one-shot test container**:
+  /// 1. It derives a store file name from `testName`, or from call-site `#fileID-#function`
+  ///    when `testName` is omitted.
+  /// 2. It deletes any pre-existing SQLite files at that path (`.sqlite`, `.sqlite-shm`,
+  ///    `.sqlite-wal`) before loading the store, giving that call a fresh store state.
+  ///
+  /// Typical usage is one container per test method when relying on the default naming rule.
+  /// If a single test needs multiple containers, pass distinct `testName` values so each call
+  /// gets its own store path.
   ///
   /// This avoids the two most common pitfalls of test stores:
   /// - **`/dev/null` (shared in-memory)**: All tests sharing the same `/dev/null` URL read and
@@ -49,11 +70,17 @@ extension NSPersistentContainer {
   /// `loadPersistentStores`. `makeTest` serializes only the container creation/loading path to
   /// keep parallel test execution viable.
   ///
+  /// This SQLite-backed approach is intentionally pragmatic for tests:
+  /// - it avoids the shared-state hazards of `/dev/null` and similar in-memory approaches
+  /// - it exercises a more realistic SQLite + WAL environment
+  /// - in heavily parallel test suites, it is often more stable than shared in-memory setups
+  ///
   /// **Typical usage:**
   /// ```swift
   /// @Test func createItem() async throws {
-  ///     // testName defaults to #fileID-#function — no need to pass it explicitly
-  ///     let container = NSPersistentContainer.makeTest(model: MyModel.objectModel)
+  ///     // testName defaults to #fileID-#function, which is usually enough for one container
+  ///     // per test method.
+  ///     let container = try NSPersistentContainer.makeTest(model: MyModel.objectModel)
   ///     let handler = DataHandler(container: container)
   ///     // … test body …
   /// }
@@ -62,23 +89,44 @@ extension NSPersistentContainer {
   /// - Parameters:
   ///   - model: The `NSManagedObjectModel` describing your Core Data schema.
   ///   - testName: Optional explicit store name override. If omitted, a name is derived from
-  ///     call-site `#fileID` and `#function`.
+  ///     call-site `#fileID` and `#function`. Pass a distinct value when one test method needs
+  ///     more than one container.
   ///   - fileID: Pass-through call-site file identity used when `testName` is omitted.
   ///   - function: Pass-through call-site function identity used when `testName` is omitted.
   ///   - subDirectory: The temporary sub-directory used to store the SQLite files.
   ///     Defaults to `"CoreDataEvolutionTestTemp"`.
   /// - Returns: A fully loaded `NSPersistentContainer` ready for use.
+  /// - Throws: `CDTestContainerError` if the temporary store directory cannot be prepared,
+  ///   stale store files cannot be removed, or Core Data fails to load the SQLite store.
   ///
   /// - Note: Store files are written to `URL.temporaryDirectory/<subDirectory>/`.
-  ///   They are removed on the *next* call with the same `testName`, not immediately after the
-  ///   test completes, so they can be inspected for debugging if needed.
+  ///   They are removed on the *next* call that resolves to the same store path, not immediately
+  ///   after the test completes, so they can be inspected for debugging if needed.
   public static func makeTest(
     model: NSManagedObjectModel,
     testName: String = "",
     fileID: String = #fileID,
     function: String = #function,
     subDirectory: String = "CoreDataEvolutionTestTemp"
-  ) -> NSPersistentContainer {
+  ) throws -> NSPersistentContainer {
+    try makeTest(
+      model: model,
+      testName: testName,
+      fileID: fileID,
+      function: function,
+      subDirectory: subDirectory,
+      loadStoresUsing: defaultTestStoreLoader
+    )
+  }
+
+  static func makeTest(
+    model: NSManagedObjectModel,
+    testName: String = "",
+    fileID: String = #fileID,
+    function: String = #function,
+    subDirectory: String = "CoreDataEvolutionTestTemp",
+    loadStoresUsing loadStores: (NSPersistentContainer) -> Error?
+  ) throws -> NSPersistentContainer {
     testContainerCreationLock.lock()
     defer { testContainerCreationLock.unlock() }
 
@@ -87,10 +135,17 @@ extension NSPersistentContainer {
       subDirectory)
 
     if !FileManager.default.fileExists(atPath: testDirectory.path) {
-      try? FileManager.default.createDirectory(
-        at: testDirectory,
-        withIntermediateDirectories: true
-      )
+      do {
+        try FileManager.default.createDirectory(
+          at: testDirectory,
+          withIntermediateDirectories: true
+        )
+      } catch {
+        throw CDTestContainerError.failedToCreateStoreDirectory(
+          path: testDirectory.path,
+          reason: String(describing: error)
+        )
+      }
     }
 
     let sanitizedStoreName = sanitizeStoreFileName(resolvedTestName)
@@ -100,7 +155,14 @@ extension NSPersistentContainer {
     for suffix in ["", "-shm", "-wal"] {
       let path = storeURL.path + suffix
       if FileManager.default.fileExists(atPath: path) {
-        try? FileManager.default.removeItem(atPath: path)
+        do {
+          try FileManager.default.removeItem(atPath: path)
+        } catch {
+          throw CDTestContainerError.failedToRemoveStaleStoreFile(
+            path: path,
+            reason: String(describing: error)
+          )
+        }
       }
     }
 
@@ -110,10 +172,13 @@ extension NSPersistentContainer {
     description.shouldAddStoreAsynchronously = false
     container.persistentStoreDescriptions = [description]
 
-    container.loadPersistentStores { _, error in
-      if let error {
-        fatalError("Failed to load test store '\(resolvedTestName)': \(error)")
-      }
+    let loadFailure = loadStores(container)
+    if let loadFailure {
+      throw CDTestContainerError.failedToLoadPersistentStore(
+        testName: resolvedTestName,
+        storePath: storeURL.path,
+        reason: String(describing: loadFailure)
+      )
     }
 
     return container
@@ -133,6 +198,8 @@ extension NSPersistentContainer {
   ///   - function: Pass-through call-site function identity used when `testName` is omitted.
   ///   - subDirectory: Temporary subdirectory used for the SQLite files.
   /// - Returns: A fully loaded `NSPersistentContainer`.
+  /// - Throws: `CDRuntimeModelBuilderError` if runtime model assembly fails, or
+  ///   `CDTestContainerError` if the SQLite-backed test store cannot be prepared or loaded.
   public static func makeRuntimeTest(
     modelTypes: [any CDRuntimeSchemaProviding.Type],
     testName: String = "",
@@ -141,7 +208,7 @@ extension NSPersistentContainer {
     subDirectory: String = "CoreDataEvolutionTestTemp"
   ) throws -> NSPersistentContainer {
     let model = try NSManagedObjectModel.makeRuntimeModel(modelTypes)
-    return makeTest(
+    return try makeTest(
       model: model,
       testName: testName,
       fileID: fileID,
@@ -190,5 +257,13 @@ extension NSPersistentContainer {
 
     let trimmed = collapsed.trimmingCharacters(in: CharacterSet(charactersIn: "._-"))
     return trimmed.isEmpty ? "CoreDataEvolutionTestStore" : trimmed
+  }
+
+  private static func defaultTestStoreLoader(_ container: NSPersistentContainer) -> Error? {
+    var loadFailure: Error?
+    container.loadPersistentStores { _, error in
+      loadFailure = error
+    }
+    return loadFailure
   }
 }

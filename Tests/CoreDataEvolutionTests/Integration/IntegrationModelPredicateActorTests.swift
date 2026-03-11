@@ -49,7 +49,7 @@ private actor IntegrationPredicateHandler {
 @Suite("Integration Model Predicate Actor Tests")
 struct IntegrationModelPredicateActorTests {
   @Test func macroGeneratedPredicateWorksAcrossRelationships() async throws {
-    let stack = IntegrationModelStack()
+    let stack = try IntegrationModelStack()
     let handler = IntegrationPredicateHandler(container: stack.container)
 
     try await handler.seedPredicateData()

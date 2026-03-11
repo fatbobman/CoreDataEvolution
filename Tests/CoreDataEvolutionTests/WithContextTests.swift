@@ -22,7 +22,7 @@ struct WithContextTests {
   /// Verifies that `withContext` can fetch objects created through the actor's API.
   @Test("withContext - fetch items after creation")
   func fetchItemsAfterCreation() async throws {
-    let stack = TestStack()
+    let stack = try TestStack()
     let handler = DataHandler(container: stack.container, viewName: "withContext-fetch")
 
     // Create two items via the actor's public API
@@ -41,7 +41,7 @@ struct WithContextTests {
   /// Verifies that `withContext` reflects the state after a delete operation.
   @Test("withContext - count reflects deletion")
   func countReflectsDeletion() async throws {
-    let stack = TestStack()
+    let stack = try TestStack()
     let handler = DataHandler(container: stack.container, viewName: "withContext-delete")
 
     let id = try await handler.createNemItem()
@@ -58,7 +58,7 @@ struct WithContextTests {
   /// Verifies that `withContext` can return a value (not just Void).
   @Test("withContext - returns value from closure")
   func returnsValueFromClosure() async throws {
-    let stack = TestStack()
+    let stack = try TestStack()
     let handler = DataHandler(container: stack.container, viewName: "withContext-return")
 
     let timestamp = Date(timeIntervalSinceReferenceDate: 1_000_000)
@@ -77,7 +77,7 @@ struct WithContextTests {
   func propagatesThrownErrors() async throws {
     struct TestError: Error, Sendable {}
 
-    let stack = TestStack()
+    let stack = try TestStack()
     let handler = DataHandler(container: stack.container, viewName: "withContext-error")
 
     await #expect(throws: TestError.self) {
@@ -92,7 +92,7 @@ struct WithContextTests {
   /// Verifies that the container overload passes a valid NSPersistentContainer.
   @Test("withContext(container) - container is accessible")
   func containerIsAccessible() async throws {
-    let stack = TestStack()
+    let stack = try TestStack()
     let handler = DataHandler(container: stack.container, viewName: "withContext-container")
 
     _ = try await handler.createNemItem()
@@ -112,7 +112,7 @@ struct WithContextTests {
   /// Verifies that the container overload also returns values correctly.
   @Test("withContext(container) - returns value from closure")
   func containerOverloadReturnsValue() async throws {
-    let stack = TestStack()
+    let stack = try TestStack()
     let handler = DataHandler(container: stack.container, viewName: "withContext-container-return")
 
     let containerName = try await handler.withContext { _, container in
@@ -131,7 +131,7 @@ struct WithContextTests {
   @MainActor
   @Test("main withContext - fetch items after creation")
   func mainWithContextFetchItemsAfterCreation() throws {
-    let stack = TestStack()
+    let stack = try TestStack()
     let handler = MainHandler(modelContainer: stack.container)
 
     _ = try handler.createNemItem()
@@ -149,7 +149,7 @@ struct WithContextTests {
   @MainActor
   @Test("main withContext(container) - container is accessible")
   func mainContainerOverloadWorks() throws {
-    let stack = TestStack()
+    let stack = try TestStack()
     let handler = MainHandler(modelContainer: stack.container)
 
     let contextName = try handler.withContext { _, container in
@@ -162,7 +162,7 @@ struct WithContextTests {
   @MainActor
   @Test("private NSMainModelActor type can use generated members")
   func privateMainModelActorVisibilityWorks() throws {
-    let stack = TestStack()
+    let stack = try TestStack()
     let handler = PrivateMainContextHandler(modelContainer: stack.container)
 
     let contextName = try handler.withContext { context in

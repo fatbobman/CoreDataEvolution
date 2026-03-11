@@ -30,7 +30,7 @@ func runtimePrimitiveTypeExpression(typeName: String) -> String {
   default:
     return """
       ({
-        #warning("Unsupported runtime primitive type '\(typeName)'. Falling back to .string.")
+        #error("Unsupported runtime primitive type '\(typeName)' in generated runtime schema.")
         return CoreDataEvolution.CDRuntimePrimitiveAttributeType.string
       }())
       """

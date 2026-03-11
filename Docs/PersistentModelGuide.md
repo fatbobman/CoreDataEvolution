@@ -797,6 +797,7 @@ This runtime schema path is intentionally limited:
 - it is test/debug-only
 - it is not a replacement for production `.xcdatamodeld`
 - it does not guarantee model hash or migration compatibility
+- unsupported runtime primitive types fail generation instead of silently downgrading schema
 
 Example:
 

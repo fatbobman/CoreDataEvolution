@@ -2,6 +2,8 @@
 
 ![Swift 6](https://img.shields.io/badge/Swift-6-orange?logo=swift) ![iOS](https://img.shields.io/badge/iOS-13.0+-green) ![macOS](https://img.shields.io/badge/macOS-10.15+-green) ![watchOS](https://img.shields.io/badge/watchOS-6.0+-green) ![visionOS](https://img.shields.io/badge/visionOS-1.0+-green) ![tvOS](https://img.shields.io/badge/tvOS-13.0+-green) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/fatbobman/CoreDataEvolution)
 
+CoreDataEvolution **does not** replace Core Data. It modernizes how Core Data is expressed, isolated, and maintained in Swift codebases.
+
 CoreDataEvolution brings three ideas together for Core Data projects:
 
 - SwiftData-style actor isolation for Core Data
@@ -271,6 +273,7 @@ That means:
 - you still need a Core Data source model for production workflows
 - `cde-tool` reads that model and helps generate/validate the Swift declaration layer
 - the macro-generated runtime schema is for test/debug scenarios, not for replacing the production model system
+- unsupported runtime primitive types fail generation instead of silently downgrading schema
 
 ### Relationship `inverse` uses the persistent relationship name
 

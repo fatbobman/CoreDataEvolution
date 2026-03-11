@@ -210,17 +210,29 @@ For `@NSMainModelActor`, that means:
 For schema-backed tests, prefer:
 
 ```swift
-let container = NSPersistentContainer.makeTest(model: MySchema.objectModel)
+let container = try NSPersistentContainer.makeTest(model: MySchema.objectModel)
 ```
 
 This helper intentionally:
 
-- creates a dedicated on-disk SQLite store per test call site
+- uses an on-disk SQLite store and clears stale files before loading
 - deletes stale sidecar files before loading
 - serializes container creation and `loadPersistentStores`
 
 That last point matters. Parallel Core Data-heavy test suites can crash or hang even when every
 test uses a unique store URL.
+
+Treat this helper as a one-shot test container by default:
+
+- the default name comes from the call site (`#fileID` + `#function`)
+- that is usually the right choice for one container per test method
+- if one test method needs multiple containers, pass distinct `testName` values
+
+This SQLite-backed approach is intentional:
+
+- it avoids the shared-state and deadlock risks of `/dev/null`
+- it exercises a more realistic SQLite + WAL setup than shared in-memory stores
+- in heavily parallel suites, it is often more robust than shared in-memory approaches
 
 Do not switch back to `/dev/null` or a shared in-memory URL.
 
@@ -234,7 +246,7 @@ In tests, the recommended pattern is:
 Example:
 
 ```swift
-let stack = TestStack()
+let stack = try TestStack()
 let handler = DataHandler(container: stack.container, viewName: "test")
 
 _ = try await handler.createItem(timestamp: .now)

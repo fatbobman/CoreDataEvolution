@@ -147,9 +147,9 @@ final class IntegrationModelStack {
     testName: String = "",
     fileID: String = #fileID,
     function: String = #function
-  ) {
+  ) throws {
     _ = Self.transformerRegistration
-    container = NSPersistentContainer.makeTest(
+    container = try NSPersistentContainer.makeTest(
       model: Self.model,
       testName: testName,
       fileID: fileID,

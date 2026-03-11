@@ -161,7 +161,7 @@ private actor OrderedRelationshipHelperHandler {
 @Suite("Integration Model Relationship Helper Actor Tests")
 struct IntegrationModelRelationshipHelpersActorTests {
   @Test func toManyRelationshipHelpersMutateBothSides() async throws {
-    let stack = IntegrationModelStack()
+    let stack = try IntegrationModelStack()
     let handler = IntegrationRelationshipHelperHandler(container: stack.container)
 
     let result = try await handler.runRelationshipHelperFlow()
@@ -172,7 +172,7 @@ struct IntegrationModelRelationshipHelpersActorTests {
   }
 
   @Test func toManyRelationshipBatchHelpersMutateBothSides() async throws {
-    let stack = IntegrationModelStack()
+    let stack = try IntegrationModelStack()
     let handler = IntegrationRelationshipHelperHandler(container: stack.container)
 
     let result = try await handler.runRelationshipBatchHelperFlow()

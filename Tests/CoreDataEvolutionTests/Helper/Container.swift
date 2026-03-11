@@ -39,8 +39,8 @@ final class TestStack {
     testName: String = "",
     fileID: String = #fileID,
     function: String = #function
-  ) {
-    container = NSPersistentContainer.makeTest(
+  ) throws {
+    container = try NSPersistentContainer.makeTest(
       model: Self.model,
       testName: testName,
       fileID: fileID,
