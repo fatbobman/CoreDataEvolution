@@ -155,12 +155,25 @@ Guide:
 
 Use `cde-tool` when you want a repeatable model-to-source workflow.
 
+It is intentionally optional.
+
+The core value of CoreDataEvolution lives in the actor-isolation macros and the macro-based model
+declaration layer. You can use those directly without adopting the tool at all.
+
+`cde-tool` exists as an extra layer for teams that want stronger workflow guarantees, especially
+for CI/CD, drift detection, and existing-project migration.
+
 It helps with:
 
 - generating `@PersistentModel` source from an existing Core Data model
 - validating drift between `.xcdatamodeld` and source declarations
 - inspecting the resolved schema view used by the toolchain
 - applying safe autofix for deterministic issues
+
+That first point is especially useful when adopting the package in an existing Core Data project:
+the tool can quickly turn a legacy `.xcdatamodeld` into a usable `@PersistentModel` starting point,
+similar in spirit to Xcode's model code generation, but aligned with CoreDataEvolution's macro
+layer.
 
 Guide:
 

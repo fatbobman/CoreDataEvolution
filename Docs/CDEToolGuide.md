@@ -2,6 +2,21 @@
 
 `cde-tool` is the companion CLI for `@PersistentModel`.
 
+It is intentionally optional.
+
+The package's core value does not depend on this tool:
+
+- actor isolation via `@NSModelActor` / `@NSMainModelActor`
+- macro-based model declarations via `@PersistentModel`
+
+You can adopt those directly without bringing `cde-tool` into the project at all.
+
+The CLI exists as a second layer for teams that want stronger workflow support, especially for:
+
+- CI/CD drift detection
+- config-driven generation and validation
+- faster migration from existing Core Data projects
+
 Its job is not to replace your model declarations. Its job is to keep the three layers of the
 system aligned:
 
@@ -47,6 +62,11 @@ The tool is responsible for helping you:
 - keep them aligned over time
 - detect drift before it turns into runtime or migration problems
 
+That means the layering is deliberate:
+
+- start with the macros if you only want the runtime/API improvements
+- add `cde-tool` when you want workflow automation or CI/CD enforcement
+
 ## When You Need the Tool
 
 You should use `cde-tool` when:
@@ -62,6 +82,14 @@ You may not need it if:
 - you are only experimenting with a very small project
 - you are writing the model declarations by hand once and do not need drift checking
 - you are not using generated source files at all
+
+For existing Core Data projects, `generate` is also a strong adoption tool.
+
+It can quickly turn a legacy `.xcdatamodeld` into a usable `@PersistentModel` starting point,
+similar in spirit to Xcode's model code generation, but aligned with CoreDataEvolution's rules and
+macro surface.
+
+That lowers the cost of getting from "this looks interesting" to "this runs in my project".
 
 The bigger the model surface becomes, the more useful `cde-tool` becomes.
 
