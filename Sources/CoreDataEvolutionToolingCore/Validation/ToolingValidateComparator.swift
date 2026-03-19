@@ -400,9 +400,10 @@ public enum ToolingValidateComparator {
 
     switch attribute.storage.method {
     case .default:
-      let expectedDefault = normalizeLiteral(attribute.modelDefaultValueLiteral)
-      let actualDefault = normalizeLiteral(sourceProperty.defaultValueLiteral)
-      if actualDefault != expectedDefault {
+      if defaultLiteralsMatch(
+        expected: attribute.modelDefaultValueLiteral,
+        actual: sourceProperty.defaultValueLiteral
+      ) == false {
         diagnostics.append(
           error(
             "validate found default value mismatch for '\(entityName).\(expectedPropertyName)'. Expected '\(attribute.modelDefaultValueLiteral ?? "<missing>")', found '\(sourceProperty.defaultValueLiteral ?? "<missing>")'.",
@@ -547,12 +548,78 @@ public enum ToolingValidateComparator {
     }
   }
 
+  private static func defaultLiteralsMatch(expected: String?, actual: String?) -> Bool {
+    let normalizedExpected = normalizeLiteral(expected)
+    let normalizedActual = normalizeLiteral(actual)
+    if normalizedExpected == normalizedActual {
+      return true
+    }
+
+    guard
+      let semanticExpected = semanticLiteral(from: normalizedExpected),
+      let semanticActual = semanticLiteral(from: normalizedActual)
+    else {
+      return false
+    }
+    return semanticExpected == semanticActual
+  }
+
   private static func normalizeLiteral(_ literal: String?) -> String? {
-    literal?.replacingOccurrences(of: " ", with: "")
+    literal?.filter { $0.isWhitespace == false }
   }
 
   private static func normalizeTypeName(_ typeName: String?) -> String? {
     typeName?.replacingOccurrences(of: " ", with: "")
+  }
+
+  /// Supports lightweight semantic comparison for common model defaults without full constant
+  /// evaluation.
+  private static func semanticLiteral(from literal: String?) -> ComparableDefaultLiteral? {
+    guard let literal else {
+      return nil
+    }
+    if let referenceDate = referenceDateIntervalLiteral(from: literal) {
+      return .referenceDate(referenceDate)
+    }
+    if let numeric = decimalLiteral(from: literal) {
+      return .number(numeric)
+    }
+    return nil
+  }
+
+  private static func referenceDateIntervalLiteral(from literal: String) -> Decimal? {
+    guard
+      let range = literal.range(
+        of: #"^(?:Foundation\.)?Date(?:\.init)?\(timeIntervalSinceReferenceDate:(.+)\)$"#,
+        options: .regularExpression
+      )
+    else {
+      return nil
+    }
+
+    let intervalLiteral = String(literal[range])
+      .replacingOccurrences(
+        of: #"^(?:Foundation\.)?Date(?:\.init)?\(timeIntervalSinceReferenceDate:"#,
+        with: "",
+        options: .regularExpression
+      )
+      .dropLast()
+
+    return decimalLiteral(from: String(intervalLiteral))
+  }
+
+  private static func decimalLiteral(from literal: String) -> Decimal? {
+    let sanitized = literal.replacingOccurrences(of: "_", with: "")
+    guard
+      sanitized.range(
+        of: #"^[+-]?(?:(?:\d+(?:\.\d*)?)|(?:\.\d+))(?:[eE][+-]?\d+)?$"#,
+        options: .regularExpression
+      ) != nil
+    else {
+      return nil
+    }
+
+    return Decimal(string: sanitized, locale: Locale(identifier: "en_US_POSIX"))
   }
 
   private static func compareRelationshipAnnotation(
@@ -870,4 +937,9 @@ public enum ToolingValidateComparator {
     }
     return sourceIR.transformerRegistrations[transformerTypeName]
   }
+}
+
+private enum ComparableDefaultLiteral: Equatable {
+  case number(Decimal)
+  case referenceDate(Decimal)
 }

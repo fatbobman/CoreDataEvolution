@@ -457,6 +457,188 @@ struct ToolingValidateComparatorTests {
     )
   }
 
+  @Test("comparator accepts semantically equivalent numeric defaults")
+  func comparatorAcceptsSemanticallyEquivalentNumericDefaults() {
+    let diagnostics = ToolingValidateComparator.compareQuick(
+      expected: semanticDefaultComparisonModelIR(),
+      actual: .init(
+        sourceDirectory: "/virtual/Sources",
+        entities: [
+          .init(
+            filePath: "/virtual/Sources/Item.swift",
+            className: "Item",
+            objcEntityName: "Item",
+            persistentModelArguments: .init(generateInit: false),
+            properties: [
+              .init(
+                filePath: "/virtual/Sources/Item.swift",
+                name: "valueMax",
+                typeName: "Double",
+                nonOptionalTypeName: "Double",
+                declarationRange: dummyRange(0, 0),
+                declarationIndent: "  ",
+                isOptional: false,
+                defaultValueLiteral: "0",
+                defaultValueRange: dummyRange(0, 1),
+                isStored: true,
+                isStatic: false,
+                hasIgnore: false,
+                attribute: .init(
+                  range: dummyRange(0, 0),
+                  persistentName: "value_max",
+                  storageMethod: nil,
+                  transformerName: nil,
+                  transformerTypeName: nil,
+                  decodeFailurePolicy: nil
+                ),
+                relationshipShape: nil
+              ),
+              .init(
+                filePath: "/virtual/Sources/Item.swift",
+                name: "valueRefmax",
+                typeName: "Double",
+                nonOptionalTypeName: "Double",
+                declarationRange: dummyRange(2, 2),
+                declarationIndent: "  ",
+                isOptional: false,
+                defaultValueLiteral: "3_000",
+                defaultValueRange: dummyRange(2, 7),
+                isStored: true,
+                isStatic: false,
+                hasIgnore: false,
+                attribute: .init(
+                  range: dummyRange(0, 0),
+                  persistentName: "value_refmax",
+                  storageMethod: nil,
+                  transformerName: nil,
+                  transformerTypeName: nil,
+                  decodeFailurePolicy: nil
+                ),
+                relationshipShape: nil
+              ),
+              .init(
+                filePath: "/virtual/Sources/Item.swift",
+                name: "createDate",
+                typeName: "Date",
+                nonOptionalTypeName: "Date",
+                declarationRange: dummyRange(8, 8),
+                declarationIndent: "  ",
+                isOptional: false,
+                defaultValueLiteral: "Date(timeIntervalSinceReferenceDate: 623_726_820)",
+                defaultValueRange: dummyRange(8, 61),
+                isStored: true,
+                isStatic: false,
+                hasIgnore: false,
+                attribute: nil,
+                relationshipShape: nil
+              ),
+            ],
+            customMembers: []
+          )
+        ]
+      ),
+      level: .conformance
+    )
+
+    #expect(diagnostics.isEmpty)
+  }
+
+  @Test("comparator still rejects non-equivalent semantic defaults")
+  func comparatorRejectsNonEquivalentSemanticDefaults() {
+    let diagnostics = ToolingValidateComparator.compareQuick(
+      expected: semanticDefaultComparisonModelIR(),
+      actual: .init(
+        sourceDirectory: "/virtual/Sources",
+        entities: [
+          .init(
+            filePath: "/virtual/Sources/Item.swift",
+            className: "Item",
+            objcEntityName: "Item",
+            persistentModelArguments: .init(generateInit: false),
+            properties: [
+              .init(
+                filePath: "/virtual/Sources/Item.swift",
+                name: "valueMax",
+                typeName: "Double",
+                nonOptionalTypeName: "Double",
+                declarationRange: dummyRange(0, 0),
+                declarationIndent: "  ",
+                isOptional: false,
+                defaultValueLiteral: "1",
+                defaultValueRange: dummyRange(0, 1),
+                isStored: true,
+                isStatic: false,
+                hasIgnore: false,
+                attribute: .init(
+                  range: dummyRange(0, 0),
+                  persistentName: "value_max",
+                  storageMethod: nil,
+                  transformerName: nil,
+                  transformerTypeName: nil,
+                  decodeFailurePolicy: nil
+                ),
+                relationshipShape: nil
+              ),
+              .init(
+                filePath: "/virtual/Sources/Item.swift",
+                name: "valueRefmax",
+                typeName: "Double",
+                nonOptionalTypeName: "Double",
+                declarationRange: dummyRange(2, 2),
+                declarationIndent: "  ",
+                isOptional: false,
+                defaultValueLiteral: "3000.0",
+                defaultValueRange: dummyRange(2, 8),
+                isStored: true,
+                isStatic: false,
+                hasIgnore: false,
+                attribute: .init(
+                  range: dummyRange(0, 0),
+                  persistentName: "value_refmax",
+                  storageMethod: nil,
+                  transformerName: nil,
+                  transformerTypeName: nil,
+                  decodeFailurePolicy: nil
+                ),
+                relationshipShape: nil
+              ),
+              .init(
+                filePath: "/virtual/Sources/Item.swift",
+                name: "createDate",
+                typeName: "Date",
+                nonOptionalTypeName: "Date",
+                declarationRange: dummyRange(8, 8),
+                declarationIndent: "  ",
+                isOptional: false,
+                defaultValueLiteral: "Date(timeIntervalSinceReferenceDate: 623726821.0)",
+                defaultValueRange: dummyRange(8, 63),
+                isStored: true,
+                isStatic: false,
+                hasIgnore: false,
+                attribute: nil,
+                relationshipShape: nil
+              ),
+            ],
+            customMembers: []
+          )
+        ]
+      ),
+      level: .conformance
+    )
+
+    #expect(diagnostics.count == 2)
+    #expect(
+      diagnostics.contains {
+        $0.message.contains("default value mismatch for 'Item.valueMax'")
+      }
+    )
+    #expect(
+      diagnostics.contains {
+        $0.message.contains("default value mismatch for 'Item.createDate'")
+      }
+    )
+  }
+
   @Test("comparator can ignore optionality mismatch for optional model attribute")
   func comparatorCanIgnoreOptionalityMismatchForOptionalModelAttribute() {
     let model = ToolingModelIR(
@@ -738,6 +920,93 @@ private func requiredRawStorageModelIR() -> ToolingModelIR {
               isResolved: true
             )
           )
+        ],
+        relationships: [],
+        compositions: []
+      )
+    ]
+  )
+}
+
+private func semanticDefaultComparisonModelIR() -> ToolingModelIR {
+  .init(
+    source: .init(
+      originalPath: "/virtual/AppModel.xcdatamodeld",
+      selectedSourcePath: "/virtual/AppModel.xcdatamodeld/V1.xcdatamodel",
+      compiledModelPath: "/virtual/AppModel.momd",
+      inputKind: .xcdatamodeld,
+      selectedVersionName: "V1.xcdatamodel"
+    ),
+    generationPolicy: .init(
+      accessLevel: .internal,
+      singleFile: false,
+      splitByEntity: true,
+      generateInit: false,
+      defaultDecodeFailurePolicy: .fallbackToDefaultValue
+    ),
+    entities: [
+      .init(
+        name: "Item",
+        managedObjectClassName: "NSManagedObject",
+        representedClassName: "Item",
+        attributes: [
+          .init(
+            persistentName: "value_max",
+            swiftName: "valueMax",
+            coreDataAttributeType: "Double",
+            coreDataPrimitiveType: "Double",
+            isUnique: false,
+            isTransient: false,
+            isOptional: false,
+            hasModelDefaultValue: true,
+            modelDefaultValueLiteral: "0.0",
+            storage: .init(
+              method: .default,
+              swiftType: "Double",
+              nonOptionalSwiftType: "Double",
+              transformerName: nil,
+              decodeFailurePolicy: nil,
+              isResolved: true
+            )
+          ),
+          .init(
+            persistentName: "value_refmax",
+            swiftName: "valueRefmax",
+            coreDataAttributeType: "Double",
+            coreDataPrimitiveType: "Double",
+            isUnique: false,
+            isTransient: false,
+            isOptional: false,
+            hasModelDefaultValue: true,
+            modelDefaultValueLiteral: "3000.0",
+            storage: .init(
+              method: .default,
+              swiftType: "Double",
+              nonOptionalSwiftType: "Double",
+              transformerName: nil,
+              decodeFailurePolicy: nil,
+              isResolved: true
+            )
+          ),
+          .init(
+            persistentName: "createDate",
+            swiftName: "createDate",
+            coreDataAttributeType: "Date",
+            coreDataPrimitiveType: "Date",
+            isUnique: false,
+            isTransient: false,
+            isOptional: false,
+            hasModelDefaultValue: true,
+            modelDefaultValueLiteral: "Date(timeIntervalSinceReferenceDate: 623726820.0)",
+            storage: .init(
+              method: .default,
+              swiftType: "Date",
+              nonOptionalSwiftType: "Date",
+              transformerName: nil,
+              decodeFailurePolicy: nil,
+              isResolved: true
+            )
+          ),
         ],
         relationships: [],
         compositions: []
