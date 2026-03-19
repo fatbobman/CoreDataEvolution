@@ -39,6 +39,22 @@ fi
 
 # swift-format 使用默认规则或项目根目录的 .swift-format 配置
 
+# `cde-tool` managed files participate in exact drift validation. Formatting them in the hook would
+# introduce noise that the generator did not emit.
+is_cde_managed_file() {
+    local file="$1"
+
+    if [[ "$file" == *"+CoreDataEvolution.swift" ]]; then
+        return 0
+    fi
+
+    if [ -f "$file" ] && grep -q '^// cde-tool:generated$' "$file"; then
+        return 0
+    fi
+
+    return 1
+}
+
 # 格式化每个文件
 FORMATTED_COUNT=0
 for file in $SWIFT_FILES; do
@@ -48,6 +64,11 @@ for file in $SWIFT_FILES; do
             continue
             ;;
     esac
+
+    if is_cde_managed_file "$file"; then
+        echo "  ⏭️  跳过 cde-tool 托管文件: $file"
+        continue
+    fi
 
     if [ -f "$file" ]; then
         echo "  📝 格式化: $file"

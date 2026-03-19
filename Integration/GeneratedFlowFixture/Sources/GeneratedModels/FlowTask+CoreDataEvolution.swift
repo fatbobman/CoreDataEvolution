@@ -8,9 +8,7 @@ import Foundation
 @objc(FlowTask)
 @PersistentModel
 public final class FlowTask: NSManagedObject {
-  @Attribute(
-    persistentName: "config_blob", storageMethod: .codable,
-    decodeFailurePolicy: .fallbackToDefaultValue)
+  @Attribute(persistentName: "config_blob", storageMethod: .codable, decodeFailurePolicy: .fallbackToDefaultValue)
   public var config: FlowTaskConfig? = nil
 
   @Attribute(persistentName: "created_at")
@@ -24,13 +22,10 @@ public final class FlowTask: NSManagedObject {
   @Attribute(persistentName: "name")
   public var title: String = ""
 
-  @Attribute(
-    persistentName: "status_raw", storageMethod: .raw, decodeFailurePolicy: .fallbackToDefaultValue)
+  @Attribute(persistentName: "status_raw", storageMethod: .raw, decodeFailurePolicy: .fallbackToDefaultValue)
   public var status: FlowTaskStatus? = nil
 
-  @Attribute(
-    persistentName: "tags_payload", storageMethod: .transformed(name: "NSSecureUnarchiveFromData"),
-    decodeFailurePolicy: .fallbackToDefaultValue)
+  @Attribute(persistentName: "tags_payload", storageMethod: .transformed(name: "NSSecureUnarchiveFromData"), decodeFailurePolicy: .fallbackToDefaultValue)
   public var tags: [String]? = nil
 
   @Relationship(persistentName: "owner_project", inverse: "owned_tasks", deleteRule: .nullify)

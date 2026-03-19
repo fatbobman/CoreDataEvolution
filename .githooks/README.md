@@ -28,6 +28,7 @@ git config core.hooksPath .githooks
   - 检测所有待提交的 `.swift` 文件
   - 使用 `swift-format` 格式化这些文件
   - 自动将格式化后的文件重新暂存
+  - 自动跳过 `cde-tool` 托管的 generated files（例如 `*+CoreDataEvolution.swift`）
   - 如果未安装 `swift-format`，会给出警告但不会阻止提交
 
 ## 安装 swift-format
