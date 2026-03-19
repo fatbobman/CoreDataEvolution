@@ -19,7 +19,8 @@ public enum ToolingValidateComparator {
   public static func compareQuick(
     expected modelIR: ToolingModelIR,
     actual sourceIR: ToolingSourceModelIR,
-    level: ToolingValidationLevel
+    level: ToolingValidationLevel,
+    attributeRules: ToolingAttributeRules = .init()
   ) -> [ToolingDiagnostic] {
     var diagnostics: [ToolingDiagnostic] = []
 
@@ -55,6 +56,7 @@ public enum ToolingValidateComparator {
         sourceIR: sourceIR,
         generationPolicy: modelIR.generationPolicy,
         level: level,
+        attributeRules: attributeRules,
         diagnostics: &diagnostics
       )
     }
@@ -79,6 +81,7 @@ public enum ToolingValidateComparator {
     sourceIR: ToolingSourceModelIR,
     generationPolicy: ToolingGenerationPolicyIR,
     level: ToolingValidationLevel,
+    attributeRules: ToolingAttributeRules,
     diagnostics: inout [ToolingDiagnostic]
   ) {
     comparePersistentModelArguments(
@@ -130,14 +133,17 @@ public enum ToolingValidateComparator {
     for attribute in entity.attributes {
       let expectedName: String
       let expectedType: String
+      let expectedNonOptionalType: String
       if attribute.storage.method == .composition,
         let composition = compositionByPersistentName[attribute.persistentName]
       {
         expectedName = composition.swiftName
         expectedType = attribute.isOptional ? "\(composition.swiftType)?" : composition.swiftType
+        expectedNonOptionalType = composition.swiftType
       } else {
         expectedName = attribute.swiftName
         expectedType = attribute.storage.swiftType ?? "<unresolved>"
+        expectedNonOptionalType = attribute.storage.nonOptionalSwiftType ?? expectedType
       }
       expectedPropertyNames.insert(expectedName)
 
@@ -152,6 +158,8 @@ public enum ToolingValidateComparator {
         attribute: attribute,
         expectedPropertyName: expectedName,
         expectedType: expectedType,
+        expectedNonOptionalType: expectedNonOptionalType,
+        rule: attributeRules[entity: entity.name][attribute.persistentName] ?? .init(),
         sourceProperty: sourceProperty,
         sourceIR: sourceIR,
         diagnostics: &diagnostics
@@ -220,6 +228,8 @@ public enum ToolingValidateComparator {
     attribute: ToolingAttributeIR,
     expectedPropertyName: String,
     expectedType: String,
+    expectedNonOptionalType: String,
+    rule: ToolingAttributeRule,
     sourceProperty: ToolingSourcePropertyIR,
     sourceIR: ToolingSourceModelIR,
     diagnostics: inout [ToolingDiagnostic]
@@ -238,7 +248,17 @@ public enum ToolingValidateComparator {
       return
     }
 
-    if normalizeTypeName(sourceProperty.typeName) != normalizeTypeName(expectedType) {
+    let shouldIgnoreOptionalityMismatch =
+      rule.ignoreOptionality == true
+      && attribute.isOptional
+      && sourceProperty.isOptional == false
+    let actualTypeName =
+      shouldIgnoreOptionalityMismatch
+      ? sourceProperty.nonOptionalTypeName ?? sourceProperty.typeName
+      : sourceProperty.typeName
+    let comparatorExpectedType =
+      shouldIgnoreOptionalityMismatch ? expectedNonOptionalType : expectedType
+    if normalizeTypeName(actualTypeName) != normalizeTypeName(comparatorExpectedType) {
       diagnostics.append(
         error(
           "validate found type mismatch for '\(entityName).\(expectedPropertyName)'. Expected '\(expectedType)', found '\(sourceProperty.typeName ?? "<missing>")'."

@@ -307,6 +307,7 @@ In practice, most manual edits fall into three buckets:
 
 - rename the Swift-facing property while keeping the Core Data persistent name stable
 - choose the Swift type and storage method for a field
+- allow a specific validate-time optionality mismatch
 - rename the Swift-facing relationship property while keeping the Core Data relationship name stable
 
 The important thing to remember is that config rules are keyed by the **persistent model name**,
@@ -454,6 +455,36 @@ For transformed storage:
 - `transformerName` is required
 - `swiftType` should be the Swift-facing property type you want the generated source to use
 
+### Allow one field to ignore optionality during `validate`
+
+Use `ignoreOptionality` when the Core Data model field stays optional, but you intentionally want
+the Swift-facing declaration to remain non-optional.
+
+This is a `validate`-time escape hatch for a specific field. It is useful when the model is more
+permissive than the API you expose to the rest of the app.
+
+Example:
+
+```json
+{
+  "validate": {
+    "attributeRules": {
+      "Item": {
+        "title": {
+          "ignoreOptionality": true
+        }
+      }
+    }
+  }
+}
+```
+
+This rule is intentionally narrow:
+
+- it applies at the field level
+- it only relaxes optionality mismatch checking
+- it does not ignore name, type, default value, storage method, transformer, or other drift
+
 ### Change the default Swift type for one Core Data primitive kind
 
 Use `typeMappings` when you want to change the default Swift type chosen for a Core Data primitive
@@ -586,6 +617,10 @@ It validates whether the source written by the developer still conforms to:
 - the Core Data model
 - the configured naming and storage rules
 - the package's `@PersistentModel` constraints
+
+`validate.attributeRules` can also carry narrow field-level exceptions such as
+`ignoreOptionality: true` for cases where the model remains optional but the Swift-facing property
+is intentionally kept non-optional.
 
 This mode does **not** require tool-managed files to be byte-for-byte identical to the current
 generator output.

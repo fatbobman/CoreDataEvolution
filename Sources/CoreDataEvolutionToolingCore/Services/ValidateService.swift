@@ -45,7 +45,8 @@ public enum ValidateService {
       + ToolingValidateComparator.compareQuick(
         expected: buildResult.modelIR,
         actual: sourceIR,
-        level: request.level
+        level: request.level,
+        attributeRules: request.attributeRules
       )
 
     if request.level == .exact {

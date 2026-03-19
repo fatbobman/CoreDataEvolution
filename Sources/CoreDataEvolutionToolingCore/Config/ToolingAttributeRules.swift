@@ -30,19 +30,24 @@ public struct ToolingAttributeRule: Codable, Sendable, Equatable {
   public let storageMethod: ToolingAttributeStorageRule?
   public let transformerName: String?
   public let decodeFailurePolicy: ToolingDecodeFailurePolicy?
+  /// Validate-only escape hatch for intentionally keeping source non-optional while the model
+  /// field stays optional. Other drift dimensions remain checked as usual.
+  public let ignoreOptionality: Bool?
 
   public init(
     swiftName: String? = nil,
     swiftType: String? = nil,
     storageMethod: ToolingAttributeStorageRule? = nil,
     transformerName: String? = nil,
-    decodeFailurePolicy: ToolingDecodeFailurePolicy? = nil
+    decodeFailurePolicy: ToolingDecodeFailurePolicy? = nil,
+    ignoreOptionality: Bool? = nil
   ) {
     self.swiftName = swiftName
     self.swiftType = swiftType
     self.storageMethod = storageMethod
     self.transformerName = transformerName
     self.decodeFailurePolicy = decodeFailurePolicy
+    self.ignoreOptionality = ignoreOptionality
   }
 }
 

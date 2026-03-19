@@ -456,6 +456,99 @@ struct ToolingValidateComparatorTests {
       )
     )
   }
+
+  @Test("comparator can ignore optionality mismatch for optional model attribute")
+  func comparatorCanIgnoreOptionalityMismatchForOptionalModelAttribute() {
+    let model = ToolingModelIR(
+      source: requiredDefaultStorageModelIR().source,
+      generationPolicy: requiredDefaultStorageModelIR().generationPolicy,
+      entities: [
+        .init(
+          name: "Item",
+          managedObjectClassName: "NSManagedObject",
+          representedClassName: "Item",
+          attributes: [
+            .init(
+              persistentName: "title",
+              swiftName: "title",
+              coreDataAttributeType: "String",
+              coreDataPrimitiveType: "String",
+              isUnique: false,
+              isTransient: false,
+              isOptional: true,
+              hasModelDefaultValue: false,
+              modelDefaultValueLiteral: nil,
+              storage: .init(
+                method: .default,
+                swiftType: "String?",
+                nonOptionalSwiftType: "String",
+                transformerName: nil,
+                decodeFailurePolicy: nil,
+                isResolved: true
+              )
+            )
+          ],
+          relationships: [],
+          compositions: []
+        )
+      ]
+    )
+    let source = ToolingSourceModelIR(
+      sourceDirectory: "/virtual/Sources",
+      entities: [
+        .init(
+          filePath: "/virtual/Sources/Item.swift",
+          className: "Item",
+          objcEntityName: "Item",
+          persistentModelArguments: .init(generateInit: false),
+          properties: [
+            .init(
+              filePath: "/virtual/Sources/Item.swift",
+              name: "title",
+              typeName: "String",
+              nonOptionalTypeName: "String",
+              declarationRange: dummyRange(0, 0),
+              declarationIndent: "  ",
+              isOptional: false,
+              defaultValueLiteral: nil,
+              defaultValueRange: nil,
+              isStored: true,
+              isStatic: false,
+              hasIgnore: false,
+              attribute: nil,
+              relationshipShape: nil
+            )
+          ],
+          customMembers: []
+        )
+      ]
+    )
+
+    let diagnosticsWithoutIgnore = ToolingValidateComparator.compareQuick(
+      expected: model,
+      actual: source,
+      level: .conformance
+    )
+    #expect(
+      diagnosticsWithoutIgnore.contains {
+        $0.message.contains("type mismatch for 'Item.title'")
+      }
+    )
+
+    let diagnosticsWithIgnore = ToolingValidateComparator.compareQuick(
+      expected: model,
+      actual: source,
+      level: .conformance,
+      attributeRules: .init(
+        entities: [
+          "Item": [
+            "title": .init(ignoreOptionality: true)
+          ]
+        ]
+      )
+    )
+    #expect(diagnosticsWithIgnore.isEmpty)
+  }
 }
 
 private func ambiguousRelationshipModelIR() -> ToolingModelIR {

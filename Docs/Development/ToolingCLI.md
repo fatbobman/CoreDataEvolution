@@ -300,9 +300,13 @@ v1 的版本与发行策略分为两层：
   - `storageMethod`
   - `transformerName`
   - `decodeFailurePolicy`
+  - `ignoreOptionality`
 - 作用：
   - `generate` 用于生成重命名属性与 `@Attribute(...)` 覆盖
   - `validate` 用于按同一规则校验代码与模型是否一致
+- `ignoreOptionality: true` 仅影响 `validate` 的 optionality 比对。
+  - 当前用途是允许“模型 optional，但 Swift-facing 声明保持 non-optional”。
+  - 它不会顺带忽略 `defaultValue`、`storageMethod`、`transformerName`、`decodeFailurePolicy` 等其他漂移维度。
 - v1 仅用于 attribute，不用于 relationship
 - 对于 `.transformed`，tool 生成的源码会优先使用
   - `storageMethod: .transformed(name: "...")`

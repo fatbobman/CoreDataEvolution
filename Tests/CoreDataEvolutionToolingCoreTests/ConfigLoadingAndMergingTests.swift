@@ -127,7 +127,11 @@ struct ConfigLoadingAndMergingTests {
       entities: [
         "Item": [
           "name": .init(swiftName: "title"),
-          "config_blob": .init(swiftType: "ItemConfig", storageMethod: .codable),
+          "config_blob": .init(
+            swiftType: "ItemConfig",
+            storageMethod: .codable,
+            ignoreOptionality: true
+          ),
         ]
       ]
     )
@@ -177,6 +181,7 @@ struct ConfigLoadingAndMergingTests {
     #expect(request.typeMappings[coreDataType: "Integer 64"]?.swiftType == "Int")
     #expect(request.typeMappings[coreDataType: "Date"]?.swiftType == "Date")
     #expect(request.attributeRules == attributeRules)
+    #expect(request.attributeRules[entity: "Item"]["config_blob"]?.ignoreOptionality == true)
     #expect(request.relationshipRules == relationshipRules)
     #expect(request.compositionRules == compositionRules)
     #expect(request.accessLevel == .internal)
@@ -187,6 +192,33 @@ struct ConfigLoadingAndMergingTests {
     #expect(request.level == .conformance)
     #expect(request.report == .text)
     #expect(request.maxIssues == 200)
+  }
+
+  @Test("config loader decodes validate attribute optionality ignore")
+  func configLoaderDecodesValidateAttributeOptionalityIgnore() throws {
+    let data = """
+      {
+        "$schemaVersion": 1,
+        "validate": {
+          "modelPath": "Models/AppModel.xcdatamodeld",
+          "sourceDir": "Sources/AppModels",
+          "moduleName": "AppModels",
+          "attributeRules": {
+            "Item": {
+              "title": {
+                "ignoreOptionality": true
+              }
+            }
+          }
+        }
+      }
+      """.data(using: .utf8)!
+
+    let template = try loadToolingConfigTemplate(from: data)
+
+    #expect(
+      template.validate?.attributeRules?.entities["Item"]?["title"]?.ignoreOptionality == true
+    )
   }
 
   @Test("generate request resolves header template relative to config directory")
