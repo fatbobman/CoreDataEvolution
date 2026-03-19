@@ -232,9 +232,13 @@ public enum ToolingSourceRenderer {
 
     let typeName = try requireRenderableType(for: attribute)
     let defaultValue = try renderDefaultValue(for: attribute)
-    lines.append(
-      "  \(memberAccessModifierPrefix(for: accessLevel))var \(attribute.swiftName): \(typeName) = \(defaultValue)"
-    )
+    let declaration =
+      if let defaultValue {
+        "  \(memberAccessModifierPrefix(for: accessLevel))var \(attribute.swiftName): \(typeName) = \(defaultValue)"
+      } else {
+        "  \(memberAccessModifierPrefix(for: accessLevel))var \(attribute.swiftName): \(typeName)"
+      }
+    lines.append(declaration)
     lines.append("")
     return lines
   }
@@ -265,9 +269,13 @@ public enum ToolingSourceRenderer {
       storageMethod: .composition,
       isOptional: backingAttribute.isOptional
     )
-    lines.append(
-      "  \(memberAccessModifierPrefix(for: accessLevel))var \(composition.swiftName): \(typeName) = \(defaultValue)"
-    )
+    let declaration =
+      if let defaultValue {
+        "  \(memberAccessModifierPrefix(for: accessLevel))var \(composition.swiftName): \(typeName) = \(defaultValue)"
+      } else {
+        "  \(memberAccessModifierPrefix(for: accessLevel))var \(composition.swiftName): \(typeName)"
+      }
+    lines.append(declaration)
     lines.append("")
     return lines
   }
@@ -484,7 +492,7 @@ public enum ToolingSourceRenderer {
 
   private static func renderDefaultValue(
     for attribute: ToolingAttributeIR
-  ) throws -> String {
+  ) throws -> String? {
     if attribute.isOptional {
       return "nil"
     }
@@ -503,28 +511,21 @@ public enum ToolingSourceRenderer {
     )
   }
 
-  // V1 generation follows model defaults exactly. It does not invent code-side defaults or convert
-  // persistent defaults into custom storage values such as enums, codable payloads, or compositions.
+  // V1 generation follows model defaults exactly. It does not invent code-side defaults for
+  // required fields, and it does not convert persistent defaults into custom storage values such
+  // as enums, codable payloads, or compositions.
   private static func renderDefaultValue(
     for attribute: ToolingAttributeIR,
     storageMethod: ToolingAttributeStorageRule,
     isOptional: Bool
-  ) throws -> String {
+  ) throws -> String? {
     if isOptional {
       return "nil"
     }
 
     switch storageMethod {
     case .default:
-      guard let modelDefaultValueLiteral = attribute.modelDefaultValueLiteral else {
-        throw ToolingFailure.user(
-          .configInvalid,
-          """
-          generate requires a model default value for non-optional default storage '\(attribute.swiftName)'.
-          """
-        )
-      }
-      return modelDefaultValueLiteral
+      return attribute.modelDefaultValueLiteral
     case .raw, .codable, .composition, .transformed:
       throw ToolingFailure.user(
         .configInvalid,

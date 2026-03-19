@@ -97,8 +97,9 @@ Runtime schema / runtime model builder 的 v1 边界：
 - `persistentName` 的语义与 SwiftData 的 `originalName` 不同：
   - `persistentName` 表示“当前 Swift 属性对应的持久化字段名”
   - 不表示“旧 schema 中的历史属性名”
-- 持久化属性必须有默认值：非可选属性需显式默认值；可选属性可省略初始化器（视为默认 `nil`）。  
-- 上述代码规则必须与模型层规则一致：模型中非可选 attribute 必须配置默认值；可选 attribute 可以不配置默认值。  
+- `.default` 持久化属性允许三种形式：可选、非可选且显式默认值、非可选且无默认值。可选属性省略初始化器时视为默认 `nil`。  
+- 非可选且无默认值仅适用于 `.default`；`.raw` / `.codable` / `.transformed` / `.composition` 维持更严格规则。  
+- 当 `.default` 的非可选属性无默认值时，模型层也允许无默认值；读取到底层缺值应视为模型不变量损坏，而不是 fallback。  
 - 对基础类型自动 `.default`。  
 - 非基础类型必须显式 `storageMethod`。  
 - 支持 `.raw` `.codable` `.transformed` `.composition`。  
@@ -111,7 +112,7 @@ Runtime schema / runtime model builder 的 v1 边界：
 - 代码默认值在 v1 仅承担两类职责：
   - 读取/解码/转换失败时的 fallback 值
   - 作为属性语义与意图的显式声明
-- 持久化层默认值的真实来源是 xcdatamodeld；工具需校验“模型默认值 vs 代码默认值”一致性。
+- 持久化层默认值的真实来源是 xcdatamodeld；若代码显式声明默认值，工具需校验“模型默认值 vs 代码默认值”一致性。
 - `.raw` 会在编译期约束属性类型满足 `RawRepresentable`。
 - `.codable` 会在编译期约束属性类型满足 `Codable`。
 - `.transformed` 要求传入符合 `CDRegisteredValueTransformer` 的元类型（如 `MyTransformer.self`）。

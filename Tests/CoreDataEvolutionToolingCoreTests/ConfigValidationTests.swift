@@ -595,14 +595,12 @@ struct ConfigValidationTests {
     }
   }
 
-  @Test("generate rejects non-optional attribute without model default")
-  func generateRejectsNonOptionalAttributeWithoutDefault() throws {
+  @Test("generate accepts non-optional default storage without model default")
+  func generateAcceptsNonOptionalAttributeWithoutDefault() throws {
     let model = makeModelWithMissingNonOptionalDefault()
     let template = makeGenerateValidationTemplate()
 
-    try expectConfigFailure(template, code: .configInvalid) {
-      try validateToolingConfigTemplate(template, against: model)
-    }
+    try validateToolingConfigTemplate(template, against: model)
   }
 
   @Test("generate rejects non-optional custom storage even with model default")

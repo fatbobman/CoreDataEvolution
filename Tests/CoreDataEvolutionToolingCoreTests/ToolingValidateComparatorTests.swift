@@ -371,6 +371,91 @@ struct ToolingValidateComparatorTests {
         == #"@Relationship(inverse: "owner", deleteRule: .nullify, minimumModelCount: 1, maximumModelCount: 3)"#
     )
   }
+
+  @Test("comparator accepts required default storage without defaults")
+  func comparatorAcceptsRequiredDefaultStorageWithoutDefaults() {
+    let diagnostics = ToolingValidateComparator.compareQuick(
+      expected: requiredDefaultStorageModelIR(),
+      actual: .init(
+        sourceDirectory: "/virtual/Sources",
+        entities: [
+          .init(
+            filePath: "/virtual/Sources/Item.swift",
+            className: "Item",
+            objcEntityName: "Item",
+            persistentModelArguments: .init(generateInit: false),
+            properties: [
+              .init(
+                filePath: "/virtual/Sources/Item.swift",
+                name: "title",
+                typeName: "String",
+                nonOptionalTypeName: "String",
+                declarationRange: dummyRange(0, 0),
+                declarationIndent: "  ",
+                isOptional: false,
+                defaultValueLiteral: nil,
+                defaultValueRange: nil,
+                isStored: true,
+                isStatic: false,
+                hasIgnore: false,
+                attribute: nil,
+                relationshipShape: nil
+              )
+            ],
+            customMembers: []
+          )
+        ]
+      ),
+      level: .conformance
+    )
+
+    #expect(diagnostics.isEmpty)
+  }
+
+  @Test("comparator flags unexpected default on required default storage without model default")
+  func comparatorFlagsUnexpectedDefaultOnRequiredDefaultStorage() {
+    let diagnostics = ToolingValidateComparator.compareQuick(
+      expected: requiredDefaultStorageModelIR(),
+      actual: .init(
+        sourceDirectory: "/virtual/Sources",
+        entities: [
+          .init(
+            filePath: "/virtual/Sources/Item.swift",
+            className: "Item",
+            objcEntityName: "Item",
+            persistentModelArguments: .init(generateInit: false),
+            properties: [
+              .init(
+                filePath: "/virtual/Sources/Item.swift",
+                name: "title",
+                typeName: "String",
+                nonOptionalTypeName: "String",
+                declarationRange: dummyRange(0, 0),
+                declarationIndent: "  ",
+                isOptional: false,
+                defaultValueLiteral: #""untitled""#,
+                defaultValueRange: dummyRange(10, 20),
+                isStored: true,
+                isStatic: false,
+                hasIgnore: false,
+                attribute: nil,
+                relationshipShape: nil
+              )
+            ],
+            customMembers: []
+          )
+        ]
+      ),
+      level: .conformance
+    )
+
+    #expect(diagnostics.count == 1)
+    #expect(
+      diagnostics[0].message.contains(
+        "default value mismatch for 'Item.title'. Expected '<missing>', found '\"untitled\"'"
+      )
+    )
+  }
 }
 
 private func ambiguousRelationshipModelIR() -> ToolingModelIR {
@@ -419,6 +504,53 @@ private func ambiguousRelationshipModelIR() -> ToolingModelIR {
             deleteRule: "nullify"
           ),
         ],
+        compositions: []
+      )
+    ]
+  )
+}
+
+private func requiredDefaultStorageModelIR() -> ToolingModelIR {
+  .init(
+    source: .init(
+      originalPath: "/virtual/AppModel.xcdatamodeld",
+      selectedSourcePath: "/virtual/AppModel.xcdatamodeld/V1.xcdatamodel",
+      compiledModelPath: "/virtual/AppModel.momd",
+      inputKind: .xcdatamodeld,
+      selectedVersionName: "V1.xcdatamodel"
+    ),
+    generationPolicy: .init(
+      accessLevel: .internal,
+      singleFile: false,
+      splitByEntity: true,
+      generateInit: false,
+      defaultDecodeFailurePolicy: .fallbackToDefaultValue
+    ),
+    entities: [
+      .init(
+        name: "Item",
+        managedObjectClassName: "NSManagedObject",
+        representedClassName: "Item",
+        attributes: [
+          .init(
+            persistentName: "title",
+            swiftName: "title",
+            coreDataAttributeType: "String",
+            coreDataPrimitiveType: "String",
+            isOptional: false,
+            hasModelDefaultValue: false,
+            modelDefaultValueLiteral: nil,
+            storage: .init(
+              method: .default,
+              swiftType: "String",
+              nonOptionalSwiftType: "String",
+              transformerName: nil,
+              decodeFailurePolicy: nil,
+              isResolved: true
+            )
+          )
+        ],
+        relationships: [],
         compositions: []
       )
     ]

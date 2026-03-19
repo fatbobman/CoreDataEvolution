@@ -308,8 +308,9 @@ struct ToolingSourceRendererTests {
     }
   }
 
-  @Test("renderer rejects non-optional default storage without a model default")
-  func rendererRejectsMissingModelDefault() throws {
+  @Test(
+    "renderer emits required default storage without an initializer when model default is absent")
+  func rendererEmitsRequiredDefaultStorageWithoutInitializer() throws {
     let modelIR = ToolingModelIR(
       source: .init(
         originalPath: "/virtual/AppModel.xcdatamodeld",
@@ -355,12 +356,10 @@ struct ToolingSourceRendererTests {
       ]
     )
 
-    do {
-      _ = try ToolingSourceRenderer.renderSources(from: modelIR)
-      Issue.record("Expected renderer to reject missing model defaults.")
-    } catch let error as ToolingFailure {
-      #expect(error.code == .configInvalid)
-    }
+    let source = try #require(ToolingSourceRenderer.renderSources(from: modelIR).first?.contents)
+
+    #expect(source.contains("var name: String\n"))
+    #expect(source.contains("var name: String =") == false)
   }
 
   @Test("renderer rejects non-optional relationships")

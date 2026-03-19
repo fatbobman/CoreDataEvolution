@@ -183,8 +183,10 @@ Note about `Int`:
 ### Restrictions
 
 - non-primitive types are not allowed with `.default`
-- if the property is non-optional, it must have a default value
-- that Swift default value should match the model default value
+- non-optional `.default` properties may omit a default value
+- if you do declare a Swift default value, it should match the model default value
+- if a non-optional `.default` property reads a missing underlying value, the generated accessor
+  traps
 
 If you need more detail about model default values, see
 [PersistentModelGuide.md](./PersistentModelGuide.md).

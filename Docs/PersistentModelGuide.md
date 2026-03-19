@@ -77,7 +77,10 @@ Requirements shown in this example:
 - The type must be a `class`.
 - The type must inherit from `NSManagedObject`.
 - The type must declare `@objc(EntityName)` explicitly.
-- Every persisted property must be optional, or provide a default value.
+- Every persisted property must be one of these:
+- an optional property
+- a non-optional property that uses `.default` storage, with or without an explicit default value
+- Non-optional custom-storage properties are not supported.
 
 ## What `@PersistentModel` Generates
 
@@ -664,15 +667,17 @@ The current implementation keeps default-value semantics strict.
 
 ### Persisted Properties
 
-A persisted property must be one of:
+For `.default` storage, a persisted property may be one of:
 
 - optional
 - non-optional with an explicit default value
+- non-optional without an explicit default value
 
 Valid:
 
 ```swift
 var title: String = ""
+var identifier: UUID
 var notes: String? = nil
 var createdAt: Date = .distantPast
 ```
@@ -680,10 +685,12 @@ var createdAt: Date = .distantPast
 Invalid:
 
 ```swift
-var title: String
+@Attribute(storageMethod: .codable)
+var payload: Payload
 ```
 
-The declared Swift default value should match the default configured in your Core Data model.
+When you do declare a Swift default value, it should match the default configured in your Core
+Data model.
 
 For example, if the model defines `title` with a default of `""`, your Swift declaration should
 also use:
@@ -697,10 +704,12 @@ Do not treat the Swift default as a way to override the model's default value.
 The declared default value is used for these purposes:
 
 - to make the declaration explicit and toolable
-- to satisfy the "optional or default" model rule
 - as a fallback when custom decoding fails, depending on storage method and decode failure policy
 
 It is not used to rewrite or replace the default value stored in the `.xcdatamodeld`.
+
+When a non-optional `.default` property omits a default value, the generated accessor treats a
+missing underlying value as a model invariant violation and traps instead of inventing a fallback.
 
 ### Why This Rule Exists
 
@@ -826,7 +835,9 @@ Before using `@PersistentModel`, make sure all of these are true.
 
 ### Attribute Rules
 
-- every persisted attribute must be optional or have a default value
+- `.default` storage attributes may be optional, non-optional with an explicit default, or
+  non-optional without a default
+- non-optional custom-storage attributes are not supported
 - `.unique` is supported
 - `.transient` is supported only with `.default`
 - derived attributes are not supported

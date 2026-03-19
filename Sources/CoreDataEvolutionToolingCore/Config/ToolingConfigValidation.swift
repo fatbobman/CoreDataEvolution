@@ -137,12 +137,6 @@ private func validateToolingModelConstraints(
         )
       }
 
-      if attribute.isOptional == false, attribute.defaultValue == nil {
-        throw configValidationFailure(
-          "\(context) requires non-optional attribute '\(entityName).\(fieldName)' to declare a model default value."
-        )
-      }
-
       let rule = rules[fieldName] ?? .init()
       let storageMethod = resolveToolingAttributeStorageMethod(rule)
       if attribute.isTransient && storageMethod != .default {
@@ -157,8 +151,7 @@ private func validateToolingModelConstraints(
         throw configValidationFailure(
           """
           \(context) does not support non-optional custom storage for '\(entityName).\(fieldName)'. \
-          Make the attribute optional or keep default storage until explicit code-default support \
-          exists.
+          Make the attribute optional or keep default storage for required fields.
           """
         )
       }

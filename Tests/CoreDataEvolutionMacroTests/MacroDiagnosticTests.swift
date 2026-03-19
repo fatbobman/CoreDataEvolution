@@ -1087,9 +1087,9 @@ struct MacroDiagnosticTests {
     #expect(result.diagnostics.isEmpty)
   }
 
-  @Test("Attribute non-optional property requires default value")
-  func attributeNonOptionalPropertyRequiresDefaultValue() throws {
-    let result = try MacroTestSupport.expand(
+  @Test("Attribute non-optional default storage can omit default value")
+  func attributeNonOptionalDefaultStorageCanOmitDefaultValue() throws {
+    let implicitResult = try MacroTestSupport.expand(
       source: """
         struct S {
           @Attribute
@@ -1097,10 +1097,44 @@ struct MacroDiagnosticTests {
         }
         """
     )
+    #expect(implicitResult.diagnostics.isEmpty)
     #expect(
-      result.diagnostics.contains {
-        $0.contains("non-optional properties must declare a default value")
-      })
+      implicitResult.expandedSource.contains(
+        #"preconditionFailure("Missing required value for `count` (count).")"#
+      )
+    )
+
+    let explicitResult = try MacroTestSupport.expand(
+      source: """
+        struct S {
+          @Attribute(storageMethod: .default)
+          var count: Int
+        }
+        """
+    )
+    #expect(explicitResult.diagnostics.isEmpty)
+  }
+
+  @Test("PersistentModel emits nil runtime default for required default storage attribute")
+  func persistentModelEmitsNilRuntimeDefaultForRequiredDefaultStorageAttribute() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        import Foundation
+
+        @objc(Item)
+        @PersistentModel(generateInit: true)
+        final class Item: NSManagedObject {
+          @Attribute(.unique)
+          var id: UUID
+        }
+        """
+    )
+
+    #expect(result.diagnostics.isEmpty)
+    #expect(result.expandedSource.contains(#"defaultValueExpression: nil"#))
+    #expect(result.expandedSource.contains("convenience init(\n    id: UUID\n  )"))
   }
 
   @Test("Attribute persistentName rejects interpolation")

@@ -59,6 +59,17 @@ struct RuntimeSchemaTests {
     #expect(fileURL.defaultValue as? URL == URL(fileURLWithPath: "/tmp/runtime-schema"))
   }
 
+  @Test("runtime model builder preserves required primitive attributes without defaults")
+  func runtimeModelBuilderPreservesRequiredPrimitiveAttributesWithoutDefaults() throws {
+    let model = try NSManagedObjectModel.makeRuntimeModel([ManualRuntimeSchemaRequired.self])
+    let entity = try #require(model.entitiesByName["RuntimeRequired"])
+    let identifier = try #require(entity.attributesByName["identifier"])
+
+    #expect(identifier.isOptional == false)
+    #expect(identifier.defaultValue == nil)
+    #expect(identifier.attributeType == .UUIDAttributeType)
+  }
+
   @Test("runtime model builder marks transient attributes")
   func runtimeModelBuilderMarksTransientAttributes() throws {
     let model = try NSManagedObjectModel.makeRuntimeModel([ManualRuntimeSchemaTransient.self])
@@ -199,6 +210,24 @@ private final class ManualRuntimeSchemaDefaults: NSManagedObject, CDRuntimeSchem
         defaultValueExpression: "URL(fileURLWithPath: \"/tmp/runtime-schema\")",
         storage: .primitive(.url)
       ),
+    ],
+    relationships: []
+  )
+}
+
+private final class ManualRuntimeSchemaRequired: NSManagedObject, CDRuntimeSchemaProviding {
+  static let __cdRuntimeEntitySchema = CDRuntimeEntitySchema(
+    entityName: "RuntimeRequired",
+    managedObjectClassName: NSStringFromClass(ManualRuntimeSchemaRequired.self),
+    attributes: [
+      CDRuntimeAttributeSchema(
+        swiftName: "identifier",
+        persistentName: "identifier",
+        swiftTypeName: "UUID",
+        isOptional: false,
+        defaultValueExpression: nil,
+        storage: .primitive(.uuid)
+      )
     ],
     relationships: []
   )
