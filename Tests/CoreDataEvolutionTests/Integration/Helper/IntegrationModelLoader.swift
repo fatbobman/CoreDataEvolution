@@ -59,7 +59,12 @@ enum IntegrationModelLoader {
 
     let repositoryRoot = try findRepositoryRoot()
     let defaultOutputURL = compiledModelOutputURL(repositoryRoot: repositoryRoot)
-    if FileManager.default.fileExists(atPath: defaultOutputURL.path) {
+    if FileManager.default.fileExists(atPath: defaultOutputURL.path),
+      try compiledModelIsCurrent(
+        repositoryRoot: repositoryRoot,
+        compiledModelURL: defaultOutputURL
+      )
+    {
       return defaultOutputURL
     }
 
@@ -81,6 +86,52 @@ enum IntegrationModelLoader {
       .appendingPathComponent(".build")
       .appendingPathComponent("cde-models")
       .appendingPathComponent("\(modelName).momd")
+  }
+
+  private static func sourceModelURL(repositoryRoot: URL) -> URL {
+    if let custom = ProcessInfo.processInfo.environment["CDE_INTEGRATION_MODEL_SOURCE"],
+      custom.isEmpty == false
+    {
+      return URL(filePath: custom)
+    }
+
+    return
+      repositoryRoot
+      .appendingPathComponent("Models")
+      .appendingPathComponent("Integration")
+      .appendingPathComponent("\(modelName).xcdatamodeld")
+  }
+
+  private static func compiledModelIsCurrent(
+    repositoryRoot: URL,
+    compiledModelURL: URL
+  ) throws -> Bool {
+    let sourceURL = sourceModelURL(repositoryRoot: repositoryRoot)
+    let sourceDate = try newestModificationDate(in: sourceURL)
+    let compiledDate = try newestModificationDate(in: compiledModelURL)
+    return compiledDate >= sourceDate
+  }
+
+  private static func newestModificationDate(in url: URL) throws -> Date {
+    let resourceKeys: Set<URLResourceKey> = [.contentModificationDateKey, .isDirectoryKey]
+    var newestDate =
+      try url.resourceValues(forKeys: resourceKeys).contentModificationDate ?? .distantPast
+
+    if (try url.resourceValues(forKeys: resourceKeys).isDirectory) == true {
+      let enumerator = FileManager.default.enumerator(
+        at: url,
+        includingPropertiesForKeys: Array(resourceKeys)
+      )
+
+      while let childURL = enumerator?.nextObject() as? URL {
+        let values = try childURL.resourceValues(forKeys: resourceKeys)
+        if let modificationDate = values.contentModificationDate, modificationDate > newestDate {
+          newestDate = modificationDate
+        }
+      }
+    }
+
+    return newestDate
   }
 
   private static func compileModel(repositoryRoot: URL) throws {
@@ -129,10 +180,6 @@ enum IntegrationModelLoader {
 }
 
 final class IntegrationModelStack {
-  static let transformerRegistration: Void = {
-    CDEStringListTransformer.register()
-  }()
-
   static let model: NSManagedObjectModel = {
     do {
       return try IntegrationModelLoader.loadModel()
@@ -148,7 +195,6 @@ final class IntegrationModelStack {
     fileID: String = #fileID,
     function: String = #function
   ) throws {
-    _ = Self.transformerRegistration
     container = try NSPersistentContainer.makeTest(
       model: Self.model,
       testName: testName,

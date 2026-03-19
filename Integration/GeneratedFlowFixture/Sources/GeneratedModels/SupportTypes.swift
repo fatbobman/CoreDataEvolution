@@ -33,48 +33,6 @@ public struct FlowPoint: Sendable, Equatable {
   }
 }
 
-public final class FlowStringListTransformer: ValueTransformer, CDRegisteredValueTransformer {
-  public static let transformerName = NSValueTransformerName("FlowStringListTransformer")
-
-  public override class func transformedValueClass() -> AnyClass {
-    NSString.self
-  }
-
-  public override class func allowsReverseTransformation() -> Bool {
-    true
-  }
-
-  public override func transformedValue(_ value: Any?) -> Any? {
-    guard let strings = value as? [String] else { return nil }
-    return strings.joined(separator: "|")
-  }
-
-  public override func reverseTransformedValue(_ value: Any?) -> Any? {
-    let raw: String?
-    switch value {
-    case let stringValue as String:
-      raw = stringValue
-    case let nsStringValue as NSString:
-      raw = nsStringValue as String
-    default:
-      raw = nil
-    }
-
-    guard let raw else { return nil }
-    if raw.isEmpty {
-      return []
-    }
-    return raw.split(separator: "|").map(String.init)
-  }
-
-  public static func register() {
-    ValueTransformer.setValueTransformer(
-      FlowStringListTransformer(),
-      forName: transformerName
-    )
-  }
-}
-
 public enum FixtureSupport {
   public static func compileModel(filePath: String = #filePath) throws -> URL {
     let fileURL = URL(fileURLWithPath: filePath)

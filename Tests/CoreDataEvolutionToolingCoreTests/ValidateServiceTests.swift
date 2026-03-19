@@ -267,9 +267,10 @@ struct ValidateServiceTests {
   func validateRejectsTransientTraitDrift() throws {
     let fixture = try makeValidationFixture { contents in
       contents.replacingOccurrences(
-        of: #"<attribute name="keywords_payload" optional="YES" attributeType="String"/>"#,
+        of:
+          #"<attribute name="keywords_payload" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData"/>"#,
         with: """
-          <attribute name="keywords_payload" optional="YES" attributeType="String"/>
+          <attribute name="keywords_payload" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData"/>
                 <attribute name="scratch" optional="YES" attributeType="String" transient="YES"/>
           """
       )
@@ -453,7 +454,7 @@ struct ValidateServiceTests {
               swiftName: "keywords",
               swiftType: "[String]",
               storageMethod: .transformed,
-              transformerName: "CDEStringListTransformer"
+              transformerName: "NSSecureUnarchiveFromData"
             ),
           ]
         ]
@@ -504,7 +505,7 @@ struct ValidateServiceTests {
               swiftName: "keywords",
               swiftType: "[String]",
               storageMethod: .transformed,
-              transformerName: "CDEStringListTransformer"
+              transformerName: "NSSecureUnarchiveFromData"
             ),
           ]
         ]

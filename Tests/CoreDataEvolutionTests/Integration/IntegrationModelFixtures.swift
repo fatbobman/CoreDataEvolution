@@ -28,35 +28,6 @@ struct CDEItemLocation: Equatable, Sendable {
   var y: Double?
 }
 
-final class CDEStringListTransformer: ValueTransformer, CDRegisteredValueTransformer {
-  static let transformerName = NSValueTransformerName("CDEStringListTransformer")
-
-  static func register() {
-    ValueTransformer.setValueTransformer(CDEStringListTransformer(), forName: transformerName)
-  }
-
-  override class func transformedValueClass() -> AnyClass {
-    NSString.self
-  }
-
-  override class func allowsReverseTransformation() -> Bool {
-    true
-  }
-
-  override func transformedValue(_ value: Any?) -> Any? {
-    guard let strings = value as? [String] else { return nil }
-    return strings.joined(separator: "|")
-  }
-
-  override func reverseTransformedValue(_ value: Any?) -> Any? {
-    guard let raw = value as? String else { return nil }
-    if raw.isEmpty {
-      return []
-    }
-    return raw.split(separator: "|").map(String.init)
-  }
-}
-
 @objc(CDETag)
 @PersistentModel
 final class CDETag: NSManagedObject {
@@ -80,7 +51,8 @@ final class CDEItem: NSManagedObject {
   @Attribute(storageMethod: .composition)
   var location: CDEItemLocation? = nil
   @Attribute(
-    persistentName: "keywords_payload", storageMethod: .transformed(CDEStringListTransformer.self))
+    persistentName: "keywords_payload",
+    storageMethod: .transformed(name: "NSSecureUnarchiveFromData"))
   var keywords: [String]? = nil
   @Relationship(inverse: "items", deleteRule: .nullify)
   var tag: CDETag?

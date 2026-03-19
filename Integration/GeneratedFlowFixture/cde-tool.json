@@ -36,7 +36,7 @@
           "swiftName": "tags",
           "swiftType": "[String]",
           "storageMethod": "transformed",
-          "transformerName": "FlowStringListTransformer"
+          "transformerName": "NSSecureUnarchiveFromData"
         },
         "location": {
           "swiftType": "FlowPoint",
@@ -101,7 +101,7 @@
           "swiftName": "tags",
           "swiftType": "[String]",
           "storageMethod": "transformed",
-          "transformerName": "FlowStringListTransformer"
+          "transformerName": "NSSecureUnarchiveFromData"
         },
         "location": {
           "swiftType": "FlowPoint",

@@ -29,7 +29,7 @@ public final class FlowTask: NSManagedObject {
   public var status: FlowTaskStatus? = nil
 
   @Attribute(
-    persistentName: "tags_payload", storageMethod: .transformed(name: "FlowStringListTransformer"),
+    persistentName: "tags_payload", storageMethod: .transformed(name: "NSSecureUnarchiveFromData"),
     decodeFailurePolicy: .fallbackToDefaultValue)
   public var tags: [String]? = nil
 

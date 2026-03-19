@@ -8,40 +8,14 @@ final class ColorTransformer: ValueTransformer, CDRegisteredValueTransformer {
 struct Item {
   var color: String? {
     get {
-      guard let transformer = ValueTransformer(forName: ColorTransformer.transformerName) else {
-        assertionFailure("Transformer '\\(ColorTransformer.transformerName.rawValue)' is not registered for `color` (color).")
-        return nil
-      }
       let storedValue = value(forKey: "color")
       if let value = storedValue as? String {
         return value
       }
-      guard let value = transformer.reverseTransformedValue(storedValue) as? String else {
-        return nil
-      }
-      return value
+      return nil
     }
     set {
-      guard let transformer = ValueTransformer(forName: ColorTransformer.transformerName) else {
-        assertionFailure("Transformer '\\(ColorTransformer.transformerName.rawValue)' is not registered for `color` (color).")
-        setValue(nil, forKey: "color")
-        return
-      }
-      if let newValue {
-        if let transformed = transformer.transformedValue(newValue) {
-          setValue(transformed, forKey: "color")
-          return
-        }
-
-        let fallback: String? = nil
-        if let fallback, let transformed = transformer.transformedValue(fallback) {
-          setValue(transformed, forKey: "color")
-        } else {
-          setValue(nil, forKey: "color")
-        }
-      } else {
-        setValue(nil, forKey: "color")
-      }
+      setValue(newValue, forKey: "color")
     }
   }
 

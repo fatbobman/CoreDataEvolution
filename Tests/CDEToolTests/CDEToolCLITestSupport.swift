@@ -237,7 +237,7 @@ func makeIntegrationAttributeRules() -> ToolingAttributeRules {
           swiftName: "keywords",
           swiftType: "[String]",
           storageMethod: .transformed,
-          transformerName: "CDEStringListTransformer"
+          transformerName: "NSSecureUnarchiveFromData"
         ),
       ]
     ]

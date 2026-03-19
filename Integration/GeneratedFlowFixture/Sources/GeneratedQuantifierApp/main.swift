@@ -5,7 +5,6 @@ import GeneratedModels
 @main
 struct GeneratedQuantifierApp {
   static func main() throws {
-    FlowStringListTransformer.register()
     let modelURL = try FixtureSupport.compileModel()
     let container = try FixtureSupport.makeContainer(modelURL: modelURL)
     try seed(in: container.viewContext)

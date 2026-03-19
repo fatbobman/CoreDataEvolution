@@ -9,10 +9,11 @@ import Foundation
 
 /// A `ValueTransformer` type that can be referenced from `@Attribute(storageMethod: .transformed(...))`.
 ///
-/// Conforming types must expose the same registration name used by the Core Data model. The
-/// generated accessor code resolves the transformer through
-/// `ValueTransformer(forName:)` instead of
-/// constructing a fresh instance on every access.
+/// Conforming types must expose the same registration name used by the Core Data model.
+///
+/// `@Attribute(storageMethod: .transformed(...))` is reserved for real Core Data
+/// `Transformable` attributes. The registration name keeps source declarations aligned with the
+/// model's `valueTransformerName`.
 ///
 /// Register the transformer before the property is first accessed, for example during app launch
 /// or test bootstrap.
@@ -35,13 +36,15 @@ public enum AttributeStorageMethod {
   case codable
   /// Stores a value through a registered `ValueTransformer`.
   ///
-  /// The transformer type must conform to `CDRegisteredValueTransformer`. The generated accessors
-  /// resolve the transformer through the registration name published by that protocol.
+  /// The transformer type must conform to `CDRegisteredValueTransformer` and publish the same
+  /// registration name as the Core Data model's `valueTransformerName`.
+  ///
+  /// Use this only when the Core Data field is modeled as `Transformable`.
   case transformed(CDRegisteredValueTransformer.Type)
   /// Stores a value through an explicit `ValueTransformer` registration name.
   ///
-  /// This form mirrors the `valueTransformerName` stored in a Core Data model and is the
-  /// canonical source shape emitted by `cde-tool generate`.
+  /// This form mirrors the `valueTransformerName` stored in a Core Data `Transformable`
+  /// attribute and is the canonical source shape emitted by `cde-tool generate`.
   case transformed(name: String)
   /// Stores a value through a Core Data composite attribute.
   case composition

@@ -5,7 +5,6 @@ import GeneratedModels
 @main
 struct GeneratedFlowApp {
   static func main() throws {
-    FlowStringListTransformer.register()
     let modelURL = try FixtureSupport.compileModel(filePath: #filePath)
     let container = try FixtureSupport.makeContainer(modelURL: modelURL)
     try seed(in: container.viewContext)

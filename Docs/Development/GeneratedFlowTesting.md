@@ -103,8 +103,8 @@ Those semantic assertions currently verify:
 Current model-layer prerequisites in the fixture:
 
 - `location` is modeled as a real Core Data `Composite` attribute
-- `tags_payload` is modeled as `String`, not `Transformable`, because
-  `FlowStringListTransformer.transformedValueClass()` returns `NSString`
+- `tags_payload` is modeled as a real Core Data `Transformable` attribute using
+  `NSSecureUnarchiveFromData`
 
 When validating schema-backed composition paths, do not compare a typed path's `raw` value
 directly with `entity.attributesByName.keys`.

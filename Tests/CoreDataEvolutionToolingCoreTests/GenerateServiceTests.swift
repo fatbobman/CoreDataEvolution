@@ -47,7 +47,7 @@ struct GenerateServiceTests {
                 swiftName: "keywords",
                 swiftType: "[String]",
                 storageMethod: .transformed,
-                transformerName: "CDEStringListTransformer"
+                transformerName: "NSSecureUnarchiveFromData"
               ),
             ]
           ]
@@ -94,7 +94,7 @@ struct GenerateServiceTests {
     #expect(itemSource.contents.contains("extension CDEItem: PersistentEntity {}") == false)
     #expect(
       itemSource.contents.contains(
-        #"@Attribute(persistentName: "keywords_payload", storageMethod: .transformed(name: "CDEStringListTransformer"), decodeFailurePolicy: .fallbackToDefaultValue)"#
+        #"@Attribute(persistentName: "keywords_payload", storageMethod: .transformed(name: "NSSecureUnarchiveFromData"), decodeFailurePolicy: .fallbackToDefaultValue)"#
       ))
     #expect(itemSource.contents.contains("var keywords: [String]? = nil"))
     #expect(itemSource.contents.contains("var tag: CDETag?"))
@@ -127,7 +127,13 @@ struct GenerateServiceTests {
         attributeRules: .init(
           entities: [
             "CDEItem": [
-              "location": .init(swiftType: "CDEItemLocation", storageMethod: .composition)
+              "location": .init(swiftType: "CDEItemLocation", storageMethod: .composition),
+              "keywords_payload": .init(
+                swiftName: "keywords",
+                swiftType: "[String]",
+                storageMethod: .transformed,
+                transformerName: "NSSecureUnarchiveFromData"
+              ),
             ]
           ]
         ),
@@ -190,7 +196,13 @@ struct GenerateServiceTests {
         attributeRules: .init(
           entities: [
             "CDEItem": [
-              "location": .init(swiftType: "CDEItemLocation", storageMethod: .composition)
+              "location": .init(swiftType: "CDEItemLocation", storageMethod: .composition),
+              "keywords_payload": .init(
+                swiftName: "keywords",
+                swiftType: "[String]",
+                storageMethod: .transformed,
+                transformerName: "NSSecureUnarchiveFromData"
+              ),
             ]
           ]
         ),
@@ -235,7 +247,13 @@ struct GenerateServiceTests {
         attributeRules: .init(
           entities: [
             "CDEItem": [
-              "location": .init(swiftType: "CDEItemLocation", storageMethod: .composition)
+              "location": .init(swiftType: "CDEItemLocation", storageMethod: .composition),
+              "keywords_payload": .init(
+                swiftName: "keywords",
+                swiftType: "[String]",
+                storageMethod: .transformed,
+                transformerName: "NSSecureUnarchiveFromData"
+              ),
             ]
           ]
         ),
@@ -273,9 +291,10 @@ struct GenerateServiceTests {
   func generateServiceRendersTransientAttributes() throws {
     let modelPath = try makeToolingSourceModelFixture { contents in
       contents.replacingOccurrences(
-        of: #"<attribute name="keywords_payload" optional="YES" attributeType="String"/>"#,
+        of:
+          #"<attribute name="keywords_payload" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData"/>"#,
         with: """
-          <attribute name="keywords_payload" optional="YES" attributeType="String"/>
+          <attribute name="keywords_payload" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData"/>
                 <attribute name="scratch" optional="YES" attributeType="String" transient="YES"/>
           """
       )
@@ -293,7 +312,13 @@ struct GenerateServiceTests {
         attributeRules: .init(
           entities: [
             "CDEItem": [
-              "location": .init(swiftType: "CDEItemLocation", storageMethod: .composition)
+              "location": .init(swiftType: "CDEItemLocation", storageMethod: .composition),
+              "keywords_payload": .init(
+                swiftName: "keywords",
+                swiftType: "[String]",
+                storageMethod: .transformed,
+                transformerName: "NSSecureUnarchiveFromData"
+              ),
             ]
           ]
         ),

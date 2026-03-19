@@ -234,28 +234,28 @@ var config: ItemConfig? = nil
 ### Value Transformer Storage
 
 ```swift
-@Attribute(storageMethod: .transformed(name: "CDEStringListTransformer"))
+@Attribute(storageMethod: .transformed(name: "NSSecureUnarchiveFromData"))
 var keywords: [String]? = nil
 ```
 
-For schema-backed models, `.transformed(...)` means the Core Data field type should match the
-transformer's stored output type.
+For schema-backed models, `.transformed(...)` means the Core Data field itself is a real
+`Transformable` attribute.
 
-Example:
-
-- if the transformer stores `NSString`, the model field should be `String`
-- if the transformer stores `NSData`, the model field should be `Binary Data`
-- only model the field as `Transformable` when the schema intentionally uses a transformable
-  payload path such as `NSSecureUnarchiveFromData`
+The model should declare the transformer name directly, for example
+`NSSecureUnarchiveFromData` or a custom registered transformer.
 
 Transformer-backed attributes currently support two source forms:
 
-- `.transformed(CDEStringListTransformer.self)`
-- `.transformed(name: "CDEStringListTransformer")`
+- `.transformed(MyTransformer.self)`
+- `.transformed(name: "MyTransformerName")`
 
 For schema-backed models, the `name:` form is the canonical shape because Core Data stores the
-transformer registration name in the model itself. In both forms, the transformer must be
-registered before the property is first accessed, for example during app launch or test bootstrap.
+transformer registration name in the model itself.
+
+Generated accessors use normal Core Data reads and writes and let Core Data apply the transformer.
+
+In both forms, custom transformers must still be registered before the model first needs them, for
+example during app launch or test bootstrap.
 
 ### Decode Failure Policy
 

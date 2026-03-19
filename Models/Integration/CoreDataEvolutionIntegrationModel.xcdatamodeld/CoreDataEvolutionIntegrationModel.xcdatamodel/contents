@@ -7,7 +7,7 @@
         <attribute name="status_raw" optional="YES" attributeType="String"/>
         <attribute name="config_blob" optional="YES" attributeType="Binary"/>
         <attribute name="location" optional="YES" attributeType="Composite" composite="CDEItemLocation"/>
-        <attribute name="keywords_payload" optional="YES" attributeType="String"/>
+        <attribute name="keywords_payload" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData"/>
         <relationship name="tag" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="CDETag" inverseName="items" inverseEntity="CDETag"/>
     </entity>
     <entity name="CDETag" representedClassName="CDETag" syncable="YES" codeGenerationType="class">

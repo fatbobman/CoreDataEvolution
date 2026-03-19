@@ -36,22 +36,35 @@ struct IntegrationModelValueTransformerActorTests {
     #expect(CDEItem.path.keywords.raw == "keywords_payload")
   }
 
-  @Test func transformedStorageRoundTripsAndPersistsRawValue() async throws {
+  @Test func transformedStorageRoundTripsThroughRealModel() async throws {
     let stack = try IntegrationModelStack()
     let handler = IntegrationValueTransformerHandler(container: stack.container)
+
+    guard
+      let entity = stack.container.managedObjectModel.entitiesByName["CDEItem"],
+      let attribute = entity.attributesByName["keywords_payload"]
+    else {
+      Issue.record("Expected integration model to contain CDEItem.keywords_payload.")
+      return
+    }
+
+    #expect(attribute.attributeType == .transformableAttributeType)
+    #expect(attribute.valueTransformerName == "NSSecureUnarchiveFromData")
+
     try await handler.seedTransformedData()
 
     let result = try await handler.withContext { context in
       let request = NSFetchRequest<CDEItem>(entityName: "CDEItem")
+      request.predicate = NSPredicate(format: "name == %@", "transform-item")
       guard let item = try context.fetch(request).first else {
         throw NSError(domain: "Integration", code: 1)
       }
 
-      let rawValue = item.value(forKey: "keywords_payload") as? String
+      let rawValue = item.value(forKey: "keywords_payload") as? [String]
       return (item.keywords, rawValue)
     }
 
     #expect(result.0 == ["swift", "coredata", "macro"])
-    #expect(result.1 == "swift|coredata|macro")
+    #expect(result.1 == ["swift", "coredata", "macro"])
   }
 }

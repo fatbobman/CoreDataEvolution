@@ -13,7 +13,8 @@ import Foundation
 
 /// Foundation ships this transformer as a registered singleton. Exposing the registration name
 /// through `CDRegisteredValueTransformer` keeps `.transformed(Type.self)` usable for the common
-/// secure unarchive path without requiring users to write their own retroactive conformance.
+/// `Transformable` secure-unarchive path without requiring users to write their own retroactive
+/// conformance.
 extension NSSecureUnarchiveFromDataTransformer: CDRegisteredValueTransformer {
   public class var transformerName: NSValueTransformerName {
     .secureUnarchiveFromDataTransformerName

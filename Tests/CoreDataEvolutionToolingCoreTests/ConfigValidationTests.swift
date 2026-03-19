@@ -307,6 +307,50 @@ struct ConfigValidationTests {
     }
   }
 
+  @Test("transformed storage requires a transformable model field")
+  func transformedStorageRequiresTransformableFieldAgainstModel() throws {
+    let model = makeModel()
+    let template = makeGenerateValidationTemplate(
+      attributeRules: .init(
+        entities: [
+          "Item": [
+            "name": .init(
+              swiftType: "String",
+              storageMethod: .transformed,
+              transformerName: "NSSecureUnarchiveFromData"
+            )
+          ]
+        ]
+      )
+    )
+
+    try expectConfigFailure(template, code: .configInvalid) {
+      try validateToolingConfigTemplate(template, against: model)
+    }
+  }
+
+  @Test("transformed storage requires a matching transformer name against the model")
+  func transformedStorageRequiresMatchingTransformerNameAgainstModel() throws {
+    let model = makeModel()
+    let template = makeGenerateValidationTemplate(
+      attributeRules: .init(
+        entities: [
+          "Item": [
+            "payload": .init(
+              swiftType: "Payload",
+              storageMethod: .transformed,
+              transformerName: "OtherTransformer"
+            )
+          ]
+        ]
+      )
+    )
+
+    try expectConfigFailure(template, code: .configInvalid) {
+      try validateToolingConfigTemplate(template, against: model)
+    }
+  }
+
   @Test("composition rules reject empty type names, field names, and swift names")
   func compositionRulesRejectInvalidStaticShape() throws {
     let emptyTypeTemplate = ToolingConfigTemplate(
@@ -700,6 +744,8 @@ struct ConfigValidationTests {
     let payloadAttribute = NSAttributeDescription()
     payloadAttribute.name = "payload"
     payloadAttribute.attributeType = .transformableAttributeType
+    payloadAttribute.valueTransformerName =
+      NSValueTransformerName.secureUnarchiveFromDataTransformerName.rawValue
 
     entity.properties = [nameAttribute, countAttribute, payloadAttribute]
 

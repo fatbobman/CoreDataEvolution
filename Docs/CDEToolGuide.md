@@ -439,7 +439,7 @@ type.
           "swiftName": "keywords",
           "swiftType": "[String]",
           "storageMethod": "transformed",
-          "transformerName": "CDEStringListTransformer"
+          "transformerName": "NSSecureUnarchiveFromData"
         }
       }
     }
@@ -450,6 +450,7 @@ type.
 For transformed storage:
 
 - `storageMethod` must be `"transformed"`
+- the Core Data field must be modeled as `Transformable`
 - `transformerName` is required
 - `swiftType` should be the Swift-facing property type you want the generated source to use
 

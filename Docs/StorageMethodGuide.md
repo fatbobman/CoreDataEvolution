@@ -264,7 +264,7 @@ You do not have to guess whether the framework is:
 
 ## `.transformed(...)`
 
-`.transformed(...)` is for `ValueTransformer`-backed storage.
+`.transformed(...)` is for real Core Data `Transformable` storage.
 
 Example:
 
@@ -305,51 +305,29 @@ Use `.transformed(name: "...")` when:
 
 ### Schema-backed model requirement
 
-For schema-backed Core Data models, the attribute type should match the transformer's stored output.
+For schema-backed Core Data models, `.transformed(...)` only applies when the field itself is
+modeled as `Transformable`.
 
-That means:
-
-- if your transformer returns `NSString`, model the field as `String`
-- if your transformer returns `NSData`, model the field as `Binary Data`
-- only use Core Data `Transformable` when the model is intentionally relying on a transformable
-  payload path, such as `NSSecureUnarchiveFromData`
-
-This is the most important rule for `.transformed(...)`:
+This is the core rule:
 
 - the Swift-facing type is your property type
-- the Core Data field type is the transformer's persisted output type
+- the Core Data field type must be `Transformable`
+- the Core Data model owns the `valueTransformerName`
 
-Example:
-
-```swift
-final class StringListTransformer: ValueTransformer, CDRegisteredValueTransformer {
-  static let transformerName = NSValueTransformerName("StringListTransformer")
-
-  override class func transformedValueClass() -> AnyClass { NSString.self }
-}
-
-@Attribute(storageMethod: .transformed(StringListTransformer.self))
-var tags: [String]? = nil
-```
-
-In this example, the Core Data field should be modeled as `String`, not `Transformable`.
-
-The generated accessor resolves the transformer through
-`ValueTransformer(forName:)` using the registration name published by the type.
-This matches Core Data's model-backed lookup more closely than constructing a new transformer
-instance on every access.
+Generated accessors use ordinary Core Data KVC reads and writes and let Core Data perform the
+object/payload conversion.
 
 The same declaration can also be written in the model-aligned form:
 
 ```swift
-@Attribute(storageMethod: .transformed(name: "StringListTransformer"))
+@Attribute(storageMethod: .transformed(name: "NSSecureUnarchiveFromData"))
 var tags: [String]? = nil
 ```
 
 ### Existing-model compatibility
 
-This path is especially useful for existing schemas that already store payloads through a stable
-transformer contract.
+This path is especially useful for existing schemas that already use Core Data `Transformable`
+attributes through a stable transformer contract.
 
 For collection payloads such as:
 
@@ -372,12 +350,13 @@ Example:
 var numbers: [Int]? = nil
 ```
 
-In that specific case, the schema-backed field is typically modeled as `Transformable`.
+In that case, the schema-backed field should be modeled as `Transformable`.
 
 Because the system transformer is already registered by Foundation, `name:` is the more direct and
 model-aligned form here.
 
-Register custom transformers before first access. Recommended registration points include:
+Register custom transformers before the model first needs them. Recommended registration points
+include:
 
 - app launch
 - test bootstrap

@@ -27,8 +27,8 @@ enum AttributeAccessorBuilderFactory {
       return RawAttributeAccessorBuilder()
     case .codable:
       return CodableAttributeAccessorBuilder()
-    case .transformed(let reference):
-      return TransformedAttributeAccessorBuilder(transformerReference: reference)
+    case .transformed:
+      return TransformedAttributeAccessorBuilder()
     case .composition:
       return CompositionAttributeAccessorBuilder()
     }
@@ -379,14 +379,9 @@ struct CodableAttributeAccessorBuilder: AttributeAccessorBuilder {
 }
 
 struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
-  let transformerReference: ParsedAttributeTransformedReference
-
-  // `.transformed(Type.self)` intentionally resolves through the ValueTransformer registration
-  // table via `ValueTransformer(forName:)` instead of constructing a fresh
-  // instance. This matches Core Data's model-side semantics more closely and requires the
-  // transformer type to publish a registration name through `CDRegisteredValueTransformer`.
-  //
-  // `.transformed(name: ...)` is the model-aligned form used by tooling output.
+  // `.transformed(...)` represents a real Core Data Transformable attribute.
+  // The Core Data model owns the valueTransformerName contract, while generated accessors
+  // simply read and write object values through KVC.
 
   func makeGetter(from info: AttributeInfo) -> AccessorDeclSyntax {
     let key = info.persistentName
@@ -399,19 +394,14 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
       return
         """
         get {
-          guard let transformer = \(raw: transformerLookupExpression()) else {
-            assertionFailure("Transformer '\(raw: transformerDiagnosticNameExpression())' is not registered for `\(raw: property)` (\(raw: key)).")
-            return nil
-          }
           let storedValue = value(forKey: "\(raw: key)")
           if let value = storedValue as? \(raw: wrappedType) {
             return value
           }
-          guard let value = transformer.reverseTransformedValue(storedValue) as? \(raw: wrappedType) else {
+          if storedValue != nil {
             assertionFailure("Invalid transformed payload for `\(raw: property)` (\(raw: key)).")
-            return nil
           }
-          return value
+          return nil
         }
         """
     }
@@ -421,18 +411,11 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
       return
         """
         get {
-          guard let transformer = \(raw: transformerLookupExpression()) else {
-            assertionFailure("Transformer '\(raw: transformerDiagnosticNameExpression())' is not registered for `\(raw: property)` (\(raw: key)).")
-            return \(raw: fallback)
-          }
           let storedValue = value(forKey: "\(raw: key)")
           if let value = storedValue as? \(raw: wrappedType) {
             return value
           }
-          guard let value = transformer.reverseTransformedValue(storedValue) as? \(raw: wrappedType) else {
-            return \(raw: fallback)
-          }
-          return value
+          return \(raw: fallback)
         }
         """
     }
@@ -442,18 +425,14 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
       return
         """
         get {
-          guard let transformer = \(raw: transformerLookupExpression()) else {
-            preconditionFailure("Transformer '\(raw: transformerDiagnosticNameExpression())' is not registered for required transformed property `\(raw: property)` (\(raw: key)).")
-          }
           let storedValue = value(forKey: "\(raw: key)")
           if let value = storedValue as? \(raw: type) {
             return value
           }
-          guard let value = transformer.reverseTransformedValue(storedValue) as? \(raw: type) else {
+          if storedValue != nil {
             assertionFailure("Invalid transformed payload for `\(raw: property)` (\(raw: key)).")
-            return \(raw: fallback)
           }
-          return value
+          return \(raw: fallback)
         }
         """
     }
@@ -462,48 +441,24 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
     return
       """
       get {
-        guard let transformer = \(raw: transformerLookupExpression()) else {
-          preconditionFailure("Transformer '\(raw: transformerDiagnosticNameExpression())' is not registered for required transformed property `\(raw: property)` (\(raw: key)).")
-        }
         let storedValue = value(forKey: "\(raw: key)")
         if let value = storedValue as? \(raw: type) {
           return value
         }
-        guard let value = transformer.reverseTransformedValue(storedValue) as? \(raw: type) else {
-          return \(raw: fallback)
-        }
-        return value
+        return \(raw: fallback)
       }
       """
   }
 
   func makeSetter(from info: AttributeInfo) -> AccessorDeclSyntax {
     let key = info.persistentName
-    let property = info.propertyName
-    let type = info.typeName
-    let wrappedType = info.nonOptionalTypeName
-    let fallback = info.defaultValueExpression ?? "nil"
     let policy = info.decodeFailurePolicy ?? .fallbackToDefaultValue
 
     if info.isOptional, policy == .debugAssertNil {
       return
         """
         set {
-          guard let transformer = \(raw: transformerLookupExpression()) else {
-            assertionFailure("Transformer '\(raw: transformerDiagnosticNameExpression())' is not registered for `\(raw: property)` (\(raw: key)).")
-            setValue(nil, forKey: "\(raw: key)")
-            return
-          }
-          if let newValue {
-            guard let transformed = transformer.transformedValue(newValue) else {
-              assertionFailure("Failed to transform value for `\(raw: property)` (\(raw: key)).")
-              setValue(nil, forKey: "\(raw: key)")
-              return
-            }
-            setValue(transformed, forKey: "\(raw: key)")
-          } else {
-            setValue(nil, forKey: "\(raw: key)")
-          }
+          setValue(newValue, forKey: "\(raw: key)")
         }
         """
     }
@@ -512,26 +467,7 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
       return
         """
         set {
-          guard let transformer = \(raw: transformerLookupExpression()) else {
-            assertionFailure("Transformer '\(raw: transformerDiagnosticNameExpression())' is not registered for `\(raw: property)` (\(raw: key)).")
-            setValue(nil, forKey: "\(raw: key)")
-            return
-          }
-          if let newValue {
-            if let transformed = transformer.transformedValue(newValue) {
-              setValue(transformed, forKey: "\(raw: key)")
-              return
-            }
-
-            let fallback: \(raw: wrappedType)? = \(raw: fallback)
-            if let fallback, let transformed = transformer.transformedValue(fallback) {
-              setValue(transformed, forKey: "\(raw: key)")
-            } else {
-              setValue(nil, forKey: "\(raw: key)")
-            }
-          } else {
-            setValue(nil, forKey: "\(raw: key)")
-          }
+          setValue(newValue, forKey: "\(raw: key)")
         }
         """
     }
@@ -540,15 +476,7 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
       return
         """
         set {
-          guard let transformer = \(raw: transformerLookupExpression()) else {
-            preconditionFailure("Transformer '\(raw: transformerDiagnosticNameExpression())' is not registered for required transformed property `\(raw: property)` (\(raw: key)).")
-          }
-          guard let transformed = transformer.transformedValue(newValue) else {
-            assertionFailure("Failed to transform value for `\(raw: property)` (\(raw: key)).")
-            setValue(nil, forKey: "\(raw: key)")
-            return
-          }
-          setValue(transformed, forKey: "\(raw: key)")
+          setValue(newValue, forKey: "\(raw: key)")
         }
         """
     }
@@ -556,39 +484,9 @@ struct TransformedAttributeAccessorBuilder: AttributeAccessorBuilder {
     return
       """
       set {
-        guard let transformer = \(raw: transformerLookupExpression()) else {
-          preconditionFailure("Transformer '\(raw: transformerDiagnosticNameExpression())' is not registered for required transformed property `\(raw: property)` (\(raw: key)).")
-        }
-        if let transformed = transformer.transformedValue(newValue) {
-          setValue(transformed, forKey: "\(raw: key)")
-          return
-        }
-        let fallback: \(raw: type) = \(raw: fallback)
-        setValue(transformer.transformedValue(fallback), forKey: "\(raw: key)")
+        setValue(newValue, forKey: "\(raw: key)")
       }
       """
-  }
-
-  private func transformerLookupExpression() -> String {
-    "ValueTransformer(forName: \(transformerRegistrationNameExpression()))"
-  }
-
-  private func transformerRegistrationNameExpression() -> String {
-    switch transformerReference {
-    case .type(let transformerType):
-      return "\(transformerType).transformerName"
-    case .name(let transformerName):
-      return #"NSValueTransformerName("\#(escapeStringLiteral(transformerName))")"#
-    }
-  }
-
-  private func transformerDiagnosticNameExpression() -> String {
-    switch transformerReference {
-    case .type(let transformerType):
-      return #"\\(\#(transformerType).transformerName.rawValue)"#
-    case .name(let transformerName):
-      return escapeStringLiteral(transformerName)
-    }
   }
 }
 

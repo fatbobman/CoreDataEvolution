@@ -603,6 +603,22 @@ private func validateTypeResolutionCoverage(
           )
         }
       case .transformed:
+        guard attribute.attributeType == .transformableAttributeType else {
+          throw configValidationFailure(
+            "\(context).attributeRules.\(entityName).\(fieldName).storageMethod 'transformed' requires the Core Data field to be modeled as Transformable."
+          )
+        }
+        let expectedTransformerName = rule.transformerName?.trimmingCharacters(
+          in: .whitespacesAndNewlines
+        )
+        let actualTransformerName = attribute.valueTransformerName?.trimmingCharacters(
+          in: .whitespacesAndNewlines
+        )
+        guard expectedTransformerName == actualTransformerName else {
+          throw configValidationFailure(
+            "\(context).attributeRules.\(entityName).\(fieldName).transformerName '\(expectedTransformerName ?? "<none>")' does not match the Core Data model valueTransformerName '\(actualTransformerName ?? "<none>")'."
+          )
+        }
         if rule.swiftType?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true {
           throw configValidationFailure(
             "\(context).attributeRules.\(entityName).\(fieldName).swiftType is required when storageMethod is 'transformed'."
