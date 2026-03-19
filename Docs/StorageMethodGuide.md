@@ -137,8 +137,8 @@ General rule for custom storage:
 - `.raw`, `.codable`, `.transformed(...)`, and `.composition` are custom storage methods
 - `.codable`, `.transformed(...)`, and `.composition` currently require optional declarations
 - for those three storage methods, the only supported explicit default is `nil`
-- `.raw` remains the only custom storage path that may still align with a model-backed primitive
-  default
+- `.raw` remains the only custom storage path that may be declared as optional, non-optional with
+  an explicit default, or non-optional without a default
 
 ## `.default`
 
@@ -223,8 +223,24 @@ Use this when:
 `.raw` is the exception among custom storage methods.
 
 Unlike `.codable`, `.transformed(...)`, and `.composition`, `.raw` may still be used with
-non-optional properties, as long as the type is `RawRepresentable` and the property still follows
-the normal non-optional default-value rule.
+non-optional properties, as long as the type is `RawRepresentable`.
+
+Valid examples:
+
+```swift
+@Attribute(storageMethod: .raw)
+var status: Status? = .draft
+
+@Attribute(storageMethod: .raw)
+var status: Status = .draft
+
+@Attribute(storageMethod: .raw)
+var status: Status
+```
+
+When a non-optional `.raw` property omits a Swift default, the generated accessor treats a missing
+or invalid underlying raw value as a model invariant violation and traps instead of inventing a
+fallback.
 
 ## `.codable`
 
@@ -522,6 +538,9 @@ var config: ItemConfig? = nil
 For `.codable` and `.transformed(...)`, `.fallbackToDefaultValue` currently falls back to `nil`.
 Those storage methods are limited to optional declarations and do not support non-`nil` source
 defaults, so there is no separate model-backed value to reconstruct after a decode failure.
+
+For non-optional `.raw` properties without an explicit default, decode failure is treated as a
+required-value invariant violation and traps.
 
 This policy does not apply to plain primitive `.default` storage.
 

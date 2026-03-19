@@ -80,7 +80,8 @@ Requirements shown in this example:
 - Every persisted property must be one of these:
 - an optional property
 - a non-optional property that uses `.default` storage, with or without an explicit default value
-- Non-optional custom-storage properties are not supported.
+- a non-optional property that uses `.raw` storage, with or without an explicit default value
+- Other custom-storage properties (`.codable`, `.transformed`, `.composition`) are optional-only.
 
 ## What `@PersistentModel` Generates
 
@@ -223,6 +224,17 @@ var status: Status? = .draft
 
 Use `.raw` for enums or other `RawRepresentable` types.
 
+Unlike the other custom storage methods, `.raw` may also be declared as a non-optional property.
+Both of these are valid:
+
+```swift
+@Attribute(storageMethod: .raw)
+var status: Status = .draft
+
+@Attribute(storageMethod: .raw)
+var status: Status
+```
+
 ### Codable Storage
 
 ```swift
@@ -280,6 +292,9 @@ Supported policies:
 For `.codable` and `.transformed`, `.fallbackToDefaultValue` now effectively means
 "fallback to `nil`". These storage methods currently require optional declarations and do not
 support non-`nil` source defaults, so there is no separate model-backed value to restore.
+
+For non-optional `.raw` properties that omit an explicit Swift default, decode failure is treated
+as a model invariant violation and traps instead of inventing a fallback.
 
 `decodeFailurePolicy` does not apply to `.composition`. Composition properties are currently
 optional-only, but that rule is enforced through the storage method itself rather than through
@@ -743,8 +758,8 @@ Current rules:
 
 - `.codable`, `.transformed`, and `.composition` currently require optional properties
 - for those three storage methods, the only supported explicit default is `nil`
-- `.raw` remains a separate case because its backing primitive can still align with a model-backed
-  default in some cases
+- `.raw` remains a separate case and may be optional, non-optional with an explicit default, or
+  non-optional without a default
 
 ## Generated Init
 
@@ -837,7 +852,9 @@ Before using `@PersistentModel`, make sure all of these are true.
 
 - `.default` storage attributes may be optional, non-optional with an explicit default, or
   non-optional without a default
-- non-optional custom-storage attributes are not supported
+- `.raw` storage attributes may be optional, non-optional with an explicit default, or
+  non-optional without a default
+- `.codable`, `.transformed`, and `.composition` storage attributes are optional-only
 - `.unique` is supported
 - `.transient` is supported only with `.default`
 - derived attributes are not supported

@@ -97,9 +97,9 @@ Runtime schema / runtime model builder 的 v1 边界：
 - `persistentName` 的语义与 SwiftData 的 `originalName` 不同：
   - `persistentName` 表示“当前 Swift 属性对应的持久化字段名”
   - 不表示“旧 schema 中的历史属性名”
-- `.default` 持久化属性允许三种形式：可选、非可选且显式默认值、非可选且无默认值。可选属性省略初始化器时视为默认 `nil`。  
-- 非可选且无默认值仅适用于 `.default`；`.raw` / `.codable` / `.transformed` / `.composition` 维持更严格规则。  
-- 当 `.default` 的非可选属性无默认值时，模型层也允许无默认值；读取到底层缺值应视为模型不变量损坏，而不是 fallback。  
+- `.default` 与 `.raw` 持久化属性都允许三种形式：可选、非可选且显式默认值、非可选且无默认值。可选属性省略初始化器时视为默认 `nil`。  
+- `.codable` / `.transformed` / `.composition` 维持更严格规则：仅支持可选声明。  
+- 当 `.default` 或 `.raw` 的非可选属性无默认值时，模型层也允许无默认值；读取到底层缺值（或 `.raw` 的非法 raw 值）应视为模型不变量损坏，而不是 fallback。  
 - 对基础类型自动 `.default`。  
 - 非基础类型必须显式 `storageMethod`。  
 - 支持 `.raw` `.codable` `.transformed` `.composition`。  

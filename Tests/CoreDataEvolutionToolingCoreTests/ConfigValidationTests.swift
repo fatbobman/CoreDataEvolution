@@ -603,9 +603,9 @@ struct ConfigValidationTests {
     try validateToolingConfigTemplate(template, against: model)
   }
 
-  @Test("generate rejects non-optional custom storage even with model default")
-  func generateRejectsNonOptionalCustomStorage() throws {
-    let model = makeModelWithCustomStorageCandidate()
+  @Test("generate accepts non-optional raw storage with model default")
+  func generateAcceptsNonOptionalRawStorageWithModelDefault() throws {
+    let model = makeModelWithRawStorageCandidate()
     let template = makeGenerateValidationTemplate(
       attributeRules: .init(
         entities: [
@@ -619,14 +619,50 @@ struct ConfigValidationTests {
       )
     )
 
-    try expectConfigFailure(template, code: .configInvalid) {
-      try validateToolingConfigTemplate(template, against: model)
-    }
+    try validateToolingConfigTemplate(template, against: model)
+  }
+
+  @Test("generate accepts non-optional raw storage without model default")
+  func generateAcceptsNonOptionalRawStorageWithoutModelDefault() throws {
+    let model = makeModelWithMissingNonOptionalRawDefault()
+    let template = makeGenerateValidationTemplate(
+      attributeRules: .init(
+        entities: [
+          "Item": [
+            "status_raw": .init(
+              swiftType: "ItemStatus",
+              storageMethod: .raw
+            )
+          ]
+        ]
+      )
+    )
+
+    try validateToolingConfigTemplate(template, against: model)
   }
 
   @Test("validate accepts non-optional raw storage when model provides default")
   func validateAcceptsNonOptionalRawStorageWithModelDefault() throws {
-    let model = makeModelWithCustomStorageCandidate()
+    let model = makeModelWithRawStorageCandidate()
+    let template = makeValidateValidationTemplate(
+      attributeRules: .init(
+        entities: [
+          "Item": [
+            "status_raw": .init(
+              swiftType: "ItemStatus",
+              storageMethod: .raw
+            )
+          ]
+        ]
+      )
+    )
+
+    try validateToolingConfigTemplate(template, against: model)
+  }
+
+  @Test("validate accepts non-optional raw storage without model default")
+  func validateAcceptsNonOptionalRawStorageWithoutModelDefault() throws {
+    let model = makeModelWithMissingNonOptionalRawDefault()
     let template = makeValidateValidationTemplate(
       attributeRules: .init(
         entities: [
@@ -835,12 +871,28 @@ struct ConfigValidationTests {
     return model
   }
 
-  private func makeModelWithCustomStorageCandidate() -> NSManagedObjectModel {
+  private func makeModelWithRawStorageCandidate() -> NSManagedObjectModel {
     let attribute = NSAttributeDescription()
     attribute.name = "status_raw"
     attribute.attributeType = .stringAttributeType
     attribute.isOptional = false
     attribute.defaultValue = "draft"
+
+    let entity = NSEntityDescription()
+    entity.name = "Item"
+    entity.managedObjectClassName = "NSManagedObject"
+    entity.properties = [attribute]
+
+    let model = NSManagedObjectModel()
+    model.entities = [entity]
+    return model
+  }
+
+  private func makeModelWithMissingNonOptionalRawDefault() -> NSManagedObjectModel {
+    let attribute = NSAttributeDescription()
+    attribute.name = "status_raw"
+    attribute.attributeType = .stringAttributeType
+    attribute.isOptional = false
 
     let entity = NSEntityDescription()
     entity.name = "Item"

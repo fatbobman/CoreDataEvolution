@@ -177,6 +177,20 @@ struct RawAttributeAccessorBuilder: AttributeAccessorBuilder {
         """
     }
 
+    if info.defaultValueExpression == nil {
+      return
+        """
+        get {
+          guard let rawValue = value(forKey: "\(raw: key)") as? \(raw: type).RawValue,
+            let value = \(raw: type)(rawValue: rawValue)
+          else {
+            preconditionFailure("Missing or invalid required raw value for `\(raw: property)` (\(raw: key)).")
+          }
+          return value
+        }
+        """
+    }
+
     if policy == .debugAssertNil {
       let fallback = info.defaultValueExpression ?? "nil"
       return

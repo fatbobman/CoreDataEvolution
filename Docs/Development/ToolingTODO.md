@@ -199,7 +199,7 @@
 - `[ ]` conformance validate 允许额外 `@Ignore` stored property，但 exact 会对 tool-managed 文件做精确漂移比对；在当前 Swift 语义下，额外 `@Ignore` stored property 仍无法与 exact 共存，除非未来引入专门的额外属性配置/生成能力。
 - `[ ]` exact 模式与 `singleFile` 可以共存，但开发体验不佳；长期使用 exact 时更推荐 `splitByEntity + emitExtensionStubs`。
 - `[ ]` exact 模式当前是文本级 drift 检查，不适合作为默认模式；如果团队使用它，需让 formatter/linter 忽略 tool-managed 文件。
-- `[ ]` generate 当前只会直接使用模型默认值；对于非可选自定义 raw/codable/composition/transformed 类型，仍缺少未来的显式代码默认值规则。
+- `[ ]` generate 当前只会直接使用模型默认值；对于非可选自定义 codable/composition/transformed 类型，仍缺少未来的显式代码默认值规则。
 - `[ ]` validate 当前只校验 composition 属性声明，不校验 composition 子路径/字段展开细节；该能力需要先有 tooling 层的 composition field mapping 描述模型。
 - `[ ]` validate v1 将以“符合当前 tool 生成约定”为准，不尝试判断任意语义等价默认值写法。
 - `[ ]` validate autofix 当前只应用可确定的文本修复；涉及 storage strategy 迁移、复杂默认值表达式、属性重命名与 `@Ignore` 推断的场景仍只提供诊断，不自动改写。

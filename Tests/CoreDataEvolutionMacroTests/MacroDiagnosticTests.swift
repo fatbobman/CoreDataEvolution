@@ -1020,7 +1020,8 @@ struct MacroDiagnosticTests {
       })
   }
 
-  @Test("Attribute custom storage currently requires optional declarations")
+  @Test(
+    "Attribute codable/transformed/composition storage currently requires optional declarations")
   func attributeCustomStorageRequiresOptionalDeclarations() throws {
     let codableResult = try MacroTestSupport.expand(
       source: """
@@ -1113,6 +1114,26 @@ struct MacroDiagnosticTests {
         """
     )
     #expect(explicitResult.diagnostics.isEmpty)
+  }
+
+  @Test("Attribute non-optional raw storage can omit default value")
+  func attributeNonOptionalRawStorageCanOmitDefaultValue() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        enum Status: String { case draft, published }
+        struct S {
+          @Attribute(storageMethod: .raw)
+          var status: Status
+        }
+        """
+    )
+
+    #expect(result.diagnostics.isEmpty)
+    #expect(
+      result.expandedSource.contains(
+        #"preconditionFailure("Missing or invalid required raw value for `status` (status).")"#
+      )
+    )
   }
 
   @Test("PersistentModel emits nil runtime default for required default storage attribute")

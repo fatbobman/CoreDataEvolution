@@ -691,9 +691,9 @@ enum AttributeDecodeFailurePolicy {
 
 附加在属性声明上，根据 `storageMethod` 生成对应的 getter/setter。
 字段名参数使用 `persistentName:`。
-默认值约束：非可选持久化属性必须显式提供默认值；可选属性可省略初始化器（按 `nil` 处理）。
+默认值约束：`.default` 与 `.raw` 的非可选持久化属性可省略显式默认值；其他存储策略仍要求可选声明。可选属性可省略初始化器（按 `nil` 处理）。
 可选属性省略初始化器时，视为默认 `nil`（无需显式写 `= nil`）。
-模型侧同构约束：xcdatamodeld 中若 attribute 为 `Optional=false`，必须配置默认值；`Optional=true` 可以不配置默认值。
+模型侧同构约束：xcdatamodeld 中若 `.default` / `.raw` attribute 为 `Optional=false`，可以有也可以没有默认值；其他自定义存储首版仍按 optional-only 处理。`Optional=true` 可以不配置默认值。
 `decodeFailurePolicy` 仅适用于 `.raw` / `.codable` / `.transformed`，默认 `.fallbackToDefaultValue`，可选 `.debugAssertNil`。
 `.raw` 会在编译期约束属性类型满足 `RawRepresentable`，`.codable` 约束为 `Codable`，`.transformed` 要求传入符合 `CDRegisteredValueTransformer` 的元类型（如 `T.self`），`.composition` 约束属性类型满足 `@Composition` 生成协议。
 
@@ -775,6 +775,7 @@ var status: Status? {
 ```
 
 `RawRepresentable` **不会自动推断**，必须显式写 `storageMethod: .raw`。
+若属性为非可选且未声明默认值，则读取到缺值或非法 rawValue 时按模型不变量损坏处理并 trap。
 
 ### .codable — Codable 序列化为 Data
 

@@ -397,6 +397,22 @@ struct ValidateServiceTests {
     #expect(result.errorCount == 0)
   }
 
+  @Test("validate exact accepts non-optional raw storage without model default")
+  func validateExactAcceptsNonOptionalRawStorageWithoutModelDefault() throws {
+    let fixture = try makeRawRequiredNoDefaultExactValidationFixture()
+    defer { fixture.cleanUp() }
+
+    let result = try ValidateService.run(
+      makeValidateRequest(
+        sourceDirectory: fixture.sourceDirectory.path,
+        modelPath: fixture.modelPath,
+        level: .exact
+      )
+    )
+
+    #expect(result.errorCount == 0)
+  }
+
   private func makeValidationFixture(
     mutateContents: ((String) -> String)? = nil,
     relationshipRules: ToolingRelationshipRules = .init()
@@ -446,6 +462,68 @@ struct ValidateServiceTests {
           #"<attribute name="status_raw" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>"#,
         with:
           #"<attribute name="status_raw" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>"#
+      )
+    }.path
+    let temporaryDirectory = FileManager.default.temporaryDirectory
+      .appendingPathComponent("CoreDataEvolutionToolingCoreTests", isDirectory: true)
+      .appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try FileManager.default.createDirectory(
+      at: temporaryDirectory,
+      withIntermediateDirectories: true
+    )
+
+    let loadedModel = try ToolingModelLoader.loadValidatedSourceModel(
+      modelPath: modelPath,
+      modelVersion: nil,
+      momcBin: nil
+    )
+    let request = makeValidateRequest(
+      sourceDirectory: temporaryDirectory.path,
+      modelPath: modelPath,
+      level: .exact
+    )
+    let buildResult = ToolingIRBuilder.build(
+      from: loadedModel,
+      request: .init(validateRequest: request)
+    )
+    let renderedSources = try ToolingSourceRenderer.renderSources(
+      from: buildResult.modelIR,
+      moduleName: request.moduleName,
+      header: request.headerTemplate
+    )
+    let filePlan = try ToolingFilePlanner.makeFilePlan(
+      from: renderedSources,
+      outputDir: temporaryDirectory.path
+    )
+    for file in filePlan {
+      let outputURL = URL(fileURLWithPath: file.outputPath)
+      try FileManager.default.createDirectory(
+        at: outputURL.deletingLastPathComponent(),
+        withIntermediateDirectories: true
+      )
+      try file.contents.write(to: outputURL, atomically: true, encoding: .utf8)
+    }
+
+    return (
+      modelPath,
+      temporaryDirectory,
+      {
+        try? FileManager.default.removeItem(at: temporaryDirectory)
+        try? FileManager.default.removeItem(
+          at: URL(fileURLWithPath: modelPath).deletingLastPathComponent())
+      }
+    )
+  }
+
+  private func makeRawRequiredNoDefaultExactValidationFixture() throws -> (
+    modelPath: String, sourceDirectory: URL, cleanUp: () -> Void
+  ) {
+    let modelPath = try makeToolingSourceModelFixture { contents in
+      contents.replacingOccurrences(
+        of:
+          #"<attribute name="status_raw" optional="YES" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>"#,
+        with:
+          #"<attribute name="status_raw" attributeType="Integer 32" usesScalarValueType="YES"/>"#
       )
     }.path
     let temporaryDirectory = FileManager.default.temporaryDirectory

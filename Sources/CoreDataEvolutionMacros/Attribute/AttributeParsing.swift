@@ -89,10 +89,10 @@ func buildAttributeInfo(
   let isUnique = arguments.traits.contains(.unique)
   let isTransient = arguments.traits.contains(.transient)
 
-  if defaultValueExpression == nil && storageMethod != .default {
+  if defaultValueExpression == nil && storageMethod != .default && storageMethod != .raw {
     if emitDiagnostics {
       MacroDiagnosticReporter.error(
-        "@Attribute non-optional properties without explicit defaults are only supported with `.default` storage.",
+        "@Attribute non-optional properties without explicit defaults are only supported with `.default` or `.raw` storage.",
         domain: attributeMacroDomain,
         id: "missing-default-value",
         in: context,

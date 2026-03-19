@@ -533,16 +533,7 @@ public enum ToolingSourceRenderer {
           "generate could not resolve a Swift type for non-optional raw attribute '\(attribute.swiftName)'."
         )
       }
-      guard let rawValueLiteral = attribute.modelDefaultValueLiteral else {
-        throw ToolingFailure.user(
-          .configInvalid,
-          """
-          generate cannot derive a non-optional default for raw storage '\(storageMethod.rawValue)' \
-          on '\(attribute.swiftName)' without a model default. Make the field optional or keep \
-          default storage for required fields.
-          """
-        )
-      }
+      guard let rawValueLiteral = attribute.modelDefaultValueLiteral else { return nil }
       return "\(rawType)(rawValue: \(rawValueLiteral))!"
     case .codable, .composition, .transformed:
       throw ToolingFailure.user(
