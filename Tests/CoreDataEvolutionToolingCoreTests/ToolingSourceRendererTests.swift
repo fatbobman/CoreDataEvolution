@@ -308,6 +308,58 @@ struct ToolingSourceRendererTests {
     }
   }
 
+  @Test("renderer emits non-optional raw storage using model default literal")
+  func rendererEmitsNonOptionalRawStorageDefault() throws {
+    let modelIR = ToolingModelIR(
+      source: .init(
+        originalPath: "/virtual/AppModel.xcdatamodeld",
+        selectedSourcePath: "/virtual/AppModel.xcdatamodeld/V1.xcdatamodel",
+        compiledModelPath: "/virtual/AppModel.momd",
+        inputKind: .xcdatamodeld,
+        selectedVersionName: "V1.xcdatamodel"
+      ),
+      generationPolicy: .init(
+        accessLevel: .internal,
+        singleFile: false,
+        splitByEntity: true,
+        generateInit: false,
+        defaultDecodeFailurePolicy: .fallbackToDefaultValue
+      ),
+      entities: [
+        .init(
+          name: "Item",
+          managedObjectClassName: "NSManagedObject",
+          representedClassName: "Item",
+          attributes: [
+            .init(
+              persistentName: "status_raw",
+              swiftName: "status",
+              coreDataAttributeType: "Integer 32",
+              coreDataPrimitiveType: "Int32",
+              isOptional: false,
+              hasModelDefaultValue: true,
+              modelDefaultValueLiteral: "0",
+              storage: .init(
+                method: .raw,
+                swiftType: "ItemStatus",
+                nonOptionalSwiftType: "ItemStatus",
+                transformerName: nil,
+                decodeFailurePolicy: .fallbackToDefaultValue,
+                isResolved: true
+              )
+            )
+          ],
+          relationships: [],
+          compositions: []
+        )
+      ]
+    )
+
+    let source = try #require(ToolingSourceRenderer.renderSources(from: modelIR).first?.contents)
+
+    #expect(source.contains(#"var status: ItemStatus = ItemStatus(rawValue: 0)!"#))
+  }
+
   @Test(
     "renderer emits required default storage without an initializer when model default is absent")
   func rendererEmitsRequiredDefaultStorageWithoutInitializer() throws {

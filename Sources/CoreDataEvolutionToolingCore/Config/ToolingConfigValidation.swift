@@ -89,11 +89,13 @@ private func validateResolvedToolingSchemaConfig(
   context: String,
   entitiesByName: [String: NSEntityDescription]
 ) throws {
+  let allowNonOptionalRawStorageWithModelDefault = context == "validate"
   try validateToolingModelConstraints(
     entitiesByName: entitiesByName,
     attributeRules: config.attributeRules,
     relationshipRules: config.relationshipRules,
-    context: context
+    context: context,
+    allowNonOptionalRawStorageWithModelDefault: allowNonOptionalRawStorageWithModelDefault
   )
   try validateAttributeRules(
     config.attributeRules,
@@ -125,7 +127,8 @@ private func validateToolingModelConstraints(
   entitiesByName: [String: NSEntityDescription],
   attributeRules: ToolingAttributeRules,
   relationshipRules: ToolingRelationshipRules,
-  context: String
+  context: String,
+  allowNonOptionalRawStorageWithModelDefault: Bool
 ) throws {
   for (entityName, entity) in entitiesByName {
     let rules = attributeRules[entity: entityName]
@@ -148,6 +151,12 @@ private func validateToolingModelConstraints(
         )
       }
       if storageMethod != .default, attribute.isOptional == false {
+        if allowNonOptionalRawStorageWithModelDefault,
+          storageMethod == .raw,
+          attribute.defaultValue != nil
+        {
+          continue
+        }
         throw configValidationFailure(
           """
           \(context) does not support non-optional custom storage for '\(entityName).\(fieldName)'. \

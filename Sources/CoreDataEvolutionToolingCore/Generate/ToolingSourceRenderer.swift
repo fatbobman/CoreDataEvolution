@@ -512,8 +512,8 @@ public enum ToolingSourceRenderer {
   }
 
   // V1 generation follows model defaults exactly. It does not invent code-side defaults for
-  // required fields, and it does not convert persistent defaults into custom storage values such
-  // as enums, codable payloads, or compositions.
+  // required fields. For `.raw` storage, validate exact mode can still render a stable source
+  // default by wrapping the persistent literal in `RawRepresentable(rawValue:)!`.
   private static func renderDefaultValue(
     for attribute: ToolingAttributeIR,
     storageMethod: ToolingAttributeStorageRule,
@@ -526,7 +526,25 @@ public enum ToolingSourceRenderer {
     switch storageMethod {
     case .default:
       return attribute.modelDefaultValueLiteral
-    case .raw, .codable, .composition, .transformed:
+    case .raw:
+      guard let rawType = attribute.storage.nonOptionalSwiftType else {
+        throw ToolingFailure.user(
+          .configInvalid,
+          "generate could not resolve a Swift type for non-optional raw attribute '\(attribute.swiftName)'."
+        )
+      }
+      guard let rawValueLiteral = attribute.modelDefaultValueLiteral else {
+        throw ToolingFailure.user(
+          .configInvalid,
+          """
+          generate cannot derive a non-optional default for raw storage '\(storageMethod.rawValue)' \
+          on '\(attribute.swiftName)' without a model default. Make the field optional or keep \
+          default storage for required fields.
+          """
+        )
+      }
+      return "\(rawType)(rawValue: \(rawValueLiteral))!"
+    case .codable, .composition, .transformed:
       throw ToolingFailure.user(
         .configInvalid,
         """

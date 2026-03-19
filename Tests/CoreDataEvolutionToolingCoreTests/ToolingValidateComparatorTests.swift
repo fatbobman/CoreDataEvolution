@@ -549,6 +549,53 @@ struct ToolingValidateComparatorTests {
     )
     #expect(diagnosticsWithIgnore.isEmpty)
   }
+
+  @Test("comparator accepts non-optional raw storage when model default exists")
+  func comparatorAcceptsNonOptionalRawStorageWithModelDefault() {
+    let diagnostics = ToolingValidateComparator.compareQuick(
+      expected: requiredRawStorageModelIR(),
+      actual: .init(
+        sourceDirectory: "/virtual/Sources",
+        entities: [
+          .init(
+            filePath: "/virtual/Sources/Item.swift",
+            className: "Item",
+            objcEntityName: "Item",
+            persistentModelArguments: .init(generateInit: false),
+            properties: [
+              .init(
+                filePath: "/virtual/Sources/Item.swift",
+                name: "status",
+                typeName: "ItemStatus",
+                nonOptionalTypeName: "ItemStatus",
+                declarationRange: dummyRange(0, 0),
+                declarationIndent: "  ",
+                isOptional: false,
+                defaultValueLiteral: ".draft",
+                defaultValueRange: dummyRange(0, 0),
+                isStored: true,
+                isStatic: false,
+                hasIgnore: false,
+                attribute: .init(
+                  range: dummyRange(0, 0),
+                  persistentName: "status_raw",
+                  storageMethod: .raw,
+                  transformerName: nil,
+                  transformerTypeName: nil,
+                  decodeFailurePolicy: nil
+                ),
+                relationshipShape: nil
+              )
+            ],
+            customMembers: []
+          )
+        ]
+      ),
+      level: .conformance
+    )
+
+    #expect(diagnostics.isEmpty)
+  }
 }
 
 private func ambiguousRelationshipModelIR() -> ToolingModelIR {
@@ -639,6 +686,55 @@ private func requiredDefaultStorageModelIR() -> ToolingModelIR {
               nonOptionalSwiftType: "String",
               transformerName: nil,
               decodeFailurePolicy: nil,
+              isResolved: true
+            )
+          )
+        ],
+        relationships: [],
+        compositions: []
+      )
+    ]
+  )
+}
+
+private func requiredRawStorageModelIR() -> ToolingModelIR {
+  .init(
+    source: .init(
+      originalPath: "/virtual/AppModel.xcdatamodeld",
+      selectedSourcePath: "/virtual/AppModel.xcdatamodeld/V1.xcdatamodel",
+      compiledModelPath: "/virtual/AppModel.momd",
+      inputKind: .xcdatamodeld,
+      selectedVersionName: "V1.xcdatamodel"
+    ),
+    generationPolicy: .init(
+      accessLevel: .internal,
+      singleFile: false,
+      splitByEntity: true,
+      generateInit: false,
+      defaultDecodeFailurePolicy: .fallbackToDefaultValue
+    ),
+    entities: [
+      .init(
+        name: "Item",
+        managedObjectClassName: "NSManagedObject",
+        representedClassName: "Item",
+        attributes: [
+          .init(
+            persistentName: "status_raw",
+            swiftName: "status",
+            coreDataAttributeType: "Integer 32",
+            coreDataPrimitiveType: "Int32",
+            isUnique: false,
+            isTransient: false,
+            isOptional: false,
+            hasModelDefaultValue: true,
+            modelDefaultValueLiteral: "0",
+            storage: .init(
+              method: .raw,
+              swiftType: "ItemStatus",
+              nonOptionalSwiftType: "ItemStatus",
+              transformerName: nil,
+              decodeFailurePolicy: .fallbackToDefaultValue,
               isResolved: true
             )
           )

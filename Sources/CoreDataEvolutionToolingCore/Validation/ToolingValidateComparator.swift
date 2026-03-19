@@ -417,7 +417,27 @@ public enum ToolingValidateComparator {
           )
         )
       }
-    case .raw, .codable, .composition, .transformed:
+    case .raw:
+      guard attribute.hasModelDefaultValue else {
+        diagnostics.append(
+          error(
+            "validate does not support non-optional raw storage without a model default for '\(entityName).\(expectedPropertyName)'."
+          )
+        )
+        return
+      }
+
+      guard let actualDefault = sourceProperty.defaultValueLiteral,
+        normalizeLiteral(actualDefault) != "nil"
+      else {
+        diagnostics.append(
+          error(
+            "validate requires non-optional raw storage for '\(entityName).\(expectedPropertyName)' to declare an explicit non-nil Swift default."
+          )
+        )
+        return
+      }
+    case .codable, .composition, .transformed:
       diagnostics.append(
         error(
           "validate does not support non-optional \(attribute.storage.method.rawValue) storage for '\(entityName).\(expectedPropertyName)'."

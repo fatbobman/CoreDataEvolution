@@ -624,6 +624,25 @@ struct ConfigValidationTests {
     }
   }
 
+  @Test("validate accepts non-optional raw storage when model provides default")
+  func validateAcceptsNonOptionalRawStorageWithModelDefault() throws {
+    let model = makeModelWithCustomStorageCandidate()
+    let template = makeValidateValidationTemplate(
+      attributeRules: .init(
+        entities: [
+          "Item": [
+            "status_raw": .init(
+              swiftType: "ItemStatus",
+              storageMethod: .raw
+            )
+          ]
+        ]
+      )
+    )
+
+    try validateToolingConfigTemplate(template, against: model)
+  }
+
   @Test("generate rejects transient attribute with custom storage")
   func generateRejectsTransientAttributeWithCustomStorage() throws {
     let model = makeModelWithTransientAttribute()
@@ -724,6 +743,38 @@ struct ConfigValidationTests {
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       validate: nil
+    )
+  }
+
+  private func makeValidateValidationTemplate(
+    attributeRules: ToolingAttributeRules? = nil
+  ) -> ToolingConfigTemplate {
+    ToolingConfigTemplate(
+      schemaVersion: toolingSupportedSchemaVersion,
+      generate: nil,
+      validate: .init(
+        modelPath: "Models/AppModel.xcdatamodeld",
+        modelVersion: nil,
+        momcBin: nil,
+        sourceDir: "Sources/AppModels",
+        moduleName: "AppModels",
+        typeMappings: nil,
+        attributeRules: attributeRules,
+        relationshipRules: nil,
+        compositionRules: nil,
+        accessLevel: .internal,
+        singleFile: false,
+        splitByEntity: true,
+        headerTemplate: nil,
+        generateInit: false,
+        defaultDecodeFailurePolicy: .fallbackToDefaultValue,
+        include: [],
+        exclude: [],
+        level: .conformance,
+        report: .text,
+        failOnWarning: false,
+        maxIssues: 200
+      )
     )
   }
 
