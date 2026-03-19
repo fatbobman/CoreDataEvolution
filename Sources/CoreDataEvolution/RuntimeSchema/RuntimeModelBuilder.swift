@@ -355,7 +355,7 @@ public enum CDRuntimeModelBuilder {
         primitiveType: primitiveType
       )
     case .int16:
-      guard let value = Int16(expression) else {
+      guard let value = Int16(normalizedNumericLiteral(expression)) else {
         throw unsupportedDefaultValue(
           entityName: entityName,
           attributeName: attributeName,
@@ -365,7 +365,7 @@ public enum CDRuntimeModelBuilder {
       }
       return value
     case .int32:
-      guard let value = Int32(expression) else {
+      guard let value = Int32(normalizedNumericLiteral(expression)) else {
         throw unsupportedDefaultValue(
           entityName: entityName,
           attributeName: attributeName,
@@ -375,7 +375,7 @@ public enum CDRuntimeModelBuilder {
       }
       return value
     case .int64:
-      guard let value = Int64(expression) else {
+      guard let value = Int64(normalizedNumericLiteral(expression)) else {
         throw unsupportedDefaultValue(
           entityName: entityName,
           attributeName: attributeName,
@@ -385,7 +385,7 @@ public enum CDRuntimeModelBuilder {
       }
       return value
     case .float:
-      guard let value = Float(expression) else {
+      guard let value = Float(normalizedNumericLiteral(expression)) else {
         throw unsupportedDefaultValue(
           entityName: entityName,
           attributeName: attributeName,
@@ -395,7 +395,7 @@ public enum CDRuntimeModelBuilder {
       }
       return value
     case .double:
-      guard let value = Double(expression) else {
+      guard let value = Double(normalizedNumericLiteral(expression)) else {
         throw unsupportedDefaultValue(
           entityName: entityName,
           attributeName: attributeName,
@@ -405,7 +405,7 @@ public enum CDRuntimeModelBuilder {
       }
       return value
     case .decimal:
-      guard let value = Decimal(string: expression) else {
+      guard let value = Decimal(string: normalizedNumericLiteral(expression)) else {
         throw unsupportedDefaultValue(
           entityName: entityName,
           attributeName: attributeName,
@@ -613,9 +613,13 @@ public enum CDRuntimeModelBuilder {
       guard expression.hasPrefix(functionName), expression.hasSuffix(")") else { continue }
       let content = String(expression.dropFirst(functionName.count).dropLast())
         .trimmingCharacters(in: .whitespacesAndNewlines)
-      return Double(content)
+      return Double(normalizedNumericLiteral(content))
     }
     return nil
+  }
+
+  private static func normalizedNumericLiteral(_ expression: String) -> String {
+    expression.replacingOccurrences(of: "_", with: "")
   }
 }
 

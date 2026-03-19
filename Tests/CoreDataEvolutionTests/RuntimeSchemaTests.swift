@@ -59,6 +59,40 @@ struct RuntimeSchemaTests {
     #expect(fileURL.defaultValue as? URL == URL(fileURLWithPath: "/tmp/runtime-schema"))
   }
 
+  @Test("runtime model builder normalizes underscored numeric defaults")
+  func runtimeModelBuilderNormalizesUnderscoredNumericDefaults() throws {
+    let model = try NSManagedObjectModel.makeRuntimeModel([ManualRuntimeSchemaNumericDefaults.self])
+    let entity = try #require(model.entitiesByName["RuntimeNumericDefaults"])
+
+    let smallCount = try #require(entity.attributesByName["smallCount"])
+    #expect(smallCount.defaultValue as? Int16 == 320)
+
+    let visitCount = try #require(entity.attributesByName["visitCount"])
+    #expect(visitCount.defaultValue as? Int32 == 62_372)
+
+    let totalCount = try #require(entity.attributesByName["totalCount"])
+    #expect(totalCount.defaultValue as? Int64 == 623_726_820)
+
+    let averageScore = try #require(entity.attributesByName["averageScore"])
+    let averageScoreValue = try #require(averageScore.defaultValue as? Float)
+    #expect(abs(averageScoreValue - 1234.56) < 0.0001)
+
+    let conversionRate = try #require(entity.attributesByName["conversionRate"])
+    let conversionRateValue = try #require(conversionRate.defaultValue as? Double)
+    #expect(abs(conversionRateValue - 9876.54321) < 0.0000001)
+
+    let amount = try #require(entity.attributesByName["amount"])
+    #expect(amount.defaultValue as? Decimal == Decimal(string: "123456.789"))
+
+    let createdAt = try #require(entity.attributesByName["createdAt"])
+    #expect(
+      createdAt.defaultValue as? Date == Date(timeIntervalSinceReferenceDate: 1_000_000.25)
+    )
+
+    let updatedAt = try #require(entity.attributesByName["updatedAt"])
+    #expect(updatedAt.defaultValue as? Date == Date(timeIntervalSince1970: 1_700_000_000.5))
+  }
+
   @Test("runtime model builder preserves required primitive attributes without defaults")
   func runtimeModelBuilderPreservesRequiredPrimitiveAttributesWithoutDefaults() throws {
     let model = try NSManagedObjectModel.makeRuntimeModel([ManualRuntimeSchemaRequired.self])
@@ -209,6 +243,80 @@ private final class ManualRuntimeSchemaDefaults: NSManagedObject, CDRuntimeSchem
         isOptional: false,
         defaultValueExpression: "URL(fileURLWithPath: \"/tmp/runtime-schema\")",
         storage: .primitive(.url)
+      ),
+    ],
+    relationships: []
+  )
+}
+
+private final class ManualRuntimeSchemaNumericDefaults: NSManagedObject, CDRuntimeSchemaProviding {
+  static let __cdRuntimeEntitySchema = CDRuntimeEntitySchema(
+    entityName: "RuntimeNumericDefaults",
+    managedObjectClassName: NSStringFromClass(ManualRuntimeSchemaNumericDefaults.self),
+    attributes: [
+      CDRuntimeAttributeSchema(
+        swiftName: "smallCount",
+        persistentName: "smallCount",
+        swiftTypeName: "Int16",
+        isOptional: false,
+        defaultValueExpression: "3_20",
+        storage: .primitive(.int16)
+      ),
+      CDRuntimeAttributeSchema(
+        swiftName: "visitCount",
+        persistentName: "visitCount",
+        swiftTypeName: "Int32",
+        isOptional: false,
+        defaultValueExpression: "62_372",
+        storage: .primitive(.int32)
+      ),
+      CDRuntimeAttributeSchema(
+        swiftName: "totalCount",
+        persistentName: "totalCount",
+        swiftTypeName: "Int64",
+        isOptional: false,
+        defaultValueExpression: "623_726_820",
+        storage: .primitive(.int64)
+      ),
+      CDRuntimeAttributeSchema(
+        swiftName: "averageScore",
+        persistentName: "averageScore",
+        swiftTypeName: "Float",
+        isOptional: false,
+        defaultValueExpression: "1_234.5_6",
+        storage: .primitive(.float)
+      ),
+      CDRuntimeAttributeSchema(
+        swiftName: "conversionRate",
+        persistentName: "conversionRate",
+        swiftTypeName: "Double",
+        isOptional: false,
+        defaultValueExpression: "9_876.543_21",
+        storage: .primitive(.double)
+      ),
+      CDRuntimeAttributeSchema(
+        swiftName: "amount",
+        persistentName: "amount",
+        swiftTypeName: "Decimal",
+        isOptional: false,
+        defaultValueExpression: "123_456.7_89",
+        storage: .primitive(.decimal)
+      ),
+      CDRuntimeAttributeSchema(
+        swiftName: "createdAt",
+        persistentName: "createdAt",
+        swiftTypeName: "Date",
+        isOptional: false,
+        defaultValueExpression: "Date(timeIntervalSinceReferenceDate: 1_000_000.25)",
+        storage: .primitive(.date)
+      ),
+      CDRuntimeAttributeSchema(
+        swiftName: "updatedAt",
+        persistentName: "updatedAt",
+        swiftTypeName: "Date",
+        isOptional: false,
+        defaultValueExpression: "Date(timeIntervalSince1970: 1_700_000_000.5)",
+        storage: .primitive(.date)
       ),
     ],
     relationships: []
