@@ -42,6 +42,9 @@ private actor IntegrationPredicateHandler {
     beta.priority = 7
     beta.tag = objc
 
+    let orphan = CDEItem(context: modelContext)
+    orphan.title = "orphan"
+
     try modelContext.save()
   }
 }
@@ -55,8 +58,12 @@ struct IntegrationModelPredicateActorTests {
     try await handler.seedPredicateData()
 
     let result = try await handler.withContext { context in
+      let swiftTagRequest = NSFetchRequest<CDETag>(entityName: "CDETag")
+      swiftTagRequest.predicate = NSPredicate(format: "label == %@", "Swift")
+      let swiftTag = try context.fetch(swiftTagRequest).first!
+
       let itemsRequest = NSFetchRequest<CDEItem>(entityName: "CDEItem")
-      itemsRequest.predicate = CDEItem.path.tag.label.equals("Swift")
+      itemsRequest.predicate = CDEItem.path.tag.equals(swiftTag)
       let itemNames = try context.fetch(itemsRequest).map(\.title)
 
       let tagsRequest = NSFetchRequest<CDETag>(entityName: "CDETag")
@@ -75,7 +82,11 @@ struct IntegrationModelPredicateActorTests {
       allRequest.predicate = CDETag.path.items.all.priority.greaterThan(3)
       let allLabels = try context.fetch(allRequest).map(\.label)
 
-      return (itemNames, tagLabels, inverseItemCount, noneLabels, allLabels)
+      let nilRequest = NSFetchRequest<CDEItem>(entityName: "CDEItem")
+      nilRequest.predicate = CDEItem.path.tag.isNil()
+      let nilTitles = try context.fetch(nilRequest).map(\.title)
+
+      return (itemNames, tagLabels, inverseItemCount, noneLabels, allLabels, nilTitles)
     }
 
     #expect(result.0 == ["alpha"])
@@ -83,5 +94,6 @@ struct IntegrationModelPredicateActorTests {
     #expect(result.2 == 1)
     #expect(result.3 == ["Empty", "ObjC"])
     #expect(result.4 == ["Empty", "ObjC"])
+    #expect(result.5 == ["orphan"])
   }
 }

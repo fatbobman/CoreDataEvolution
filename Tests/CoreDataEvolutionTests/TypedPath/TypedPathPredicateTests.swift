@@ -49,6 +49,15 @@ struct TypedPathPredicateTests {
     #expect(fromDsl.predicateFormat == #"SUBQUERY(tags, $e, $e.tag_name == "Swift").@count == 0"#)
   }
 
+  @Test func toOneRelationNilPredicatesFormat() throws {
+    let relation = CoreDataEvolution.CDToOneRelationPath<PathItemModel, PathTagModel>(
+      swiftPath: ["category"],
+      persistentPath: ["category"]
+    )
+    #expect(relation.isNil().predicateFormat == #"category == nil"#)
+    #expect(relation.isNotNil().predicateFormat == #"category != nil"#)
+  }
+
   @Test func toManyAndNormalFieldsCanComposePredicate() throws {
     let predicate = NSCompoundPredicate(
       andPredicateWithSubpredicates: [

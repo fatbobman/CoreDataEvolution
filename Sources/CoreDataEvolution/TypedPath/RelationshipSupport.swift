@@ -29,6 +29,10 @@ public struct CDToOneRelationPath<
     self.persistentPath = persistentPath
   }
 
+  public var persistentPathKey: String {
+    persistentPath.joined(separator: ".")
+  }
+
   public subscript<Value>(
     dynamicMember keyPath: KeyPath<Target.PathRoot, CDPath<Target, Value>>
   ) -> CDPath<Root, Value> {
@@ -38,6 +42,22 @@ public struct CDToOneRelationPath<
       persistentPath: persistentPath + targetPath.persistentPath,
       storageMethod: targetPath.storageMethod
     )
+  }
+}
+
+extension CDToOneRelationPath {
+  public func isNil() -> NSPredicate {
+    NSPredicate(format: "%K == nil", argumentArray: [persistentPathKey])
+  }
+
+  public func isNotNil() -> NSPredicate {
+    NSPredicate(format: "%K != nil", argumentArray: [persistentPathKey])
+  }
+}
+
+extension CDToOneRelationPath where Target: PersistentEntity {
+  public func equals(_ object: Target) -> NSPredicate {
+    NSPredicate(format: "%K == %@", argumentArray: [persistentPathKey, object])
   }
 }
 
