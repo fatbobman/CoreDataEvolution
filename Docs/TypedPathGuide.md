@@ -158,6 +158,22 @@ let sort = try NSSortDescriptor(
 
 If `title` is stored as `"name"`, the descriptor still sorts by the persisted field name.
 
+### To-one Relationship Predicates
+
+The macro also exposes the relationship itself through a `CDToOneRelationPath`.
+On that path you can now call:
+
+```swift
+Item.path.category.equals(categoryObject)
+Item.path.category.isNil()
+Item.path.category.isNotNil()
+```
+
+`equals(_:)` compares the relationship column to the actual Core Data object in the
+current context, which avoids joining through child attributes when the object already
+exists. Use `isNil()`/`isNotNil()` when you need to test for the absence or presence of
+the relationship without fetching a target.
+
 ### Composition Paths
 
 If you have:
