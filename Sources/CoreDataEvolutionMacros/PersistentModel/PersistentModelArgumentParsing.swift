@@ -18,10 +18,11 @@ func parsePersistentModelArguments(
   emitDiagnostics: Bool = true
 ) -> PersistentModelArguments? {
   guard let list = node.arguments?.as(LabeledExprListSyntax.self) else {
-    return PersistentModelArguments(generateInit: false)
+    return PersistentModelArguments(generateInit: false, generateToManyCount: true)
   }
 
   var generateInit = false
+  var generateToManyCount = true
 
   for argument in list {
     guard let label = argument.label?.text else { continue }
@@ -39,6 +40,19 @@ func parsePersistentModelArguments(
         return nil
       }
       generateInit = bool.literal.text == "true"
+    case "generateToManyCount":
+      guard let bool = argument.expression.as(BooleanLiteralExprSyntax.self) else {
+        if emitDiagnostics {
+          MacroDiagnosticReporter.error(
+            "@PersistentModel argument `generateToManyCount` must be a boolean literal.",
+            domain: persistentModelMacroDomain,
+            in: context,
+            node: argument.expression
+          )
+        }
+        return nil
+      }
+      generateToManyCount = bool.literal.text == "true"
     default:
       if emitDiagnostics {
         MacroDiagnosticReporter.error(
@@ -52,5 +66,8 @@ func parsePersistentModelArguments(
     }
   }
 
-  return PersistentModelArguments(generateInit: generateInit)
+  return PersistentModelArguments(
+    generateInit: generateInit,
+    generateToManyCount: generateToManyCount
+  )
 }

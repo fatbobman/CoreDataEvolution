@@ -196,6 +196,7 @@ It gives you:
 
 - explicit attribute/relationship metadata
 - generated Core Data accessors
+- lightweight `relationshipNameCount` accessors for to-many relationships
 - generated to-many relationship helper APIs
 - typed key/path metadata for sort and predicate construction
 - runtime schema metadata for tests and debug workflows

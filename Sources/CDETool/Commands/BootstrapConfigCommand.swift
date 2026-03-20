@@ -181,6 +181,7 @@ private func relocateBootstrapTemplate(
         ),
         emitExtensionStubs: generate.emitExtensionStubs,
         generateInit: generate.generateInit,
+        generateToManyCount: generate.generateToManyCount,
         defaultDecodeFailurePolicy: generate.defaultDecodeFailurePolicy
       )
     },
@@ -216,6 +217,7 @@ private func relocateBootstrapTemplate(
           currentDirectoryURL: currentDirectoryURL
         ),
         generateInit: validate.generateInit,
+        generateToManyCount: validate.generateToManyCount,
         defaultDecodeFailurePolicy: validate.defaultDecodeFailurePolicy,
         include: validate.include,
         exclude: validate.exclude,

@@ -221,6 +221,13 @@ public enum ToolingValidateComparator {
         )
       )
     }
+    if actual.generateToManyCount != expected.generateToManyCount {
+      diagnostics.append(
+        error(
+          "validate found generateToManyCount mismatch for '\(entityName)'. Expected '\(expected.generateToManyCount)', found '\(actual.generateToManyCount)'."
+        )
+      )
+    }
   }
 
   private static func compareAttribute(

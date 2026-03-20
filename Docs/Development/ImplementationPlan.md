@@ -181,7 +181,7 @@
 - [ ] validate 工具完成并接入 CI
 - [ ] generate 工具完成并接入命令入口
 - [ ] 规范文档与实现行为一致
-- [x] `tagsCount` 决策收敛（v1 不自动生成 `*Count`，通过文档与诊断引导 `context.count(for:)`）
+- [x] `tagsCount` 决策收敛（v1 默认生成 `*Count`，并提供 `generateToManyCount: false` 开关）
 
 ## 7. Current Sprint Plan (PersistentModel)
 

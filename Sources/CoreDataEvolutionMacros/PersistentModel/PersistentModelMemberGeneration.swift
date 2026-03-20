@@ -590,6 +590,42 @@ func makeToManyHelpers(
   return result
 }
 
+func makeToManyCountDecls(
+  accessModifier: String,
+  model: PersistentModelAnalysis,
+  generateToManyCount: Bool
+) -> [DeclSyntax] {
+  guard generateToManyCount else { return [] }
+
+  var result: [DeclSyntax] = []
+  for relation in model.relationships {
+    let key = relation.persistentName
+    let propertyName = toManyCountPropertyName(for: relation.propertyName)
+    switch relation.kind {
+    case .toOne:
+      continue
+    case .toManySet:
+      result.append(
+        """
+        \(raw: accessModifier)var \(raw: propertyName): Int {
+          (value(forKey: "\(raw: key)") as? NSSet)?.count ?? 0
+        }
+        """
+      )
+    case .toManyArray:
+      result.append(
+        """
+        \(raw: accessModifier)var \(raw: propertyName): Int {
+          (value(forKey: "\(raw: key)") as? NSOrderedSet)?.count ?? 0
+        }
+        """
+      )
+    }
+  }
+
+  return result
+}
+
 private func storageMethodExpression(_ method: ParsedAttributeStorageMethod) -> String {
   switch method {
   case .default: return ".default"

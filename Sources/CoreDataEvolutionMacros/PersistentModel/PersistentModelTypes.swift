@@ -15,6 +15,7 @@ let persistentModelMacroDomain = "CoreDataEvolution.PersistentModelMacro"
 
 struct PersistentModelArguments {
   let generateInit: Bool
+  let generateToManyCount: Bool
 }
 
 enum PersistentModelPropertyKind {

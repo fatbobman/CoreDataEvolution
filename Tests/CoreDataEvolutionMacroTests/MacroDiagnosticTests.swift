@@ -193,13 +193,35 @@ struct MacroDiagnosticTests {
       })
   }
 
-  @Test("PersistentModel does not generate count accessors for to-many relationships")
-  func persistentModelDoesNotGenerateCountAccessors() throws {
+  @Test("PersistentModel generates count accessors for to-many relationships by default")
+  func persistentModelGeneratesCountAccessors() throws {
     let result = try MacroTestSupport.expand(
       source: """
         import CoreData
         import CoreDataEvolution
         @objc(Item)
+        @PersistentModel
+        final class Item: NSManagedObject {
+          @Relationship(inverse: "items", deleteRule: .nullify)
+          var tags: Set<Tag>
+          @Relationship(inverse: "orderedItems", deleteRule: .nullify)
+          var orderedTags: [Tag]
+        }
+        """
+    )
+    #expect(result.diagnostics.isEmpty)
+    #expect(result.expandedSource.contains("var tagsCount: Int"))
+    #expect(result.expandedSource.contains("var orderedTagsCount: Int"))
+  }
+
+  @Test("PersistentModel can disable generated count accessors for to-many relationships")
+  func persistentModelCanDisableGeneratedCountAccessors() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        @objc(Item)
+        @PersistentModel(generateToManyCount: false)
         final class Item: NSManagedObject {
           @Relationship(inverse: "items", deleteRule: .nullify)
           var tags: Set<Tag>
@@ -211,6 +233,29 @@ struct MacroDiagnosticTests {
     #expect(result.diagnostics.isEmpty)
     #expect(result.expandedSource.contains("var tagsCount: Int") == false)
     #expect(result.expandedSource.contains("var orderedTagsCount: Int") == false)
+  }
+
+  @Test("PersistentModel rejects count accessor conflicts")
+  func persistentModelRejectsCountAccessorConflicts() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+        @objc(Item)
+        @PersistentModel
+        final class Item: NSManagedObject {
+          @Relationship(inverse: "items", deleteRule: .nullify)
+          var tags: Set<Tag>
+          var tagsCount: Int {
+            0
+          }
+        }
+        """
+    )
+    #expect(
+      result.diagnostics.contains {
+        $0.contains("Generated to-many count property 'tagsCount' conflicts")
+      })
   }
 
   @Test("PersistentModel does not generate bulk replacement helpers for to-many relationships")

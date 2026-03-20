@@ -50,6 +50,7 @@ public func makeValidateRequest(
     splitByEntity: overrides.splitByEntity ?? config.splitByEntity ?? true,
     headerTemplate: headerTemplate,
     generateInit: overrides.generateInit ?? config.generateInit ?? false,
+    generateToManyCount: overrides.generateToManyCount ?? config.generateToManyCount ?? true,
     defaultDecodeFailurePolicy: overrides.defaultDecodeFailurePolicy
       ?? config.defaultDecodeFailurePolicy ?? .fallbackToDefaultValue,
     include: overrides.include ?? config.include ?? [],

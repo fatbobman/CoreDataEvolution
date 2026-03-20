@@ -72,6 +72,10 @@ struct GenerateCommand: ParsableCommand {
   @Option(name: .long, help: "Whether to generate a convenience init (true/false).")
   var generateInit: Bool?
 
+  @Option(
+    name: .long, help: "Whether to generate to-many relationship count accessors (true/false).")
+  var generateToManyCount: Bool?
+
   @Option(name: .long, help: "Decode failure policy: fallbackToDefaultValue/debugAssertNil.")
   var defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy?
 

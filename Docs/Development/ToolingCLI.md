@@ -211,6 +211,7 @@ v1 的版本与发行策略分为两层：
     "format": "none",
     "headerTemplate": null,
     "generateInit": false,
+    "generateToManyCount": true,
     "defaultDecodeFailurePolicy": "fallbackToDefaultValue"
   },
   "validate": {
@@ -260,6 +261,8 @@ v1 的版本与发行策略分为两层：
         }
       }
     },
+    "generateInit": false,
+    "generateToManyCount": true,
     "include": [],
     "exclude": [],
     "level": "conformance",
@@ -535,8 +538,7 @@ v1 的版本与发行策略分为两层：
 ### 4.4 宏生成策略参数（映射到当前宏能力）
 
 - `--generate-init <true|false>`
-- `--relationship-setter-policy <none|warning|plain>`
-- `--relationship-count-policy <none|warning|plain>`
+- `--generate-to-many-count <true|false>`
 - `--default-decode-failure-policy <fallbackToDefaultValue|debugAssertNil>`
 
 说明：这些参数作为“生成代码默认策略”，具体属性仍允许在代码层用 `@Attribute(...)` 覆盖。
@@ -568,6 +570,7 @@ v1 的版本与发行策略分为两层：
   - CLI 显式传入的相对路径相对当前工作目录解析。
 - `emitExtensionStubs`: optional, bool，默认 `false`。
 - `generateInit`: optional, bool，默认 `false`。
+- `generateToManyCount`: optional, bool，默认 `true`。
 - `defaultDecodeFailurePolicy`: optional, enum(`fallbackToDefaultValue`,`debugAssertNil`)，默认 `fallbackToDefaultValue`。
 
 ## 5. `validate` 参数设计（v1）
@@ -583,8 +586,7 @@ v1 的版本与发行策略分为两层：
 - `--split-by-entity <bool>`
 - `--header-template <path>`
 - `--generate-init <bool>`
-- `--relationship-setter-policy <none|warning|plain>`
-- `--relationship-count-policy <none|warning|plain>`
+- `--generate-to-many-count <bool>`
 - `--default-decode-failure-policy <fallbackToDefaultValue|debugAssertNil>`
 - `--type-mappings`
   - v1 不单独提供 CLI 参数，推荐在 JSON 配置中声明。
@@ -629,6 +631,7 @@ v1 的版本与发行策略分为两层：
 - `headerTemplate`: optional, string/null，默认 `null`。
 - `emitExtensionStubs`: optional, bool，默认 `false`。
 - `generateInit`: optional, bool，默认 `false`。
+- `generateToManyCount`: optional, bool，默认 `true`。
 - `defaultDecodeFailurePolicy`: optional, enum(`fallbackToDefaultValue`,`debugAssertNil`)，默认 `fallbackToDefaultValue`。
 - `include`: optional, array<string>，默认 `[]`。
 - `exclude`: optional, array<string>，默认 `[]`。

@@ -291,6 +291,14 @@ final class Item: NSManagedObject {
     NSFetchRequest<Item>(entityName: "Item")
   }
 
+  var tagsCount: Int {
+    (value(forKey: "tags") as? NSSet)?.count ?? 0
+  }
+
+  var orderedTagsCount: Int {
+    (value(forKey: "orderedTags") as? NSOrderedSet)?.count ?? 0
+  }
+
   func addToTags(_ value: Tag) {
     mutableSetValue(forKey: "tags").add(value)
   }

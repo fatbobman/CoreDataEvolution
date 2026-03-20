@@ -123,6 +123,7 @@ struct ToolingSourceRendererTests {
     #expect(rendered.contains("// GENERATED"))
     #expect(rendered.contains("@objc(Item)"))
     #expect(rendered.contains("@PersistentModel("))
+    #expect(rendered.contains("generateToManyCount: false") == false)
     #expect(rendered.contains(#"@Attribute(persistentName: "name")"#))
     #expect(
       rendered.contains(
@@ -137,6 +138,42 @@ struct ToolingSourceRendererTests {
     #expect(rendered.contains("var tags: Set<Tag>"))
     #expect(rendered.contains("convenience init("))
     #expect(rendered.contains("extension Item: PersistentEntity {}") == false)
+  }
+
+  @Test("renderer emits generateToManyCount when disabled")
+  func rendererEmitsGenerateToManyCountWhenDisabled() throws {
+    let modelIR = ToolingModelIR(
+      source: .init(
+        originalPath: "/virtual/AppModel.xcdatamodeld",
+        selectedSourcePath: "/virtual/AppModel.xcdatamodeld/V1.xcdatamodel",
+        compiledModelPath: "/virtual/AppModel.momd",
+        inputKind: .xcdatamodeld,
+        selectedVersionName: "V1.xcdatamodel"
+      ),
+      generationPolicy: .init(
+        accessLevel: .internal,
+        singleFile: false,
+        splitByEntity: true,
+        generateInit: false,
+        generateToManyCount: false,
+        defaultDecodeFailurePolicy: .fallbackToDefaultValue
+      ),
+      entities: [
+        .init(
+          name: "Item",
+          managedObjectClassName: "NSManagedObject",
+          representedClassName: "Item",
+          attributes: [],
+          relationships: [],
+          compositions: []
+        )
+      ]
+    )
+
+    let source = try ToolingSourceRenderer.renderSources(from: modelIR).first?.contents
+    let rendered = try #require(source)
+
+    #expect(rendered.contains("@PersistentModel(generateToManyCount: false)"))
   }
 
   @Test("renderer emits relationship metadata for relationships")

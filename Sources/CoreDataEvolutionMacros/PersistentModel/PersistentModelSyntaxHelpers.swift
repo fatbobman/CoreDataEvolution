@@ -225,6 +225,10 @@ func uppercaseFirst(_ text: String) -> String {
   return String(first).uppercased() + text.dropFirst()
 }
 
+func toManyCountPropertyName(for propertyName: String) -> String {
+  "\(propertyName)Count"
+}
+
 extension ClassDeclSyntax {
   var inheritsFromNSManagedObject: Bool {
     guard let inheritanceClause else {

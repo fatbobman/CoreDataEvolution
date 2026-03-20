@@ -72,6 +72,7 @@ public struct GenerateRequest: Sendable, Equatable {
   public let headerTemplate: String?
   public let emitExtensionStubs: Bool
   public let generateInit: Bool
+  public let generateToManyCount: Bool
   public let defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy
 
   public init(
@@ -94,6 +95,7 @@ public struct GenerateRequest: Sendable, Equatable {
     headerTemplate: String?,
     emitExtensionStubs: Bool = false,
     generateInit: Bool,
+    generateToManyCount: Bool = true,
     defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy
   ) {
     self.modelPath = modelPath
@@ -115,6 +117,7 @@ public struct GenerateRequest: Sendable, Equatable {
     self.headerTemplate = headerTemplate
     self.emitExtensionStubs = emitExtensionStubs
     self.generateInit = generateInit
+    self.generateToManyCount = generateToManyCount
     self.defaultDecodeFailurePolicy = defaultDecodeFailurePolicy
   }
 }
@@ -135,6 +138,7 @@ public struct ValidateRequest: Sendable, Equatable {
   public let splitByEntity: Bool
   public let headerTemplate: String?
   public let generateInit: Bool
+  public let generateToManyCount: Bool
   public let defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy
   public let include: [String]
   public let exclude: [String]
@@ -158,6 +162,7 @@ public struct ValidateRequest: Sendable, Equatable {
     splitByEntity: Bool,
     headerTemplate: String?,
     generateInit: Bool,
+    generateToManyCount: Bool = true,
     defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy,
     include: [String],
     exclude: [String],
@@ -180,6 +185,7 @@ public struct ValidateRequest: Sendable, Equatable {
     self.splitByEntity = splitByEntity
     self.headerTemplate = headerTemplate
     self.generateInit = generateInit
+    self.generateToManyCount = generateToManyCount
     self.defaultDecodeFailurePolicy = defaultDecodeFailurePolicy
     self.include = include
     self.exclude = exclude
@@ -203,6 +209,7 @@ public struct InspectRequest: Sendable, Equatable {
   public let singleFile: Bool
   public let splitByEntity: Bool
   public let generateInit: Bool
+  public let generateToManyCount: Bool
   public let defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy
 
   public init(
@@ -217,6 +224,7 @@ public struct InspectRequest: Sendable, Equatable {
     singleFile: Bool = false,
     splitByEntity: Bool = true,
     generateInit: Bool = false,
+    generateToManyCount: Bool = true,
     defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy = .fallbackToDefaultValue
   ) {
     self.modelPath = modelPath
@@ -230,6 +238,7 @@ public struct InspectRequest: Sendable, Equatable {
     self.singleFile = singleFile
     self.splitByEntity = splitByEntity
     self.generateInit = generateInit
+    self.generateToManyCount = generateToManyCount
     self.defaultDecodeFailurePolicy = defaultDecodeFailurePolicy
   }
 }
@@ -249,6 +258,7 @@ extension InspectRequest {
       singleFile: generateRequest.singleFile,
       splitByEntity: generateRequest.splitByEntity,
       generateInit: generateRequest.generateInit,
+      generateToManyCount: generateRequest.generateToManyCount,
       defaultDecodeFailurePolicy: generateRequest.defaultDecodeFailurePolicy
     )
   }
@@ -267,6 +277,7 @@ extension InspectRequest {
       singleFile: validateRequest.singleFile,
       splitByEntity: validateRequest.splitByEntity,
       generateInit: validateRequest.generateInit,
+      generateToManyCount: validateRequest.generateToManyCount,
       defaultDecodeFailurePolicy: validateRequest.defaultDecodeFailurePolicy
     )
   }
@@ -289,6 +300,7 @@ public struct GenerateRequestOverrides: Sendable, Equatable {
   public var headerTemplate: String?
   public var emitExtensionStubs: Bool?
   public var generateInit: Bool?
+  public var generateToManyCount: Bool?
   public var defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy?
 
   public init() {}
@@ -306,6 +318,7 @@ public struct ValidateRequestOverrides: Sendable, Equatable {
   public var splitByEntity: Bool?
   public var headerTemplate: String?
   public var generateInit: Bool?
+  public var generateToManyCount: Bool?
   public var defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy?
   public var include: [String]?
   public var exclude: [String]?

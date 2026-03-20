@@ -66,6 +66,7 @@ public struct GenerateTemplate: Codable, Sendable, Equatable {
   public let headerTemplate: String?
   public let emitExtensionStubs: Bool?
   public let generateInit: Bool?
+  public let generateToManyCount: Bool?
   public let defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy?
 
   public init(
@@ -88,6 +89,7 @@ public struct GenerateTemplate: Codable, Sendable, Equatable {
     headerTemplate: String?,
     emitExtensionStubs: Bool? = nil,
     generateInit: Bool?,
+    generateToManyCount: Bool? = nil,
     defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy?
   ) {
     self.modelPath = modelPath
@@ -109,6 +111,7 @@ public struct GenerateTemplate: Codable, Sendable, Equatable {
     self.headerTemplate = headerTemplate
     self.emitExtensionStubs = emitExtensionStubs
     self.generateInit = generateInit
+    self.generateToManyCount = generateToManyCount
     self.defaultDecodeFailurePolicy = defaultDecodeFailurePolicy
   }
 }
@@ -129,6 +132,7 @@ public struct ValidateTemplate: Codable, Sendable, Equatable {
   public let splitByEntity: Bool?
   public let headerTemplate: String?
   public let generateInit: Bool?
+  public let generateToManyCount: Bool?
   public let defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy?
   public let include: [String]?
   public let exclude: [String]?
@@ -152,6 +156,7 @@ public struct ValidateTemplate: Codable, Sendable, Equatable {
     splitByEntity: Bool?,
     headerTemplate: String?,
     generateInit: Bool?,
+    generateToManyCount: Bool? = nil,
     defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy?,
     include: [String]?,
     exclude: [String]?,
@@ -174,6 +179,7 @@ public struct ValidateTemplate: Codable, Sendable, Equatable {
     self.splitByEntity = splitByEntity
     self.headerTemplate = headerTemplate
     self.generateInit = generateInit
+    self.generateToManyCount = generateToManyCount
     self.defaultDecodeFailurePolicy = defaultDecodeFailurePolicy
     self.include = include
     self.exclude = exclude
@@ -214,6 +220,7 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         headerTemplate: nil,
         emitExtensionStubs: nil,
         generateInit: nil,
+        generateToManyCount: nil,
         defaultDecodeFailurePolicy: nil
       ),
       validate: .init(
@@ -231,6 +238,7 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         splitByEntity: nil,
         headerTemplate: nil,
         generateInit: nil,
+        generateToManyCount: nil,
         defaultDecodeFailurePolicy: nil,
         include: nil,
         exclude: nil,
@@ -263,6 +271,7 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         headerTemplate: nil,
         emitExtensionStubs: false,
         generateInit: false,
+        generateToManyCount: true,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue
       ),
       validate: .init(
@@ -280,6 +289,7 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         splitByEntity: true,
         headerTemplate: nil,
         generateInit: false,
+        generateToManyCount: true,
         defaultDecodeFailurePolicy: .fallbackToDefaultValue,
         include: [],
         exclude: [],
@@ -406,6 +416,7 @@ extension InspectRequest {
       singleFile: config.singleFile ?? false,
       splitByEntity: config.splitByEntity ?? true,
       generateInit: config.generateInit ?? false,
+      generateToManyCount: config.generateToManyCount ?? true,
       defaultDecodeFailurePolicy: config.defaultDecodeFailurePolicy ?? .fallbackToDefaultValue
     )
   }

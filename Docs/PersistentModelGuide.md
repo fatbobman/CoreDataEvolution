@@ -98,6 +98,8 @@ For a valid model type, the macro generates:
 - conditional `fetchRequest()` when the type does not already declare one
 - optional convenience `init(...)` when `generateInit: true`
 - to-many relationship getters
+- to-many relationship count accessors such as `tagsCount` (enabled by default; disable with
+  `generateToManyCount: false`)
 - unordered to-many helpers: single-value and batch `addTo*` / `removeFrom*`
 - ordered to-many helpers: single-value and batch `addTo*` / `removeFrom*`, plus
   `insertInto*(_:at:)`
@@ -805,6 +807,31 @@ convenience init(
   config: ItemConfig?,
   transientCache: [String: Int]
 )
+```
+
+## To-Many Count Accessors
+
+`@PersistentModel` generates `relationshipNameCount` accessors for to-many relationships by
+default.
+
+```swift
+@PersistentModel
+final class Tag: NSManagedObject {
+  @Relationship(inverse: "tag", deleteRule: .nullify)
+  var items: Set<Item>
+}
+```
+
+Generated surface:
+
+```swift
+var itemsCount: Int
+```
+
+Disable this when you do not want the extra generated members:
+
+```swift
+@PersistentModel(generateToManyCount: false)
 ```
 
 ## Runtime Schema for Tests and Debugging

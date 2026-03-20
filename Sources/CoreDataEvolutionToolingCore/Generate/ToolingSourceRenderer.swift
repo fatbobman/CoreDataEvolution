@@ -204,6 +204,9 @@ public enum ToolingSourceRenderer {
     if generationPolicy.generateInit {
       arguments.append("generateInit: true")
     }
+    if generationPolicy.generateToManyCount == false {
+      arguments.append("generateToManyCount: false")
+    }
 
     guard arguments.isEmpty == false else {
       return "@PersistentModel"

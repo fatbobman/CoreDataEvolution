@@ -87,6 +87,7 @@ struct ToolingIRBuilderTests {
     )
 
     #expect(result.modelIR.source.selectedVersionName == "V2.xcdatamodel")
+    #expect(result.modelIR.generationPolicy.generateToManyCount)
 
     let item = try #require(result.modelIR.entities.first(where: { $0.name == "Item" }))
     let title = try #require(item.attributes.first(where: { $0.persistentName == "name" }))
@@ -125,6 +126,33 @@ struct ToolingIRBuilderTests {
         $0.message.contains("storageMethod 'transformed'") && $0.severity == .warning
       })
     )
+  }
+
+  @Test("builder preserves generateToManyCount in generation policy")
+  func builderPreservesGenerateToManyCount() {
+    let loadedModel = ToolingLoadedModel(
+      model: makeModel(),
+      resolvedInput: .init(
+        originalURL: URL(fileURLWithPath: "/virtual/AppModel.xcdatamodeld"),
+        selectedSourceURL: URL(fileURLWithPath: "/virtual/AppModel.xcdatamodeld/V1.xcdatamodel"),
+        compiledModelURL: URL(fileURLWithPath: "/virtual/AppModel.momd"),
+        kind: .xcdatamodeld,
+        selectedVersionName: "V1.xcdatamodel"
+      )
+    )
+    let request = InspectRequest(
+      modelPath: "/virtual/AppModel.xcdatamodeld",
+      modelVersion: nil,
+      momcBin: nil,
+      generateToManyCount: false
+    )
+
+    let result = ToolingIRBuilder.build(
+      from: loadedModel,
+      request: request
+    )
+
+    #expect(result.modelIR.generationPolicy.generateToManyCount == false)
   }
 
   @Test("builder warns about missing attribute rules that no longer match the model")

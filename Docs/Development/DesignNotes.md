@@ -209,11 +209,12 @@ func removeFromTags(_ tags: Set<Tag>) {
 
 ```swift
 @PersistentModel(
+  generateToManyCount: true,
 )
 ```
 
 - 对多 getter（`Set<T>` / `[T]`）当前固定生成，不提供独立策略开关。
-- 不生成任何 `*Count` 访问器，建议使用 `NSManagedObjectContext.count(for:)` + `NSPredicate`。
+- 默认生成 `relationshipNameCount` 访问器；如需关闭，可显式写 `generateToManyCount: false`。
 - 所有对多关系都不生成 setter，统一通过便利方法进行关系修改。
 - `Set<T>` 生成单个和批量 `add/remove` 便利方法。
 - `[T]` 生成单个和批量 `add/remove`，以及 `insertInto*(_:at:)` 便利方法。
@@ -380,7 +381,7 @@ func insertIntoTags(_ tag: Tag, at index: Int) {
 - ordered/unordered 与属性类型的一致性
 
 无论源码如何声明，工具都会强制检查模型层 inverse 是否配置；缺失 inverse 一律为 `[ERROR]`。
-v1 不自动生成 `*Count`；若需要数量，推荐通过 `NSManagedObjectContext.count(for:)` + `NSPredicate` 计算。
+v1 默认生成 `*Count`；若不希望暴露这类成员，可显式关闭 `generateToManyCount`。
 
 ---
 
@@ -418,7 +419,7 @@ public final class Item: NSManagedObject {
 
     // 宏生成的关系便利方法
     public func addToTags(_ tag: Tag) { ... }
-    // v1 不自动生成 tagsCount，需使用 context.count(for:)
+    public var tagsCount: Int { ... }
 }
 ```
 

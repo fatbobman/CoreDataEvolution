@@ -41,6 +41,7 @@ enum GenerateCommandSupport {
       overrides.format = command.format
       overrides.emitExtensionStubs = command.emitExtensionStubs
       overrides.generateInit = command.generateInit
+      overrides.generateToManyCount = command.generateToManyCount
       overrides.defaultDecodeFailurePolicy = command.defaultDecodeFailurePolicy
       overrides.headerTemplate = command.headerTemplate.map {
         makeAbsoluteURL(fromCLIPath: $0).path
@@ -84,6 +85,7 @@ enum GenerateCommandSupport {
       headerTemplate: command.headerTemplate.map { makeAbsoluteURL(fromCLIPath: $0).path },
       emitExtensionStubs: command.emitExtensionStubs,
       generateInit: command.generateInit,
+      generateToManyCount: command.generateToManyCount,
       defaultDecodeFailurePolicy: command.defaultDecodeFailurePolicy
     )
 

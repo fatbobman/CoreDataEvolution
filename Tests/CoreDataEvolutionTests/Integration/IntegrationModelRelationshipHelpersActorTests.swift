@@ -33,11 +33,11 @@ private actor IntegrationRelationshipHelperHandler {
 
     tag.addToItems(first)
     tag.addToItems(second)
-    let countAfterAdd = tag.items.count
+    let countAfterAdd = tag.itemsCount
     let inverseAfterAdd = first.tag === tag && second.tag === tag
 
     tag.removeFromItems(second)
-    let countAfterRemove = tag.items.count
+    let countAfterRemove = tag.itemsCount
     let inverseAfterRemove = second.tag == nil
 
     try modelContext.save()
@@ -61,12 +61,12 @@ private actor IntegrationRelationshipHelperHandler {
     third.title = "third"
 
     tag.addToItems(Set([first, second]))
-    let countAfterBatchAdd = tag.items.count
+    let countAfterBatchAdd = tag.itemsCount
     let inverseAfterBatchAdd = first.tag === tag && second.tag === tag
 
     tag.addToItems(third)
     tag.removeFromItems(Set([first, third]))
-    let countAfterBatchRemove = tag.items.count
+    let countAfterBatchRemove = tag.itemsCount
     let inverseAfterBatchRemove = first.tag == nil && third.tag == nil && second.tag === tag
 
     try modelContext.save()
@@ -104,7 +104,7 @@ private actor OrderedRelationshipHelperHandler {
     modelExecutor = .init(context: context)
   }
 
-  func runOrderedRelationshipHelperFlow() throws -> ([String], Bool, [String], Bool) {
+  func runOrderedRelationshipHelperFlow() throws -> ([String], Int, Bool, [String], Int, Bool) {
     let tagEntity = try requireEntity("RuntimeOrderedTag")
     let tag = RuntimeOrderedTag(entity: tagEntity, insertInto: modelContext)
     tag.name = "ordered"
@@ -129,17 +129,21 @@ private actor OrderedRelationshipHelperHandler {
     tag.insertIntoItems(first, at: 0)
     tag.addToItems(fourth)
     let titlesAfterInsert = tag.items.map(\.title)
+    let countAfterInsert = tag.itemsCount
     let inverseAfterInsert = [first, second, third, fourth].allSatisfy { $0.tag === tag }
 
     tag.removeFromItems([second, fourth])
     let titlesAfterRemove = tag.items.map(\.title)
+    let countAfterRemove = tag.itemsCount
     let inverseAfterRemove = second.tag == nil && fourth.tag == nil && first.tag === tag
 
     try modelContext.save()
     return (
       titlesAfterInsert,
+      countAfterInsert,
       inverseAfterInsert,
       titlesAfterRemove,
+      countAfterRemove,
       inverseAfterRemove
     )
   }
@@ -192,8 +196,10 @@ struct IntegrationModelRelationshipHelpersActorTests {
 
     let result = try await handler.runOrderedRelationshipHelperFlow()
     #expect(result.0 == ["first", "second", "third", "fourth"])
-    #expect(result.1)
-    #expect(result.2 == ["first", "third"])
-    #expect(result.3)
+    #expect(result.1 == 4)
+    #expect(result.2)
+    #expect(result.3 == ["first", "third"])
+    #expect(result.4 == 2)
+    #expect(result.5)
   }
 }

@@ -55,6 +55,7 @@ public func makeGenerateRequest(
     headerTemplate: headerTemplate,
     emitExtensionStubs: overrides.emitExtensionStubs ?? config.emitExtensionStubs ?? false,
     generateInit: overrides.generateInit ?? config.generateInit ?? false,
+    generateToManyCount: overrides.generateToManyCount ?? config.generateToManyCount ?? true,
     defaultDecodeFailurePolicy: overrides.defaultDecodeFailurePolicy
       ?? config.defaultDecodeFailurePolicy ?? .fallbackToDefaultValue
   )

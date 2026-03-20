@@ -194,6 +194,35 @@ struct ConfigLoadingAndMergingTests {
     #expect(request.maxIssues == 200)
   }
 
+  @Test("inspect request uses generateToManyCount from generate config")
+  func inspectRequestUsesGenerateToManyCountFromConfig() {
+    let config = GenerateTemplate(
+      modelPath: "Models/AppModel.xcdatamodeld",
+      modelVersion: nil,
+      momcBin: nil,
+      outputDir: "Generated/CoreDataEvolution",
+      moduleName: "AppModels",
+      typeMappings: nil,
+      attributeRules: nil,
+      accessLevel: .internal,
+      singleFile: false,
+      splitByEntity: true,
+      overwrite: ToolingOverwriteMode.none,
+      cleanStale: false,
+      dryRun: false,
+      format: ToolingFormatMode.none,
+      headerTemplate: nil,
+      emitExtensionStubs: false,
+      generateInit: false,
+      generateToManyCount: false,
+      defaultDecodeFailurePolicy: .fallbackToDefaultValue
+    )
+
+    let request = InspectRequest(config: config)
+
+    #expect(request.generateToManyCount == false)
+  }
+
   @Test("config loader decodes validate attribute optionality ignore")
   func configLoaderDecodesValidateAttributeOptionalityIgnore() throws {
     let data = """

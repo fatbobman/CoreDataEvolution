@@ -115,6 +115,10 @@ final class FlowProject: NSManagedObject {
     NSFetchRequest<FlowProject>(entityName: "FlowProject")
   }
 
+  var tasksCount: Int {
+    (value(forKey: "owned_tasks") as? NSSet)?.count ?? 0
+  }
+
   func addToTasks(_ value: FlowTask) {
     mutableSetValue(forKey: "owned_tasks").add(value)
   }

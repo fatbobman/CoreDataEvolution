@@ -85,9 +85,11 @@ public enum ToolingSourceCustomMemberKind: String, Codable, Sendable, Equatable 
 /// Parsed `@PersistentModel(...)` arguments that affect generated source shape.
 public struct ToolingSourcePersistentModelArgumentsIR: Codable, Sendable, Equatable {
   public let generateInit: Bool
+  public let generateToManyCount: Bool
 
-  public init(generateInit: Bool) {
+  public init(generateInit: Bool, generateToManyCount: Bool = true) {
     self.generateInit = generateInit
+    self.generateToManyCount = generateToManyCount
   }
 }
 

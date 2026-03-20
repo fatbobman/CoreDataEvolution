@@ -350,10 +350,11 @@ private func parsePersistentModelArguments(
   from attribute: AttributeSyntax
 ) -> ToolingSourcePersistentModelArgumentsIR {
   guard let list = attribute.arguments?.as(LabeledExprListSyntax.self) else {
-    return .init(generateInit: false)
+    return .init(generateInit: false, generateToManyCount: true)
   }
 
   var generateInit = false
+  var generateToManyCount = true
 
   for argument in list {
     guard let label = argument.label?.text else { continue }
@@ -362,12 +363,17 @@ private func parsePersistentModelArguments(
     switch label {
     case "generateInit":
       generateInit = raw == "true"
+    case "generateToManyCount":
+      generateToManyCount = raw == "true"
     default:
       continue
     }
   }
 
-  return .init(generateInit: generateInit)
+  return .init(
+    generateInit: generateInit,
+    generateToManyCount: generateToManyCount
+  )
 }
 
 private func parseAttributeAnnotation(

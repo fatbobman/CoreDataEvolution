@@ -59,6 +59,13 @@ struct ValidateCommand: ParsableCommand {
   var generateInit: Bool?
 
   @Option(
+    name: .long,
+    help:
+      "Whether generated source is expected to include to-many relationship count accessors (true/false)."
+  )
+  var generateToManyCount: Bool?
+
+  @Option(
     name: .long, help: "Expected decode failure policy: fallbackToDefaultValue/debugAssertNil.")
   var defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy?
 

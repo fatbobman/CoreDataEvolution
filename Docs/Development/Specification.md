@@ -67,6 +67,7 @@ Runtime schema / runtime model builder 的 v1 边界：
 - `Paths`（可组合子路径，含 relationship/composition）
 - `__cdFieldTable`（路径映射元信息）
 - `convenience init`（默认不生成；可通过 `generateInit: true` 开启）
+- 对多关系 `*Count` 访问器（默认生成；可通过 `generateToManyCount: false` 关闭）
 
 `@objc` 注入规则：
 
@@ -81,13 +82,14 @@ Runtime schema / runtime model builder 的 v1 边界：
 ```swift
 @PersistentModel(
   generateInit: false,
+  generateToManyCount: true,
 )
 ```
 
 当前策略语义：
 
 - 对多 getter（`Set<T>` / `[T]`）当前固定生成，不提供单独策略开关。
-- 不生成任何 `*Count` 访问器，推荐改用 `NSManagedObjectContext.count(for:)` + `NSPredicate`。
+- 默认生成 `relationshipNameCount` 访问器，基于底层 `NSSet` / `NSOrderedSet` 的 `count` 暴露轻量计数读取。
 - `Set<T>` 生成单个和批量 `add/remove` 便利方法。
 - `[T]` 生成单个和批量 `add/remove`，以及 `insertInto*(_:at:)` 便利方法。
 
@@ -237,7 +239,7 @@ relationship declaration 规则：
 
 ### Count
 
-- 当前不自动生成 `*Count`。  
+- 当前默认自动生成 `*Count`；如需关闭，使用 `generateToManyCount: false`。  
 
 ## 5. Constructor Contract
 

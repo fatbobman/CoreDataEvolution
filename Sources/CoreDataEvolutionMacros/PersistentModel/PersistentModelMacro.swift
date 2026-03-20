@@ -145,6 +145,16 @@ extension PersistentModelMacro: MemberMacro {
     guard validateRelationshipAnnotations(in: classDecl, model: model, context: context) else {
       return []
     }
+    guard
+      validateGeneratedToManyCountMembers(
+        in: classDecl,
+        model: model,
+        generateToManyCount: arguments.generateToManyCount,
+        context: context
+      )
+    else {
+      return []
+    }
     let initProperties = analyzePersistentModelInitProperties(in: classDecl)
 
     var members: [DeclSyntax] = []
@@ -200,6 +210,11 @@ extension PersistentModelMacro: MemberMacro {
       )
     }
 
+    members += makeToManyCountDecls(
+      accessModifier: accessModifier,
+      model: model,
+      generateToManyCount: arguments.generateToManyCount
+    )
     members += makeToManyHelpers(
       accessModifier: accessModifier,
       model: model

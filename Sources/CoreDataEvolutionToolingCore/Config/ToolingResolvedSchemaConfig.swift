@@ -26,6 +26,7 @@ struct ToolingResolvedSchemaConfig: Sendable, Equatable {
   let splitByEntity: Bool
   let headerTemplate: String?
   let generateInit: Bool
+  let generateToManyCount: Bool
   let defaultDecodeFailurePolicy: ToolingDecodeFailurePolicy
 }
 
@@ -41,6 +42,7 @@ extension ToolingResolvedSchemaConfig {
       splitByEntity: generateTemplate.splitByEntity ?? true,
       headerTemplate: generateTemplate.headerTemplate,
       generateInit: generateTemplate.generateInit ?? false,
+      generateToManyCount: generateTemplate.generateToManyCount ?? true,
       defaultDecodeFailurePolicy: generateTemplate.defaultDecodeFailurePolicy
         ?? .fallbackToDefaultValue
     )
@@ -57,6 +59,7 @@ extension ToolingResolvedSchemaConfig {
       splitByEntity: validateTemplate.splitByEntity ?? true,
       headerTemplate: validateTemplate.headerTemplate,
       generateInit: validateTemplate.generateInit ?? false,
+      generateToManyCount: validateTemplate.generateToManyCount ?? true,
       defaultDecodeFailurePolicy: validateTemplate.defaultDecodeFailurePolicy
         ?? .fallbackToDefaultValue
     )
@@ -73,6 +76,7 @@ extension ToolingResolvedSchemaConfig {
       splitByEntity: generateRequest.splitByEntity,
       headerTemplate: generateRequest.headerTemplate,
       generateInit: generateRequest.generateInit,
+      generateToManyCount: generateRequest.generateToManyCount,
       defaultDecodeFailurePolicy: generateRequest.defaultDecodeFailurePolicy
     )
   }
@@ -88,6 +92,7 @@ extension ToolingResolvedSchemaConfig {
       splitByEntity: validateRequest.splitByEntity,
       headerTemplate: validateRequest.headerTemplate,
       generateInit: validateRequest.generateInit,
+      generateToManyCount: validateRequest.generateToManyCount,
       defaultDecodeFailurePolicy: validateRequest.defaultDecodeFailurePolicy
     )
   }

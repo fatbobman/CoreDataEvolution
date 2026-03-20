@@ -284,6 +284,48 @@ func validateRelationshipAnnotations(
   return isValid
 }
 
+func validateGeneratedToManyCountMembers(
+  in classDecl: ClassDeclSyntax,
+  model: PersistentModelAnalysis,
+  generateToManyCount: Bool,
+  context: some MacroExpansionContext
+) -> Bool {
+  guard generateToManyCount else { return true }
+
+  var existingMemberNodes: [String: Syntax] = [:]
+
+  for member in classDecl.memberBlock.members {
+    if let variable = member.decl.as(VariableDeclSyntax.self) {
+      for binding in variable.bindings {
+        guard let pattern = binding.pattern.as(IdentifierPatternSyntax.self) else { continue }
+        existingMemberNodes[pattern.identifier.text] = Syntax(variable)
+      }
+      continue
+    }
+
+    if let function = member.decl.as(FunctionDeclSyntax.self) {
+      existingMemberNodes[function.name.text] = Syntax(function)
+    }
+  }
+
+  var isValid = true
+  for relationship in model.relationships {
+    guard relationship.kind == .toManySet || relationship.kind == .toManyArray else { continue }
+    let generatedName = toManyCountPropertyName(for: relationship.propertyName)
+    guard let node = existingMemberNodes[generatedName] else { continue }
+
+    MacroDiagnosticReporter.error(
+      "Generated to-many count property '\(generatedName)' conflicts with an existing member. Rename the member or set @PersistentModel(generateToManyCount: false).",
+      domain: persistentModelMacroDomain,
+      in: context,
+      node: node
+    )
+    isValid = false
+  }
+
+  return isValid
+}
+
 func autoAttachedAttribute(
   for variable: VariableDeclSyntax
 ) -> AttributeSyntax? {

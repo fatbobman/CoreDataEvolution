@@ -204,16 +204,20 @@ public macro _CDRelationship(
 /// - `fetchRequest()`
 /// - runtime schema metadata used by test/debug model building
 /// - attribute and relationship accessors
+/// - optional to-many relationship count accessors
 /// - an optional memberwise convenience initializer
 ///
 /// - Parameter generateInit: When `true`, synthesizes an initializer that includes all non-
 ///   relationship stored properties, including `@Ignore` and custom-storage persisted properties.
 ///   Relationship properties are excluded and no parameter gets a default argument.
+/// - Parameter generateToManyCount: When `true`, synthesizes `relationshipNameCount` computed
+///   properties for every to-many relationship using the underlying Objective-C collection count.
 @attached(memberAttribute)
 @attached(member, names: arbitrary, named(__cdRuntimeEntitySchema))
 @attached(extension, conformances: PersistentEntity, CDRuntimeSchemaProviding)
 public macro PersistentModel(
-  generateInit: Bool = false
+  generateInit: Bool = false,
+  generateToManyCount: Bool = true
 ) = #externalMacro(module: "CoreDataEvolutionMacros", type: "PersistentModelMacro")
 
 /// Declares metadata for a persisted attribute.
