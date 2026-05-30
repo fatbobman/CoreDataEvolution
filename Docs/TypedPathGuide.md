@@ -246,6 +246,15 @@ let sort = try NSSortDescriptor(
 )
 ```
 
+For predicate helpers, to-one chains can continue through another to-one relationship:
+
+```swift
+let predicate = Memo.path.itemData.item.note.id.equals(noteID)
+```
+
+Each segment carries its mapped persistent relationship name, so the final `%K` key path is still
+schema-safe even when intermediate Swift names differ from the Core Data model.
+
 Current rule:
 
 - to-one relationship paths are supported for sorting
@@ -352,6 +361,7 @@ Currently:
 
 - flat key sort is supported
 - to-one relationship path sort is supported
+- multi-hop to-one relationship predicates are supported
 - composition leaf sort is supported
 - to-many relationship sort is not supported
 - `%K` predicate building is the recommended query path

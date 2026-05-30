@@ -21,12 +21,18 @@ public enum CDCollectionQuantifier: String, Sendable {
 public struct CDFilterField<Root: CoreDataPathTable, Value> {
   public let swiftPath: [String]
   public let quantifier: CDCollectionQuantifier?
+  private let explicitPersistentPath: [String]?
+  private let explicitStorageMethod: StorageMethod?
 
   public init(
     swiftPath: [String],
+    persistentPath: [String]? = nil,
+    storageMethod: StorageMethod? = nil,
     quantifier: CDCollectionQuantifier? = nil
   ) {
     self.swiftPath = swiftPath
+    explicitPersistentPath = persistentPath
+    explicitStorageMethod = storageMethod
     self.quantifier = quantifier
   }
 
@@ -35,7 +41,10 @@ public struct CDFilterField<Root: CoreDataPathTable, Value> {
   }
 
   public var persistentPath: [String] {
-    Root.__cdMeta(forSwiftPath: swiftPathKey)?.persistentPath ?? swiftPath
+    if let explicitPersistentPath {
+      return explicitPersistentPath
+    }
+    return Root.__cdMeta(forSwiftPath: swiftPathKey)?.persistentPath ?? swiftPath
   }
 
   public var persistentPathKey: String {
@@ -225,7 +234,8 @@ public struct CDFilterField<Root: CoreDataPathTable, Value> {
   }
 
   private func ensureRawStorage(method: String) {
-    let storageMethod = Root.__cdMeta(forSwiftPath: swiftPathKey)?.storageMethod
+    let storageMethod =
+      explicitStorageMethod ?? Root.__cdMeta(forSwiftPath: swiftPathKey)?.storageMethod
     precondition(
       storageMethod == .raw,
       "TypedPath \(method) RawRepresentable overload only supports paths declared with `.raw` storage."
@@ -235,7 +245,11 @@ public struct CDFilterField<Root: CoreDataPathTable, Value> {
 
 extension CDPath where Root: CoreDataPathTable {
   public var filterField: CDFilterField<Root, Value> {
-    CDFilterField(swiftPath: swiftPath)
+    CDFilterField(
+      swiftPath: swiftPath,
+      persistentPath: persistentPath,
+      storageMethod: storageMethod
+    )
   }
 
   public func equals(_ value: Any) -> NSPredicate {

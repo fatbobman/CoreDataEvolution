@@ -25,6 +25,24 @@ struct TypedPathPredicateTests {
     #expect(PathItemModel.path.tags.any.name.raw == "tags.tag_name")
   }
 
+  @Test func toOneRelationChainsCanReachNestedAttributes() throws {
+    let ownerID = try #require(UUID(uuidString: "11111111-1111-1111-1111-111111111111"))
+    let path = PathTaskModel.path.project.owner.identifier
+    let predicate = path.equals(ownerID)
+
+    #expect(path.swiftPathKey == "project.owner.identifier")
+    #expect(path.raw == "current_project.primary_owner.owner_uuid")
+    #expect(PathTaskModel.__cdMeta(forSwiftPath: path.swiftPathKey) == nil)
+    #expect(predicate.predicateFormat.contains("current_project.primary_owner.owner_uuid =="))
+  }
+
+  @Test func chainedRelationRawStorageUsesLeafStorageMethod() throws {
+    let predicate = PathTaskModel.path.project.owner.status.equals(PathItemStatus.active)
+
+    #expect(predicate.predicateFormat.contains("current_project.primary_owner.owner_status =="))
+    #expect(predicate.predicateFormat.contains("active"))
+  }
+
   @Test func toManyAnyBuildsPredicate() throws {
     let predicate = PathItemModel.path.tags.any.name.equals("Swift")
     #expect(predicate.predicateFormat.contains("ANY tags.tag_name =="))

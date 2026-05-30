@@ -76,6 +76,176 @@ final class PathTagModel: NSObject, CoreDataKeys, CoreDataPathDSLProviding {
   }
 }
 
+final class PathOwnerModel: NSObject, CoreDataKeys, CoreDataPathDSLProviding {
+  enum Keys: String {
+    case identifier = "owner_uuid"
+    case status = "owner_status"
+  }
+
+  enum Paths {
+    static let identifier = CDPath<PathOwnerModel, UUID>(
+      swiftPath: ["identifier"],
+      persistentPath: ["owner_uuid"]
+    )
+
+    static let status = CDPath<PathOwnerModel, PathItemStatus?>(
+      swiftPath: ["status"],
+      persistentPath: ["owner_status"],
+      storageMethod: .raw
+    )
+  }
+
+  static let __cdFieldTable: [String: CDFieldMeta] = [
+    "identifier": .init(
+      kind: .attribute,
+      swiftPath: ["identifier"],
+      persistentPath: ["owner_uuid"],
+      storageMethod: .default,
+      supportsStoreSort: true
+    ),
+    "status": .init(
+      kind: .attribute,
+      swiftPath: ["status"],
+      persistentPath: ["owner_status"],
+      storageMethod: .raw,
+      supportsStoreSort: true
+    ),
+  ]
+
+  struct PathRoot: Sendable {
+    var identifier: CDPath<PathOwnerModel, UUID> {
+      Paths.identifier
+    }
+
+    var status: CDPath<PathOwnerModel, PathItemStatus?> {
+      Paths.status
+    }
+  }
+
+  static var path: PathRoot {
+    .init()
+  }
+}
+
+final class PathProjectModel: NSObject, CoreDataKeys, CoreDataPathDSLProviding {
+  enum Keys: String {
+    case title = "project_title"
+  }
+
+  enum Paths {
+    static let title = CDPath<PathProjectModel, String?>(
+      swiftPath: ["title"],
+      persistentPath: ["project_title"]
+    )
+
+    static let owner = CDToOneRelationPath<PathProjectModel, PathOwnerModel>(
+      swiftPath: ["owner"],
+      persistentPath: ["primary_owner"]
+    )
+  }
+
+  static let __cdFieldTable: [String: CDFieldMeta] = [
+    "title": .init(
+      kind: .attribute,
+      swiftPath: ["title"],
+      persistentPath: ["project_title"],
+      storageMethod: .default,
+      supportsStoreSort: true
+    ),
+    "owner": .init(
+      kind: .relationship,
+      swiftPath: ["owner"],
+      persistentPath: ["primary_owner"],
+      storageMethod: .default,
+      supportsStoreSort: false
+    ),
+    "owner.identifier": .init(
+      kind: .relationship,
+      swiftPath: ["owner", "identifier"],
+      persistentPath: ["primary_owner", "owner_uuid"],
+      storageMethod: .default,
+      supportsStoreSort: true
+    ),
+    "owner.status": .init(
+      kind: .relationship,
+      swiftPath: ["owner", "status"],
+      persistentPath: ["primary_owner", "owner_status"],
+      storageMethod: .raw,
+      supportsStoreSort: true
+    ),
+  ]
+
+  struct PathRoot: Sendable {
+    var title: CDPath<PathProjectModel, String?> {
+      Paths.title
+    }
+
+    var owner: CDToOneRelationPath<PathProjectModel, PathOwnerModel> {
+      Paths.owner
+    }
+  }
+
+  static var path: PathRoot {
+    .init()
+  }
+}
+
+final class PathTaskModel: NSObject, CoreDataKeys, CoreDataPathDSLProviding {
+  enum Keys: String {
+    case title = "task_title"
+  }
+
+  enum Paths {
+    static let title = CDPath<PathTaskModel, String?>(
+      swiftPath: ["title"],
+      persistentPath: ["task_title"]
+    )
+
+    static let project = CDToOneRelationPath<PathTaskModel, PathProjectModel>(
+      swiftPath: ["project"],
+      persistentPath: ["current_project"]
+    )
+  }
+
+  static let __cdFieldTable: [String: CDFieldMeta] = [
+    "title": .init(
+      kind: .attribute,
+      swiftPath: ["title"],
+      persistentPath: ["task_title"],
+      storageMethod: .default,
+      supportsStoreSort: true
+    ),
+    "project": .init(
+      kind: .relationship,
+      swiftPath: ["project"],
+      persistentPath: ["current_project"],
+      storageMethod: .default,
+      supportsStoreSort: false
+    ),
+    "project.title": .init(
+      kind: .relationship,
+      swiftPath: ["project", "title"],
+      persistentPath: ["current_project", "project_title"],
+      storageMethod: .default,
+      supportsStoreSort: true
+    ),
+  ]
+
+  struct PathRoot: Sendable {
+    var title: CDPath<PathTaskModel, String?> {
+      Paths.title
+    }
+
+    var project: CDToOneRelationPath<PathTaskModel, PathProjectModel> {
+      Paths.project
+    }
+  }
+
+  static var path: PathRoot {
+    .init()
+  }
+}
+
 final class PathItemModel: NSObject, CoreDataKeys, CoreDataPathDSLProviding {
   enum Keys: String {
     case date = "timestamp"

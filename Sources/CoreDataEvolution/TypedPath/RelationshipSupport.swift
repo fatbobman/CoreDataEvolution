@@ -43,6 +43,16 @@ public struct CDToOneRelationPath<
       storageMethod: targetPath.storageMethod
     )
   }
+
+  public subscript<NextTarget: CoreDataPathDSLProviding>(
+    dynamicMember keyPath: KeyPath<Target.PathRoot, CDToOneRelationPath<Target, NextTarget>>
+  ) -> CDToOneRelationPath<Root, NextTarget> {
+    let targetPath = Target.path[keyPath: keyPath]
+    return CDToOneRelationPath<Root, NextTarget>(
+      swiftPath: swiftPath + targetPath.swiftPath,
+      persistentPath: persistentPath + targetPath.persistentPath
+    )
+  }
 }
 
 extension CDToOneRelationPath {
