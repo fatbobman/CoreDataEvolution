@@ -365,6 +365,61 @@ struct ObservationRuntimeCoreTests {
   }
 
   @MainActor
+  @Test("producer precise route suppresses notification-local fallback only")
+  func producerPreciseRouteSuppressesNotificationLocalFallbackOnly() throws {
+    guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+      return
+    }
+
+    let container = try makeContainer(testName: "ObservationRuntimeSameCyclePreciseFallback")
+    let context = container.viewContext
+    let item = try makeSavedItem(in: context, name: "initial")
+    let itemID = item.objectID
+    let token = CDEObservationSaveToken()
+    let nameSet = fieldSet(for: ["display_name"])
+    var routed: [(NSManagedObjectID, CDEObservationInvalidationDecision)] = []
+    let domain = CDEObservationDomain(container: container) { object, decision in
+      routed.append((object.objectID, decision))
+    }
+
+    _ = item.name
+    _ = item.note
+    domain.stagePendingChangesFromProducer(
+      token: token,
+      changesByObjectID: [itemID: nameSet]
+    )
+
+    let precisePlan = domain.routeMerge(affectedObjectIDs: [itemID])
+    let preciseRoutedObjectIDs = Set(
+      precisePlan.decisionsByObjectID.compactMap { objectID, decision in
+        if case .fieldSet = decision {
+          return objectID
+        }
+        return nil
+      }
+    )
+    let refreshFallbackPlan = domain.routeAllKeyFallback(
+      affectedObjectIDs: [itemID],
+      suppressingObjectIDs: preciseRoutedObjectIDs,
+      skipsProducerBackedPrecise: true
+    )
+    let laterFallbackPlan = domain.routeMerge(affectedObjectIDs: [itemID])
+
+    #expect(precisePlan.decisionsByObjectID[itemID] == .fieldSet(nameSet))
+    #expect(refreshFallbackPlan.lookupCount == 1)
+    #expect(refreshFallbackPlan.decisionsByObjectID.isEmpty)
+    #expect(laterFallbackPlan.lookupCount == 1)
+    #expect(laterFallbackPlan.decisionsByObjectID[itemID] == .allObservableKeyPaths)
+    #expect(routed.count == 2)
+    #expect(routed.first?.0 == itemID)
+    #expect(paths(for: try #require(routed.first?.1)) == ["name"])
+    #expect(routed.last?.0 == itemID)
+    #expect(routed.last?.1 == .allObservableKeyPaths)
+    #expect(domain.pendingObjectCount == 0)
+    #expect(domain.pendingTokenCount == 0)
+  }
+
+  @MainActor
   @Test("background actor observed save failure rolls back staged token")
   func backgroundActorObservedSaveFailureRollsBackStagedToken() async throws {
     guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {

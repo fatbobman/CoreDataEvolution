@@ -15,14 +15,9 @@ import CoreDataEvolution
 public actor DataHandler {
   let viewName: String
 
-  func createNemItem(_ timestamp: Date = Date(), showThread: Bool = false) throws
-    -> NSManagedObjectID
-  {
+  func createNemItem(_ timestamp: Date = Date()) throws -> NSManagedObjectID {
     let item = Item(context: modelContext)
     item.timestamp = timestamp
-    if showThread {
-      print(Thread.current)
-    }
     try modelContext.save()
     return item.objectID
   }

@@ -67,7 +67,7 @@ You can disable the automatic generation of the constructor by using `disableGen
 public actor DataHandler {
     let viewName: String
 
-    func createNewItem(_ timestamp: Date = .now, showThread: Bool = false) throws -> NSManagedObjectID {
+    func createNewItem(_ timestamp: Date = .now) throws -> NSManagedObjectID {
         let item = Item(context: modelContext)
         item.timestamp = timestamp
         try modelContext.save()

@@ -637,7 +637,36 @@ public final class CDEObservationDomain {
   internal func routeAllKeyFallback(
     affectedObjectIDs: [NSManagedObjectID]
   ) -> CDEObservationHubRoutePlan {
+    routeAllKeyFallback(affectedObjectIDs: affectedObjectIDs, skipsProducerBackedPrecise: false)
+  }
+
+  @discardableResult
+  internal func routeAllKeyFallback(
+    affectedObjectIDs: [NSManagedObjectID],
+    skipsProducerBackedPrecise: Bool
+  ) -> CDEObservationHubRoutePlan {
+    routeAllKeyFallback(
+      affectedObjectIDs: affectedObjectIDs,
+      suppressingObjectIDs: [],
+      skipsProducerBackedPrecise: skipsProducerBackedPrecise
+    )
+  }
+
+  @discardableResult
+  internal func routeAllKeyFallback(
+    affectedObjectIDs: [NSManagedObjectID],
+    suppressingObjectIDs: Set<NSManagedObjectID>,
+    skipsProducerBackedPrecise: Bool
+  ) -> CDEObservationHubRoutePlan {
     route(affectedObjectIDs: affectedObjectIDs) { objectID in
+      guard suppressingObjectIDs.contains(objectID) == false else {
+        return nil
+      }
+      if skipsProducerBackedPrecise {
+        guard pendingBuffer.hasProducerBackedPendingChange(for: objectID) == false else {
+          return nil
+        }
+      }
       pendingBuffer.clear(objectID: objectID)
       return .allObservableKeyPaths
     }
@@ -749,16 +778,33 @@ public final class CDEObservationDomain {
     // object-scoped fallback before unregistering the live viewContext object.
     routeAllKeyFallback(affectedObjectIDs: deletedObjectIDs)
     removeObservedObjects(deletedObjectIDs)
-    routeMerge(
+    let mergePlan = routeMerge(
       affectedObjectIDs: objectIDs(
         fromObjectIDSetsIn: notification,
         keys: [
           NSInsertedObjectIDsKey,
           NSUpdatedObjectIDsKey,
-          NSRefreshedObjectIDsKey,
-          NSInvalidatedObjectIDsKey,
         ]
       )
+    )
+    let preciseRoutedObjectIDs = Set(
+      mergePlan.decisionsByObjectID.compactMap { objectID, decision in
+        if case .fieldSet = decision {
+          return objectID
+        }
+        return nil
+      }
+    )
+    // A single Core Data merge notification can list the same object as updated and refreshed.
+    // When producer metadata already routed a field set, that notification-local refresh must not
+    // widen the same object to all-key. Future notifications remain free to fall back normally.
+    routeAllKeyFallback(
+      affectedObjectIDs: objectIDs(
+        fromObjectIDSetsIn: notification,
+        keys: [NSRefreshedObjectIDsKey, NSInvalidatedObjectIDsKey]
+      ),
+      suppressingObjectIDs: preciseRoutedObjectIDs,
+      skipsProducerBackedPrecise: true
     )
   }
 
@@ -800,7 +846,8 @@ public final class CDEObservationDomain {
       return true
     }
     routeAllKeyFallback(
-      affectedObjectIDs: fallbackObjectIDs
+      affectedObjectIDs: fallbackObjectIDs,
+      skipsProducerBackedPrecise: true
     )
   }
 
@@ -813,14 +860,16 @@ public final class CDEObservationDomain {
 
   private func route(
     affectedObjectIDs: [NSManagedObjectID],
-    decision: (NSManagedObjectID) -> CDEObservationInvalidationDecision
+    decision: (NSManagedObjectID) -> CDEObservationInvalidationDecision?
   ) -> CDEObservationHubRoutePlan {
     var decisions: [NSManagedObjectID: CDEObservationInvalidationDecision] = [:]
     var lookupCount = 0
 
     for objectID in affectedObjectIDs {
       lookupCount += 1
-      let objectDecision = decision(objectID)
+      guard let objectDecision = decision(objectID) else {
+        continue
+      }
       guard let object = observedObjects.object(for: objectID) else {
         continue
       }
