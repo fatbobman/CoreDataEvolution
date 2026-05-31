@@ -26,6 +26,45 @@
 
 ---
 
+## Contribution Workflow (direct commit, no PR)
+
+This feature is built by sequential dev sessions on **one integration branch** —
+`feature/issue-12-mainactor-observation`. **Do not open pull requests.** Commit directly to the
+integration branch. This is a deliberate choice by the maintainer; follow it exactly.
+
+Each dev session:
+
+1. `git checkout feature/issue-12-mainactor-observation && git pull` — start from the latest branch
+   state (the previous step's commits).
+2. Do exactly **one step** (the lowest unchecked step in issue
+   [#12](https://github.com/fatbobman/CoreDataEvolution/issues/12)). Stay sequential — one session, one
+   step, in order. Do **not** fan out parallel work, even where the plan notes a step *could*
+   parallelize; the single-branch direct-commit model assumes one writer at a time.
+3. Reach the step's **Done when** gate: `bash Scripts/run-tests.sh` (and the step's
+   `--filter <name>`) green under `com.apple.CoreData.ConcurrencyDebug=1`, with **no** Core Data
+   threading violation. The green gate is the safety mechanism here — there is no PR review to catch a
+   red step.
+4. Commit on the branch, one (or a few coherent) commit(s) per step. Message format:
+   `Step N: <short description> (#12)`, ending with the repo's
+   `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>` trailer.
+5. `git push`. Then tick the step's `- [ ]` box in issue #12. That checklist is the project board;
+   `git log --oneline` shows where the work stands.
+
+Review and naming:
+
+- **Review is local, not a PR.** The maintainer reads `git diff` / the session's own summary / `git
+  show <commit>`. Per-step commits keep each step independently reviewable (`git show`).
+- **Public API names are the maintainer's call.** At the steps that land public symbols
+  (`PersistentModelObservationMode` in Step 1; `CDEObservationDomain`, `saveObservedChanges`,
+  `registerChangeProducer` in Steps 4/6/7), surface the proposed names in the session summary so the
+  maintainer can confirm or rename **before** the commit.
+- **If a step's "Done when" is not green, do not hand off.** Fix it, or stop and report — never commit
+  a red step onto the integration branch.
+- Periodically `git merge origin/main` (or rebase) into the integration branch to avoid drift; the
+  whole branch merges to `main` once the MVP gate is met.
+
+---
+
 ## 0. Read Before You Touch Anything
 
 Required reading, in this order:
