@@ -30,6 +30,12 @@ struct PersistentModelFieldTableRendering: Equatable {
   let fieldTableDecl: String
 }
 
+private struct PersistentModelObservationFieldEntry: Equatable {
+  let propertyName: String
+  // nil means the getter has an observable field ID, but save-hook changedValues() has no key.
+  let coreDataKey: String?
+}
+
 func makeKeysDecl(
   accessModifier: String,
   model: PersistentModelAnalysis
@@ -168,6 +174,76 @@ func makeObservationRegistrarDecls(modelTypeName: String) -> [DeclSyntax] {
   ]
 }
 
+func makeObservationFieldMapDecls(
+  accessModifier: String,
+  modelTypeName: String,
+  model: PersistentModelAnalysis,
+  generateToManyCount: Bool
+) -> [DeclSyntax] {
+  let fields = collectObservationFieldEntries(
+    model: model,
+    generateToManyCount: generateToManyCount
+  )
+  let mapRows = collectObservationCoreDataKeyRows(fields: fields)
+    .map { coreDataKey, fields -> String in
+      let rawValues =
+        fields
+        .map { "__CDObservationFieldID.\($0.propertyName).rawValue" }
+        .joined(separator: ", ")
+      return
+        #""\#(escapeStringLiteral(coreDataKey))": .init(rawValues: [\#(rawValues)])"#
+    }
+    .joined(separator: ",\n")
+  let mapLiteral = mapRows.isEmpty ? "[:]" : "[\n\(mapRows)\n    ]"
+
+  var declarations: [DeclSyntax] = []
+  if fields.isEmpty == false {
+    declarations.append(
+      "\(raw: makeObservationFieldIDDecl(modelTypeName: modelTypeName, fields: fields))"
+    )
+  }
+
+  declarations.append(
+    """
+    \(raw: cdeObservationAvailability)
+    \(raw: accessModifier)static let __cdObservationFieldMap = CoreDataEvolution.CDEObservationFieldMap(
+      fieldsByCoreDataKey: \(raw: mapLiteral)
+    )
+    """
+  )
+  declarations.append(
+    """
+    \(raw: cdeObservationAvailability)
+    \(raw: accessModifier)static func __cdObservationFieldSet<CoreDataKeys>(
+      forCoreDataKeys coreDataKeys: CoreDataKeys
+    ) -> CoreDataEvolution.CDEObservationFieldSet where CoreDataKeys: Sequence, CoreDataKeys.Element == String {
+      __cdObservationFieldMap.fieldSet(forCoreDataKeys: coreDataKeys)
+    }
+    """
+  )
+  declarations.append(
+    """
+    \(raw: cdeObservationAvailability)
+    \(raw: accessModifier)static func __cdObservationSwiftPaths(
+      for fieldSet: CoreDataEvolution.CDEObservationFieldSet
+    ) -> [String] {
+      \(raw: makeObservationFieldEnumerationBody(fields: fields, member: "swiftPath"))
+    }
+    """
+  )
+  declarations.append(
+    """
+    \(raw: cdeObservationAvailability)
+    \(raw: accessModifier)static func __cdObservationKeyPaths(
+      for fieldSet: CoreDataEvolution.CDEObservationFieldSet
+    ) -> [PartialKeyPath<\(raw: modelTypeName)>] {
+      \(raw: makeObservationFieldEnumerationBody(fields: fields, member: "keyPath"))
+    }
+    """
+  )
+  return declarations
+}
+
 func makeFieldTableDecls(
   accessModifier: String,
   modelTypeName: String,
@@ -181,6 +257,120 @@ func makeFieldTableDecls(
     "\(raw: rendering.relationshipProjectionTableDecl)",
     "\(raw: rendering.fieldTableDecl)",
   ]
+}
+
+private func collectObservationFieldEntries(
+  model: PersistentModelAnalysis,
+  generateToManyCount: Bool
+) -> [PersistentModelObservationFieldEntry] {
+  var entries: [PersistentModelObservationFieldEntry] = []
+
+  for property in model.properties {
+    switch property {
+    case .attribute(let attribute):
+      guard attribute.isObservationTracked else { continue }
+      entries.append(
+        .init(
+          propertyName: attribute.propertyName,
+          coreDataKey: attribute.isTransient ? nil : attribute.persistentName
+        )
+      )
+    case .relationship(let relationship):
+      guard relationship.isObservationTracked else { continue }
+      entries.append(
+        .init(
+          propertyName: relationship.propertyName,
+          coreDataKey: relationship.persistentName
+        )
+      )
+      guard generateToManyCount,
+        relationship.kind == .toManySet || relationship.kind == .toManyArray
+      else {
+        continue
+      }
+      entries.append(
+        .init(
+          propertyName: toManyCountPropertyName(for: relationship.propertyName),
+          coreDataKey: relationship.persistentName
+        )
+      )
+    }
+  }
+
+  return entries
+}
+
+private func collectObservationCoreDataKeyRows(
+  fields: [PersistentModelObservationFieldEntry]
+) -> [(String, [PersistentModelObservationFieldEntry])] {
+  var rows: [(String, [PersistentModelObservationFieldEntry])] = []
+  for field in fields {
+    guard let coreDataKey = field.coreDataKey else { continue }
+    if let index = rows.firstIndex(where: { $0.0 == coreDataKey }) {
+      rows[index].1.append(field)
+    } else {
+      rows.append((coreDataKey, [field]))
+    }
+  }
+  return rows
+}
+
+private func makeObservationFieldIDDecl(
+  modelTypeName: String,
+  fields: [PersistentModelObservationFieldEntry]
+) -> String {
+  let cases = fields.enumerated()
+    .map { index, field in
+      "  case \(field.propertyName) = \(index)"
+    }
+    .joined(separator: "\n")
+  let swiftPathCases =
+    fields
+    .map { field in
+      #"    case .\#(field.propertyName): return "\#(escapeStringLiteral(field.propertyName))""#
+    }
+    .joined(separator: "\n")
+  let keyPathCases =
+    fields
+    .map { field in
+      "    case .\(field.propertyName): return \\\(modelTypeName).\(field.propertyName)"
+    }
+    .joined(separator: "\n")
+
+  return
+    """
+    \(cdeObservationAvailability)
+    private enum __CDObservationFieldID: UInt16, CaseIterable {
+    \(cases)
+
+      var swiftPath: String {
+        switch self {
+    \(swiftPathCases)
+        }
+      }
+
+      var keyPath: PartialKeyPath<\(modelTypeName)> {
+        switch self {
+    \(keyPathCases)
+        }
+      }
+    }
+    """
+}
+
+private func makeObservationFieldEnumerationBody(
+  fields: [PersistentModelObservationFieldEntry],
+  member: String
+) -> String {
+  guard fields.isEmpty == false else {
+    return "[]"
+  }
+  return
+    """
+    __CDObservationFieldID.allCases.compactMap { field in
+      fieldSet.contains(rawValue: field.rawValue) ? field.\(member) : nil
+    }
+    """
 }
 
 func collectPersistentModelPathEntries(
@@ -619,7 +809,8 @@ func makeToManyHelpers(
 func makeToManyCountDecls(
   accessModifier: String,
   model: PersistentModelAnalysis,
-  generateToManyCount: Bool
+  generateToManyCount: Bool,
+  observation: ParsedPersistentModelObservationMode
 ) -> [DeclSyntax] {
   guard generateToManyCount else { return [] }
 
@@ -627,25 +818,65 @@ func makeToManyCountDecls(
   for relation in model.relationships {
     let key = relation.persistentName
     let propertyName = toManyCountPropertyName(for: relation.propertyName)
+    let getterObservation: ParsedPersistentModelObservationMode =
+      relation.isObservationTracked ? observation : .none
     switch relation.kind {
     case .toOne:
       continue
     case .toManySet:
-      result.append(
-        """
-        \(raw: accessModifier)var \(raw: propertyName): Int {
-          (value(forKey: "\(raw: key)") as? NSSet)?.count ?? 0
-        }
-        """
-      )
+      if getterObservation == .mainActor {
+        let getter = makeObservationTrackedGetter(
+          """
+          get {
+            return (value(forKey: "\(raw: key)") as? NSSet)?.count ?? 0
+          }
+          """,
+          propertyName: propertyName,
+          observation: getterObservation
+        )
+        result.append(
+          """
+          \(raw: accessModifier)var \(raw: propertyName): Int {
+            \(raw: getter.description)
+          }
+          """
+        )
+      } else {
+        result.append(
+          """
+          \(raw: accessModifier)var \(raw: propertyName): Int {
+            (value(forKey: "\(raw: key)") as? NSSet)?.count ?? 0
+          }
+          """
+        )
+      }
     case .toManyArray:
-      result.append(
-        """
-        \(raw: accessModifier)var \(raw: propertyName): Int {
-          (value(forKey: "\(raw: key)") as? NSOrderedSet)?.count ?? 0
-        }
-        """
-      )
+      if getterObservation == .mainActor {
+        let getter = makeObservationTrackedGetter(
+          """
+          get {
+            return (value(forKey: "\(raw: key)") as? NSOrderedSet)?.count ?? 0
+          }
+          """,
+          propertyName: propertyName,
+          observation: getterObservation
+        )
+        result.append(
+          """
+          \(raw: accessModifier)var \(raw: propertyName): Int {
+            \(raw: getter.description)
+          }
+          """
+        )
+      } else {
+        result.append(
+          """
+          \(raw: accessModifier)var \(raw: propertyName): Int {
+            (value(forKey: "\(raw: key)") as? NSOrderedSet)?.count ?? 0
+          }
+          """
+        )
+      }
     }
   }
 

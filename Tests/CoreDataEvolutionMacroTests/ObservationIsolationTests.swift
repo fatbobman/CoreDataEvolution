@@ -33,9 +33,13 @@ struct ObservationIsolationTests {
     #expect(result.expandedSource.contains("Observation") == false)
     #expect(result.expandedSource.contains("ObservationRegistrar") == false)
     #expect(result.expandedSource.contains("@Observable") == false)
+    #expect(result.expandedSource.contains("__CDObservationFieldID") == false)
+    #expect(result.expandedSource.contains("__cdObservationFieldMap") == false)
     #expect(result.formattedExpandedSource.contains("Observation") == false)
     #expect(result.formattedExpandedSource.contains("ObservationRegistrar") == false)
     #expect(result.formattedExpandedSource.contains("@Observable") == false)
+    #expect(result.formattedExpandedSource.contains("__CDObservationFieldID") == false)
+    #expect(result.formattedExpandedSource.contains("__cdObservationFieldMap") == false)
   }
 
   @Test("explicit none matches implicit PersistentModel expansion")
@@ -73,6 +77,8 @@ struct ObservationIsolationTests {
     #expect(explicit.expandedSource.contains("Observation") == false)
     #expect(explicit.expandedSource.contains("ObservationRegistrar") == false)
     #expect(explicit.expandedSource.contains("@Observable") == false)
+    #expect(explicit.expandedSource.contains("__CDObservationFieldID") == false)
+    #expect(explicit.expandedSource.contains("__cdObservationFieldMap") == false)
   }
 
   @Test("mainActor observation argument parses without diagnostics")

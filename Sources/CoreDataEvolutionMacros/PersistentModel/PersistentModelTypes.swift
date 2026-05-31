@@ -57,6 +57,7 @@ struct PersistentAttributeProperty {
   let defaultValueExpression: String?
   let isUnique: Bool
   let isTransient: Bool
+  let isObservationTracked: Bool
 }
 
 struct PersistentRelationshipProperty {
@@ -74,6 +75,7 @@ struct PersistentRelationshipProperty {
   let minimumModelCount: Int?
   let maximumModelCount: Int?
   let kind: Kind
+  let isObservationTracked: Bool
 }
 
 struct PersistentModelInitProperty {

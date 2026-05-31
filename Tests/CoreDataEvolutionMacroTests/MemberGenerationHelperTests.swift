@@ -32,7 +32,8 @@ struct MemberGenerationHelperTests {
             storageMethod: .default,
             defaultValueExpression: "\"\"",
             isUnique: false,
-            isTransient: false
+            isTransient: false,
+            isObservationTracked: false
           )
         ),
         .attribute(
@@ -45,7 +46,8 @@ struct MemberGenerationHelperTests {
             storageMethod: .composition,
             defaultValueExpression: "nil",
             isUnique: false,
-            isTransient: false
+            isTransient: false,
+            isObservationTracked: false
           )
         ),
         .relationship(
@@ -57,7 +59,8 @@ struct MemberGenerationHelperTests {
             deleteRule: .nullify,
             minimumModelCount: nil,
             maximumModelCount: nil,
-            kind: .toOne
+            kind: .toOne,
+            isObservationTracked: false
           )
         ),
         .relationship(
@@ -69,7 +72,8 @@ struct MemberGenerationHelperTests {
             deleteRule: .cascade,
             minimumModelCount: 0,
             maximumModelCount: 0,
-            kind: .toManySet
+            kind: .toManySet,
+            isObservationTracked: false
           )
         ),
       ]
@@ -107,7 +111,8 @@ struct MemberGenerationHelperTests {
             storageMethod: .default,
             defaultValueExpression: "\"\"",
             isUnique: false,
-            isTransient: false
+            isTransient: false,
+            isObservationTracked: false
           )
         ),
         .attribute(
@@ -120,7 +125,8 @@ struct MemberGenerationHelperTests {
             storageMethod: .composition,
             defaultValueExpression: "nil",
             isUnique: false,
-            isTransient: false
+            isTransient: false,
+            isObservationTracked: false
           )
         ),
         .relationship(
@@ -132,7 +138,8 @@ struct MemberGenerationHelperTests {
             deleteRule: .cascade,
             minimumModelCount: 0,
             maximumModelCount: 0,
-            kind: .toManySet
+            kind: .toManySet,
+            isObservationTracked: false
           )
         ),
       ]

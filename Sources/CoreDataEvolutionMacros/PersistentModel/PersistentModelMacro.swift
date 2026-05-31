@@ -53,7 +53,7 @@ extension PersistentModelMacro: ExtensionMacro {
     let observableDecl: DeclSyntax =
       """
       \(raw: cdeObservationAvailability)
-      extension \(type.trimmed): CoreDataEvolution.CDEObservable {}
+      extension \(type.trimmed): CoreDataEvolution.CDEObservable, CoreDataEvolution.CDEObservationFieldMapProviding {}
       """
     guard let observableExt = observableDecl.as(ExtensionDeclSyntax.self) else {
       MacroDiagnosticReporter.error(
@@ -212,6 +212,12 @@ extension PersistentModelMacro: MemberMacro {
     var members: [DeclSyntax] = []
     if arguments.observation == .mainActor {
       members += makeObservationRegistrarDecls(modelTypeName: modelTypeName)
+      members += makeObservationFieldMapDecls(
+        accessModifier: accessModifier,
+        modelTypeName: modelTypeName,
+        model: model,
+        generateToManyCount: arguments.generateToManyCount
+      )
     }
     members.append(makeKeysDecl(accessModifier: accessModifier, model: model))
     members.append(
@@ -268,7 +274,8 @@ extension PersistentModelMacro: MemberMacro {
     members += makeToManyCountDecls(
       accessModifier: accessModifier,
       model: model,
-      generateToManyCount: arguments.generateToManyCount
+      generateToManyCount: arguments.generateToManyCount,
+      observation: arguments.observation
     )
     members += makeToManyHelpers(
       accessModifier: accessModifier,

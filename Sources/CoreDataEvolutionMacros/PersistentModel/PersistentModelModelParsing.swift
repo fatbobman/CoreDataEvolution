@@ -57,6 +57,7 @@ func analyzePersistentModelProperties(in classDecl: ClassDeclSyntax)
     let nonOptionalTypeName = attributeOptionalWrappedTypeName(typeAnnotation.type) ?? typeName
     let isOptional = attributeOptionalWrappedTypeName(typeAnnotation.type) != nil
     let defaultValueExpression = binding.initializer?.value.trimmedDescription
+    let isObservationTracked = isObservationTrackedPersistentModelProperty(variable)
     let relationshipArguments: ParsedRelationshipDeclArguments?
     if let relationshipAttribute = firstAttribute(named: "Relationship", in: variable),
       case .success(let parsedRelationshipArguments) = parseRelationshipDeclArguments(
@@ -83,7 +84,8 @@ func analyzePersistentModelProperties(in classDecl: ClassDeclSyntax)
             defaultValueExpression: defaultValueExpression
               ?? optionalFallbackDefault(type: typeAnnotation.type),
             isUnique: parsed.traits.contains(.unique),
-            isTransient: parsed.traits.contains(.transient)
+            isTransient: parsed.traits.contains(.transient),
+            isObservationTracked: isObservationTracked
           )
         )
       )
@@ -97,7 +99,8 @@ func analyzePersistentModelProperties(in classDecl: ClassDeclSyntax)
     if let relationship = parseRelationshipProperty(
       propertyName: propertyName,
       type: typeAnnotation.type,
-      relationshipArguments: relationshipArguments
+      relationshipArguments: relationshipArguments,
+      isObservationTracked: isObservationTracked
     ) {
       properties.append(.relationship(relationship))
       continue
@@ -115,7 +118,8 @@ func analyzePersistentModelProperties(in classDecl: ClassDeclSyntax)
           defaultValueExpression: defaultValueExpression
             ?? optionalFallbackDefault(type: typeAnnotation.type),
           isUnique: false,
-          isTransient: false
+          isTransient: false,
+          isObservationTracked: isObservationTracked
         )
       )
     )
@@ -428,10 +432,15 @@ func shouldAttachObservationMarker(to variable: VariableDeclSyntax) -> Bool {
   return shouldRejectOptionalToManyRelationship(typeAnnotation.type, in: variable) == false
 }
 
+func isObservationTrackedPersistentModelProperty(_ variable: VariableDeclSyntax) -> Bool {
+  shouldAttachObservationMarker(to: variable) || hasMarkerAttribute("_CDObserved", in: variable)
+}
+
 private func parseRelationshipProperty(
   propertyName: String,
   type: TypeSyntax,
-  relationshipArguments: ParsedRelationshipDeclArguments?
+  relationshipArguments: ParsedRelationshipDeclArguments?,
+  isObservationTracked: Bool = false
 ) -> PersistentRelationshipProperty? {
   if let element = setElementTypeName(type) {
     return PersistentRelationshipProperty(
@@ -442,7 +451,8 @@ private func parseRelationshipProperty(
       deleteRule: relationshipArguments?.deleteRule,
       minimumModelCount: relationshipArguments?.minimumModelCount,
       maximumModelCount: relationshipArguments?.maximumModelCount,
-      kind: .toManySet
+      kind: .toManySet,
+      isObservationTracked: isObservationTracked
     )
   }
   if let element = arrayElementTypeName(type) {
@@ -454,7 +464,8 @@ private func parseRelationshipProperty(
       deleteRule: relationshipArguments?.deleteRule,
       minimumModelCount: relationshipArguments?.minimumModelCount,
       maximumModelCount: relationshipArguments?.maximumModelCount,
-      kind: .toManyArray
+      kind: .toManyArray,
+      isObservationTracked: isObservationTracked
     )
   }
   if let wrappedType = optionalWrappedTypeSyntax(type) {
@@ -472,7 +483,8 @@ private func parseRelationshipProperty(
         deleteRule: relationshipArguments?.deleteRule,
         minimumModelCount: relationshipArguments?.minimumModelCount,
         maximumModelCount: relationshipArguments?.maximumModelCount,
-        kind: .toOne
+        kind: .toOne,
+        isObservationTracked: isObservationTracked
       )
     }
   }

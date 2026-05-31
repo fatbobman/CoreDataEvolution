@@ -232,7 +232,11 @@ public macro _CDObserved(
 ///   generated output unchanged.
 @attached(memberAttribute)
 @attached(member, names: arbitrary, named(__cdRuntimeEntitySchema))
-@attached(extension, conformances: PersistentEntity, CDRuntimeSchemaProviding, CDEObservable)
+@attached(
+  extension,
+  conformances:
+    PersistentEntity, CDRuntimeSchemaProviding, CDEObservable, CDEObservationFieldMapProviding
+)
 public macro PersistentModel(
   generateInit: Bool = false,
   generateToManyCount: Bool = true,

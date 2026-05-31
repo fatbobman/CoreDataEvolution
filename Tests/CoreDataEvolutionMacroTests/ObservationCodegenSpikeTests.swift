@@ -69,6 +69,71 @@ struct ObservationCodegenSpikeTests {
     #expect(result.expandedSource.contains("\(availability)\nextension CDObservedItem"))
   }
 
+  @Test("mainActor observation generates Core Data key fan-out table")
+  func mainActorObservationGeneratesCoreDataKeyFanOutTable() throws {
+    let result = try MacroTestSupport.expand(
+      source: """
+        import CoreData
+        import CoreDataEvolution
+
+        @Composition
+        struct CDObservedProfile {
+          var nickname: String = ""
+        }
+
+        @objc(CDObservedParent)
+        @PersistentModel(observation: .mainActor)
+        final class CDObservedParent: NSManagedObject {
+          @Attribute(persistentName: "display_name")
+          var name: String = ""
+
+          @Relationship(inverse: "favoriteOf", deleteRule: .nullify)
+          var favorite: CDObservedChild?
+
+          @Relationship(persistentName: "kid_records", inverse: "parent", deleteRule: .nullify)
+          var children: Set<CDObservedChild>
+
+          @Relationship(
+            persistentName: "ordered_kid_records",
+            inverse: "orderedParent",
+            deleteRule: .nullify
+          )
+          var orderedChildren: [CDObservedChild]
+
+          @Attribute(persistentName: "profileStorage", storageMethod: .composition)
+          var profile: CDObservedProfile? = nil
+
+          @Attribute(.transient)
+          var transientNote: String = ""
+        }
+        """
+    )
+
+    #expect(result.diagnostics.isEmpty)
+    #expect(result.expandedSource.contains("private enum __CDObservationFieldID: UInt16"))
+    #expect(result.expandedSource.contains("case childrenCount"))
+    #expect(result.expandedSource.contains("case orderedChildrenCount"))
+    #expect(
+      result.expandedSource.contains(
+        #""display_name": .init(rawValues: [__CDObservationFieldID.name.rawValue])"#
+      ))
+    #expect(
+      result.expandedSource.contains(
+        #""kid_records": .init(rawValues: [__CDObservationFieldID.children.rawValue, __CDObservationFieldID.childrenCount.rawValue])"#
+      ))
+    #expect(
+      result.expandedSource.contains(
+        #""ordered_kid_records": .init(rawValues: [__CDObservationFieldID.orderedChildren.rawValue, __CDObservationFieldID.orderedChildrenCount.rawValue])"#
+      ))
+    #expect(
+      result.expandedSource.contains(
+        #""profileStorage": .init(rawValues: [__CDObservationFieldID.profile.rawValue])"#
+      ))
+    #expect(result.expandedSource.contains(#""transientNote": .init(rawValues:"#) == false)
+    #expect(containsObservationAccess(result.expandedSource, property: "childrenCount"))
+    #expect(containsObservationAccess(result.expandedSource, property: "orderedChildrenCount"))
+  }
+
   private func containsObservationAccess(_ source: String, property: String) -> Bool {
     source.contains("CoreDataEvolution._cdeObservationAccess(")
       && source.contains("\\.\(property),")
