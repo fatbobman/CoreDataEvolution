@@ -21,6 +21,38 @@ It is not a universal Core Data observation system. The MVP focuses on:
 - selectively installed context save hook exploration for framework-owned contexts
 - explicit fallback when a merge can provide object IDs but not changed key paths
 
+## Design Intent: Cognitive Liberation Is Unconditional
+
+The target is the SwiftUI view-construction mental model, not throughput. Today, making an
+`NSManagedObject` reactive in SwiftUI forces `@Observable` wrapper layers; a deep read path such as
+`memo.itemData.item.symbol` forces several of them — one per relationship hop — just so a leaf change
+can drive the view. This feature removes those layers: a view reads the object graph directly, and
+each object on the read path subscribes itself.
+
+The defining property is that **this liberation is unconditional and orthogonal to precision.** It
+comes from per-instance subscription — each object is observed because the view *read* it — not from
+how precisely a later change is detected. The mechanism never walks the graph or computes a transitive
+closure; the "penetration" is just Observation re-subscribing along whatever the view actually read
+(see the Subscription axis below).
+
+Two consequences follow, and they are the core positioning:
+
+- **The structural win holds even under all-key fallback.** Precision (the Detection axis) only decides
+  whether a *sibling* property's change *also* wakes a reader. It never decides whether the wrapper
+  layers can be deleted — they always can. Precise where CDE can recover the changed key (local
+  `viewContext` save, CDE-managed save, registered producer); object-level all-key fallback where it
+  cannot (unregistered context, batch, CloudKit import). Both delete the same wrapper layers.
+- **The all-key fallback floor equals the existing Combine ceiling.** Object-level all-key invalidation
+  is the same granularity as `NSManagedObject.objectWillChange` (`@ObservedObject` / `@FetchRequest`):
+  "this object changed → its readers re-render." It is, if anything, tighter, because Observation only
+  wakes views that actually *read* the object, whereas `@ObservedObject` wakes every holder. Worst case
+  is therefore parity with today's Combine path; the precise paths are strictly better (property-level,
+  which `objectWillChange` cannot express); no path is meaningfully worse. Performance is not a reason
+  to avoid the feature.
+
+Hence the explicit ordering — mental model first, performance second: the model improvement is the
+guaranteed deliverable; precision is a layered, degradable optimization on top of it.
+
 ## Observation Boundaries (Two Axes)
 
 The whole reactivity contract reduces to one precondition: **CDE generated the accessor.** That gives

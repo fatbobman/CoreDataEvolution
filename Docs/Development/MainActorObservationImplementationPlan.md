@@ -73,6 +73,17 @@ work relative to the "Implementation Phases" list in the mechanism doc.
    asserts the *negative* (non-opt-in output stays Observation-free). Treat Steps 1–3 as the real
    risk and de-risk them first.
 
+### Positioning: the win is unconditional; precision is a bonus
+
+The cognitive win — deleting `@Observable` wrapper layers and reading the object graph directly — comes
+from per-instance subscription and is **independent of precision**. It holds even when a change uses
+objectID-only all-key fallback; precision only controls whether a *sibling* property's change also
+wakes a reader. The all-key fallback floor equals the existing `objectWillChange` (Combine) granularity
+— worst case is parity with today, precise paths are strictly better, no path is worse. Build and test
+with this ordering: **the structural win is the guaranteed deliverable; precision is a layered,
+degradable optimization.** Full statement: mechanism doc → "Design Intent: Cognitive Liberation Is
+Unconditional".
+
 ### Known limitations to carry into docs and the tracking issue (not bugs — scope)
 
 The whole reactivity contract reduces to one precondition: **CDE generated the accessor.** That yields
@@ -522,6 +533,10 @@ tracked read). This step elevates it to a real generated model end-to-end.
   wakes a closure that read it, without the mechanism walking the graph (issue #11's motivating case).
 - A "read only `ordersCount`" test proving the count fan-out (Step 3) actually refreshes a count-only
   reader.
+- **Win-holds-under-fallback test** (operationalizes the "Positioning" thesis): run the same deep-read
+  scenario but drive the change through an objectID-only path (unregistered context or batch) and
+  assert the reader still refreshes — the wrapper-deletion / penetration win is precision-independent;
+  fallback only widens *which* sibling reads also wake, it never loses the structural win.
 
 **Tests & acceptance.**
 - `bash Scripts/run-tests.sh --filter ObservationIntegration` green.
