@@ -53,7 +53,9 @@ extension PersistentModelMacro: ExtensionMacro {
     let observableDecl: DeclSyntax =
       """
       \(raw: cdeObservationAvailability)
-      extension \(type.trimmed): CoreDataEvolution.CDEObservable, CoreDataEvolution.CDEObservationFieldMapProviding {}
+      extension \(type.trimmed): CoreDataEvolution.CDEObservable,
+        CoreDataEvolution.CDEObservationFieldMapProviding,
+        CoreDataEvolution.CDEObservationInvalidationDispatching {}
       """
     guard let observableExt = observableDecl.as(ExtensionDeclSyntax.self) else {
       MacroDiagnosticReporter.error(

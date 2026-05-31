@@ -132,6 +132,17 @@ struct ObservationCodegenSpikeTests {
     #expect(result.expandedSource.contains(#""transientNote": .init(rawValues:"#) == false)
     #expect(containsObservationAccess(result.expandedSource, property: "childrenCount"))
     #expect(containsObservationAccess(result.expandedSource, property: "orderedChildrenCount"))
+    #expect(result.expandedSource.contains("func __cdObservationInvalidate("))
+    #expect(
+      result.expandedSource.contains("fieldSet: CoreDataEvolution.CDEObservationFieldSet"))
+    #expect(
+      result.expandedSource.contains(
+        "_$observationRegistrar.withMutation(of: self, keyPath: \\.children)"
+      ))
+    #expect(
+      result.expandedSource.contains(
+        "_$observationRegistrar.withMutation(of: self, keyPath: \\.childrenCount)"
+      ))
   }
 
   private func containsObservationAccess(_ source: String, property: String) -> Bool {

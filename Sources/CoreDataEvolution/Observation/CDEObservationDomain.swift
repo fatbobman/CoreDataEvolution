@@ -525,10 +525,29 @@ public final class CDEObservationDomain {
       }
 
       decisions[objectID] = objectDecision
+      dispatchInvalidation(on: object, decision: objectDecision)
       invalidationHandler?(object, objectDecision)
     }
 
     return .init(decisionsByObjectID: decisions, lookupCount: lookupCount)
+  }
+
+  private func dispatchInvalidation(
+    on object: NSManagedObject,
+    decision: CDEObservationInvalidationDecision
+  ) {
+    guard let dispatcher = object as? any CDEObservationInvalidationDispatching else {
+      return
+    }
+
+    // Degradation remains object-scoped: the generated dispatcher walks only this model instance's
+    // observable key paths and never traverses relationships to related objects.
+    switch decision {
+    case .fieldSet(let fieldSet):
+      dispatcher.__cdObservationInvalidate(fieldSet: fieldSet)
+    case .allObservableKeyPaths:
+      dispatcher.__cdObservationInvalidateAllObservableKeyPaths()
+    }
   }
 
   private func objectIDs(

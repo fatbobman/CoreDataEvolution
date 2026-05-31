@@ -1,4 +1,5 @@
 @preconcurrency import CoreData
+import Observation
 import Testing
 
 @testable import CoreDataEvolution
@@ -10,6 +11,24 @@ final class ObservationRuntimeItem: NSManagedObject {
   var name: String = ""
 
   var note: String = ""
+}
+
+@objc(ObservationRuntimeParent)
+@PersistentModel(observation: .mainActor)
+final class ObservationRuntimeParent: NSManagedObject {
+  var name: String = ""
+
+  @Relationship(inverse: "parent", deleteRule: .nullify)
+  var children: Set<ObservationRuntimeChild>
+}
+
+@objc(ObservationRuntimeChild)
+@PersistentModel(observation: .mainActor)
+final class ObservationRuntimeChild: NSManagedObject {
+  var name: String = ""
+
+  @Relationship(inverse: "children", deleteRule: .nullify)
+  var parent: ObservationRuntimeParent?
 }
 
 @Suite("Observation Runtime Core")
@@ -133,6 +152,100 @@ struct ObservationRuntimeCoreTests {
   }
 
   @MainActor
+  @Test("staged relationship field dispatches relationship and count")
+  func stagedRelationshipFieldDispatchesRelationshipAndCount() throws {
+    guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+      return
+    }
+
+    let container = try makeRelationshipContainer(
+      testName: "ObservationRuntimeRelationshipDispatch"
+    )
+    let context = container.viewContext
+    let parent = try makeSavedParent(in: context, name: "parent")
+    let domain = CDEObservationDomain(container: container)
+    let token = CDEObservationSaveToken()
+    let childrenSet = ObservationRuntimeParent.__cdObservationFieldSet(
+      forCoreDataKeys: ["children"]
+    )
+    let childrenCounter = ObservationChangeCounter()
+    let countCounter = ObservationChangeCounter()
+    let nameCounter = ObservationChangeCounter()
+
+    _ = withObservationTracking {
+      parent.children
+    } onChange: {
+      childrenCounter.increment()
+    }
+    _ = withObservationTracking {
+      parent.childrenCount
+    } onChange: {
+      countCounter.increment()
+    }
+    _ = withObservationTracking {
+      parent.name
+    } onChange: {
+      nameCounter.increment()
+    }
+
+    domain.stagePendingChange(token: token, objectID: parent.objectID, fieldSet: childrenSet)
+    domain.routeMerge(affectedObjectIDs: [parent.objectID])
+
+    #expect(childrenCounter.value == 1)
+    #expect(countCounter.value == 1)
+    #expect(nameCounter.value == 0)
+  }
+
+  @MainActor
+  @Test("all-key dispatch is bounded to one observed object")
+  func allKeyDispatchIsBoundedToOneObservedObject() throws {
+    guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+      return
+    }
+
+    let container = try makeRelationshipContainer(testName: "ObservationRuntimeAllKeyDispatch")
+    let context = container.viewContext
+    let parent = try makeSavedParent(in: context, name: "parent")
+    let child = try makeChild(in: context, name: "child")
+    parent.addToChildren(child)
+    try context.save()
+
+    let domain = CDEObservationDomain(container: container)
+    let nameCounter = ObservationChangeCounter()
+    let childrenCounter = ObservationChangeCounter()
+    let countCounter = ObservationChangeCounter()
+    let childNameCounter = ObservationChangeCounter()
+
+    _ = withObservationTracking {
+      parent.name
+    } onChange: {
+      nameCounter.increment()
+    }
+    _ = withObservationTracking {
+      parent.children
+    } onChange: {
+      childrenCounter.increment()
+    }
+    _ = withObservationTracking {
+      parent.childrenCount
+    } onChange: {
+      countCounter.increment()
+    }
+    _ = withObservationTracking {
+      child.name
+    } onChange: {
+      childNameCounter.increment()
+    }
+
+    domain.routeAllKeyFallback(affectedObjectIDs: [parent.objectID])
+
+    #expect(nameCounter.value == 1)
+    #expect(childrenCounter.value == 1)
+    #expect(countCounter.value == 1)
+    #expect(childNameCounter.value == 0)
+  }
+
+  @MainActor
   @Test("pending buffer merges consumes rolls back scopes and compresses")
   func pendingBufferMergesConsumesRollsBackScopesAndCompresses() throws {
     guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
@@ -215,6 +328,16 @@ struct ObservationRuntimeCoreTests {
   }
 
   @MainActor
+  private func makeRelationshipContainer(testName: String) throws -> NSPersistentContainer {
+    let container = try NSPersistentContainer.makeRuntimeTest(
+      modelTypes: [ObservationRuntimeParent.self, ObservationRuntimeChild.self],
+      testName: testName
+    )
+    container.viewContext.automaticallyMergesChangesFromParent = true
+    return container
+  }
+
+  @MainActor
   private func makeContainer(testName: String) throws -> NSPersistentContainer {
     let container = try NSPersistentContainer.makeRuntimeTest(
       modelTypes: [ObservationRuntimeItem.self],
@@ -248,6 +371,42 @@ struct ObservationRuntimeCoreTests {
     return item
   }
 
+  @MainActor
+  private func makeSavedParent(
+    in context: NSManagedObjectContext,
+    name: String
+  ) throws -> ObservationRuntimeParent {
+    let parent = try makeParent(in: context, name: name)
+    try context.save()
+    return parent
+  }
+
+  @MainActor
+  private func makeParent(
+    in context: NSManagedObjectContext,
+    name: String
+  ) throws -> ObservationRuntimeParent {
+    let entity = try #require(
+      NSEntityDescription.entity(forEntityName: "ObservationRuntimeParent", in: context)
+    )
+    let parent = ObservationRuntimeParent(entity: entity, insertInto: context)
+    parent.name = name
+    return parent
+  }
+
+  @MainActor
+  private func makeChild(
+    in context: NSManagedObjectContext,
+    name: String
+  ) throws -> ObservationRuntimeChild {
+    let entity = try #require(
+      NSEntityDescription.entity(forEntityName: "ObservationRuntimeChild", in: context)
+    )
+    let child = ObservationRuntimeChild(entity: entity, insertInto: context)
+    child.name = name
+    return child
+  }
+
   private func fieldSet(for coreDataKeys: [String]) -> CDEObservationFieldSet {
     ObservationRuntimeItem.__cdObservationFieldSet(forCoreDataKeys: coreDataKeys)
   }
@@ -258,6 +417,22 @@ struct ObservationRuntimeCoreTests {
       return ObservationRuntimeItem.__cdObservationSwiftPaths(for: fieldSet)
     case .allObservableKeyPaths:
       return ["*"]
+    }
+  }
+}
+
+// `withObservationTracking` captures `onChange` in a sendable closure.
+private final class ObservationChangeCounter: @unchecked Sendable {
+  private let lock = NSLock()
+  private var storage = 0
+
+  var value: Int {
+    lock.withLock { storage }
+  }
+
+  func increment() {
+    lock.withLock {
+      storage += 1
     }
   }
 }

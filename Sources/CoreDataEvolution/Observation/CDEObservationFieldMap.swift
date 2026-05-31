@@ -117,3 +117,11 @@ public protocol CDEObservationFieldMapProviding {
     for fieldSet: CDEObservationFieldSet
   ) -> [PartialKeyPath<Self>]
 }
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
+/// Instance-side invalidation witness emitted by `@PersistentModel(observation: .mainActor)`.
+public protocol CDEObservationInvalidationDispatching {
+  func __cdObservationInvalidate(fieldSet: CDEObservationFieldSet)
+
+  func __cdObservationInvalidateAllObservableKeyPaths()
+}

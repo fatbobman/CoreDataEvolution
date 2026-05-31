@@ -241,6 +241,10 @@ func makeObservationFieldMapDecls(
     }
     """
   )
+  declarations += makeObservationInvalidationDispatchDecls(
+    accessModifier: accessModifier,
+    fields: fields
+  )
   return declarations
 }
 
@@ -371,6 +375,68 @@ private func makeObservationFieldEnumerationBody(
       fieldSet.contains(rawValue: field.rawValue) ? field.\(member) : nil
     }
     """
+}
+
+private func makeObservationInvalidationDispatchDecls(
+  accessModifier: String,
+  fields: [PersistentModelObservationFieldEntry]
+) -> [DeclSyntax] {
+  guard fields.isEmpty == false else {
+    return [
+      """
+      \(raw: cdeObservationAvailability)
+      \(raw: accessModifier)func __cdObservationInvalidate(
+        fieldSet: CoreDataEvolution.CDEObservationFieldSet
+      ) {}
+      """,
+      """
+      \(raw: cdeObservationAvailability)
+      \(raw: accessModifier)func __cdObservationInvalidateAllObservableKeyPaths() {}
+      """,
+    ]
+  }
+
+  let cases =
+    fields
+    .map { field in
+      """
+          case .\(field.propertyName):
+            _$observationRegistrar.withMutation(of: self, keyPath: \\.\(field.propertyName)) {}
+      """
+    }
+    .joined(separator: "\n")
+
+  return [
+    """
+    \(raw: cdeObservationAvailability)
+    \(raw: accessModifier)func __cdObservationInvalidate(
+      fieldSet: CoreDataEvolution.CDEObservationFieldSet
+    ) {
+      for field in __CDObservationFieldID.allCases {
+        guard fieldSet.contains(rawValue: field.rawValue) else {
+          continue
+        }
+        __cdObservationInvalidate(field)
+      }
+    }
+    """,
+    """
+    \(raw: cdeObservationAvailability)
+    \(raw: accessModifier)func __cdObservationInvalidateAllObservableKeyPaths() {
+      for field in __CDObservationFieldID.allCases {
+        __cdObservationInvalidate(field)
+      }
+    }
+    """,
+    """
+    \(raw: cdeObservationAvailability)
+    private func __cdObservationInvalidate(_ field: __CDObservationFieldID) {
+      switch field {
+    \(raw: cases)
+      }
+    }
+    """,
+  ]
 }
 
 func collectPersistentModelPathEntries(
