@@ -338,6 +338,7 @@ func autoAttachedAttribute(
   if hasMarkerAttribute("Ignore", in: variable)
     || hasMarkerAttribute("Attribute", in: variable)
     || hasMarkerAttribute("_CDRelationship", in: variable)
+    || hasMarkerAttribute("NSManaged", in: variable)
   {
     return nil
   }

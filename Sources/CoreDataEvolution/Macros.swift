@@ -23,6 +23,14 @@ public protocol CDRegisteredValueTransformer: ValueTransformer {
 
 // MARK: - Core Data Macro
 
+/// Controls whether `@PersistentModel` generates Observation-ready accessors.
+public enum PersistentModelObservationMode: Sendable {
+  /// Keeps the current non-observable generated output.
+  case none
+  /// Opts the model into MainActor-bound Observation support.
+  case mainActor
+}
+
 /// Declares how a persisted property is stored in the Core Data model.
 ///
 /// Use `.default` when the Swift property type already matches the Core Data field shape.
@@ -212,12 +220,15 @@ public macro _CDRelationship(
 ///   Relationship properties are excluded and no parameter gets a default argument.
 /// - Parameter generateToManyCount: When `true`, synthesizes `relationshipNameCount` computed
 ///   properties for every to-many relationship using the underlying Objective-C collection count.
+/// - Parameter observation: Optional Observation code generation mode. The default keeps existing
+///   generated output unchanged.
 @attached(memberAttribute)
 @attached(member, names: arbitrary, named(__cdRuntimeEntitySchema))
 @attached(extension, conformances: PersistentEntity, CDRuntimeSchemaProviding)
 public macro PersistentModel(
   generateInit: Bool = false,
-  generateToManyCount: Bool = true
+  generateToManyCount: Bool = true,
+  observation: PersistentModelObservationMode = .none
 ) = #externalMacro(module: "CoreDataEvolutionMacros", type: "PersistentModelMacro")
 
 /// Declares metadata for a persisted attribute.

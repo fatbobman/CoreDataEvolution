@@ -18,11 +18,16 @@ func parsePersistentModelArguments(
   emitDiagnostics: Bool = true
 ) -> PersistentModelArguments? {
   guard let list = node.arguments?.as(LabeledExprListSyntax.self) else {
-    return PersistentModelArguments(generateInit: false, generateToManyCount: true)
+    return PersistentModelArguments(
+      generateInit: false,
+      generateToManyCount: true,
+      observation: .none
+    )
   }
 
   var generateInit = false
   var generateToManyCount = true
+  var observation: ParsedPersistentModelObservationMode = .none
 
   for argument in list {
     guard let label = argument.label?.text else { continue }
@@ -53,6 +58,20 @@ func parsePersistentModelArguments(
         return nil
       }
       generateToManyCount = bool.literal.text == "true"
+    case "observation":
+      guard let parsedObservation = parsePersistentModelObservationMode(from: argument.expression)
+      else {
+        if emitDiagnostics {
+          MacroDiagnosticReporter.error(
+            "@PersistentModel argument `observation` must be `.none` or `.mainActor`.",
+            domain: persistentModelMacroDomain,
+            in: context,
+            node: argument.expression
+          )
+        }
+        return nil
+      }
+      observation = parsedObservation
     default:
       if emitDiagnostics {
         MacroDiagnosticReporter.error(
@@ -68,6 +87,26 @@ func parsePersistentModelArguments(
 
   return PersistentModelArguments(
     generateInit: generateInit,
-    generateToManyCount: generateToManyCount
+    generateToManyCount: generateToManyCount,
+    observation: observation
   )
+}
+
+private func parsePersistentModelObservationMode(
+  from expression: ExprSyntax
+) -> ParsedPersistentModelObservationMode? {
+  guard let memberAccess = expression.as(MemberAccessExprSyntax.self),
+    memberAccess.base == nil
+  else {
+    return nil
+  }
+
+  switch memberAccess.declName.baseName.text {
+  case "none":
+    return ParsedPersistentModelObservationMode.none
+  case "mainActor":
+    return .mainActor
+  default:
+    return nil
+  }
 }

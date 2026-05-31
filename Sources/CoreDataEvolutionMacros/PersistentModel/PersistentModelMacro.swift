@@ -59,7 +59,19 @@ extension PersistentModelMacro: MemberAttributeMacro {
     guard hasExplicitObjCClassName(on: classDecl) else {
       return []
     }
+    guard classDecl.inheritsFromNSManagedObject else {
+      return []
+    }
     guard let variable = member.as(VariableDeclSyntax.self) else {
+      return []
+    }
+    guard
+      let arguments = parsePersistentModelArguments(
+        from: node,
+        context: context,
+        emitDiagnostics: false
+      )
+    else {
       return []
     }
     guard variable.bindings.count == 1 else {
@@ -77,6 +89,22 @@ extension PersistentModelMacro: MemberAttributeMacro {
         )
         return []
       }
+    }
+
+    if hasMarkerAttribute("NSManaged", in: variable) {
+      if arguments.observation == .mainActor,
+        let propertyName = variable.bindings.first?.pattern.as(IdentifierPatternSyntax.self)?
+          .identifier.text
+      {
+        MacroDiagnosticReporter.warning(
+          "@NSManaged property `\(propertyName)` will not participate in Observation because CDE cannot inject access() into Core Data's dynamic accessor.",
+          domain: persistentModelMacroDomain,
+          id: "nsmanaged-observation-skipped",
+          in: context,
+          node: variable
+        )
+      }
+      return []
     }
 
     guard
