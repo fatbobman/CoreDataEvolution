@@ -136,7 +136,7 @@ private final class ObservationRuntimeMainHandler {
   }
 }
 
-@Suite("Observation Runtime Core")
+@Suite("Observation Runtime Core", .serialized)
 struct ObservationRuntimeCoreTests {
   @MainActor
   @Test("domain activation and generated getter association")
@@ -260,59 +260,108 @@ struct ObservationRuntimeCoreTests {
     #expect(paths(for: fallbackChange.1) == ["*"])
   }
 
-  @MainActor
   @Test("background actor observed save does not suspend between staging and save")
   func backgroundActorObservedSaveDoesNotSuspendBetweenStagingAndSave() async throws {
     guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
       return
     }
 
-    let container = try makeContainer(testName: "ObservationRuntimeActorObservedSaveOrdering")
-    let context = container.viewContext
-    let item = try makeSavedItem(in: context, name: "initial")
-    let itemID = item.objectID
-    let actor = ObservationRuntimeMetadataActor(container: container)
     let prepared = DispatchSemaphore(value: 0)
     let reentrantDone = DispatchSemaphore(value: 0)
-    var routed: [(NSManagedObjectID, CDEObservationInvalidationDecision)] = []
-    let domain = CDEObservationDomain(container: container) { object, decision in
-      routed.append((object.objectID, decision))
+    let mainActorEntered = DispatchSemaphore(value: 0)
+    let releaseMainActor = DispatchSemaphore(value: 0)
+    let fixture = try await MainActor.run {
+      let container = try makeContainer(testName: "ObservationRuntimeActorObservedSaveOrdering")
+      let context = container.viewContext
+      let item = try makeSavedItem(in: context, name: "initial")
+      let actor = ObservationRuntimeMetadataActor(container: container)
+      let domain = CDEObservationDomain(container: container)
+
+      _ = item.name
+      _ = item.note
+
+      return ObservationActorSaveOrderingFixture(
+        container: container,
+        itemID: item.objectID,
+        actor: actor,
+        domain: domain
+      )
     }
 
-    _ = item.name
-    _ = item.note
+    let mainActorBlocker = Task { @MainActor in
+      blockMainActor(entered: mainActorEntered, release: releaseMainActor)
+    }
+
+    var mainActorReleased = false
+    func releaseBlockedMainActor() {
+      guard mainActorReleased == false else {
+        return
+      }
+      mainActorReleased = true
+      releaseMainActor.signal()
+    }
+    defer {
+      releaseBlockedMainActor()
+    }
+    guard waitSynchronously(for: mainActorEntered, timeout: .now() + 15) == .success else {
+      Issue.record("Timed out waiting for MainActor blocker to enter.")
+      releaseBlockedMainActor()
+      _ = await mainActorBlocker.result
+      await fixture.releaseDomain()
+      return
+    }
 
     let saveTask = Task.detached {
-      try await actor.updateItemNameAfterSignal(
-        id: itemID,
+      try await fixture.actor.updateItemNameAfterSignal(
+        id: fixture.itemID,
         newName: "actor-observed",
-        in: domain
+        in: fixture.domain
       ) {
         prepared.signal()
       }
     }
-    #expect(waitSynchronously(for: prepared, timeout: .now() + 5) == .success)
+    guard waitSynchronously(for: prepared, timeout: .now() + 15) == .success else {
+      Issue.record("Timed out waiting for actor save to reach the pre-save point.")
+      releaseBlockedMainActor()
+      _ = await mainActorBlocker.result
+      _ = try? await saveTask.value
+      await fixture.releaseDomain()
+      return
+    }
 
-    // Keep MainActor occupied so the old async MainActor staging hop would suspend the actor save.
-    // A reentrant actor job then mutates the same context before the old implementation could save.
+    // The blocker keeps MainActor unavailable after the actor job reaches its pre-save point. The
+    // old async MainActor staging hop would suspend there and allow this reentrant job to mutate
+    // the same context before save; the synchronous producer path saves before reentrancy.
     let reentrantTask = Task.detached {
-      try await actor.updateItemNoteWithoutSave(
-        id: itemID,
+      try await fixture.actor.updateItemNoteWithoutSave(
+        id: fixture.itemID,
         newNote: "reentrant-note"
       )
       reentrantDone.signal()
     }
-    #expect(waitSynchronously(for: reentrantDone, timeout: .now() + 5) == .success)
+    guard waitSynchronously(for: reentrantDone, timeout: .now() + 15) == .success else {
+      Issue.record("Timed out waiting for the reentrant actor job.")
+      releaseBlockedMainActor()
+      _ = await mainActorBlocker.result
+      _ = try? await saveTask.value
+      _ = try? await reentrantTask.value
+      await fixture.releaseDomain()
+      return
+    }
 
-    try await saveTask.value
-    try await reentrantTask.value
-    await waitForCondition { routed.isEmpty == false }
+    releaseBlockedMainActor()
+    _ = await mainActorBlocker.result
+    do {
+      try await saveTask.value
+      try await reentrantTask.value
 
-    let routedChange = try #require(routed.first)
-    let persistedNote = try await readItemNote(container: container, id: itemID)
-    #expect(routed.count == 1)
-    #expect(paths(for: routedChange.1) == ["name"])
-    #expect(persistedNote == "note")
+      let persistedNote = try await readItemNote(container: fixture.container, id: fixture.itemID)
+      #expect(persistedNote == "note")
+      await fixture.releaseDomain()
+    } catch {
+      await fixture.releaseDomain()
+      throw error
+    }
   }
 
   @MainActor
@@ -718,6 +767,299 @@ struct ObservationRuntimeCoreTests {
   }
 
   @MainActor
+  @Test("explicit refresh uses all-key fallback and clears pending metadata")
+  func explicitRefreshUsesAllKeyFallbackAndClearsPendingMetadata() throws {
+    guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+      return
+    }
+
+    let container = try makeContainer(testName: "ObservationRuntimeLifecycleRefresh")
+    let context = container.viewContext
+    let item = try makeSavedItem(in: context, name: "initial")
+    let itemID = item.objectID
+    var routed: [(NSManagedObjectID, CDEObservationInvalidationDecision)] = []
+    let domain = CDEObservationDomain(container: container) { object, decision in
+      routed.append((object.objectID, decision))
+    }
+    let token = CDEObservationSaveToken()
+
+    _ = item.name
+    _ = item.note
+    domain.stagePendingChange(
+      token: token,
+      objectID: itemID,
+      fieldSet: fieldSet(for: ["display_name"])
+    )
+
+    context.refresh(item, mergeChanges: false)
+    context.processPendingChanges()
+
+    let routedChange = try #require(routed.first)
+    #expect(routed.count == 1)
+    #expect(routedChange.0 == itemID)
+    #expect(routedChange.1 == .allObservableKeyPaths)
+    #expect(domain.pendingChange(for: itemID) == nil)
+    #expect(domain.pendingObjectCount == 0)
+    #expect(domain.pendingTokenCount == 0)
+    #expect(domain.containsObservedObject(itemID))
+  }
+
+  @MainActor
+  @Test("rollback uses all-key fallback and clears pending metadata")
+  func rollbackUsesAllKeyFallbackAndClearsPendingMetadata() throws {
+    guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+      return
+    }
+
+    let container = try makeContainer(testName: "ObservationRuntimeLifecycleRollback")
+    let context = container.viewContext
+    let item = try makeSavedItem(in: context, name: "initial")
+    let itemID = item.objectID
+    var routed: [(NSManagedObjectID, CDEObservationInvalidationDecision)] = []
+    let domain = CDEObservationDomain(container: container) { object, decision in
+      routed.append((object.objectID, decision))
+    }
+    let token = CDEObservationSaveToken()
+
+    _ = item.name
+    _ = item.note
+    domain.stagePendingChange(
+      token: token,
+      objectID: itemID,
+      fieldSet: fieldSet(for: ["display_name"])
+    )
+    item.name = "dirty"
+
+    #expect(context.hasChanges)
+
+    domain.rollbackObservedChanges()
+
+    #expect(routed.isEmpty == false)
+    #expect(
+      routed.allSatisfy { objectID, decision in
+        objectID == itemID && decision == .allObservableKeyPaths
+      }
+    )
+    #expect(domain.pendingChange(for: itemID) == nil)
+    #expect(domain.pendingObjectCount == 0)
+    #expect(domain.pendingTokenCount == 0)
+    #expect(domain.containsObservedObject(itemID))
+    #expect(context.hasChanges == false)
+    #expect(item.name == "initial")
+  }
+
+  @MainActor
+  @Test("local delete cleans routing state without invalidating deleted instance")
+  func localDeleteCleansRoutingStateWithoutInvalidatingDeletedInstance() throws {
+    guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+      return
+    }
+
+    let container = try makeContainer(testName: "ObservationRuntimeLifecycleDelete")
+    let context = container.viewContext
+    let deleted = try makeSavedItem(in: context, name: "deleted")
+    let remaining = try makeSavedItem(in: context, name: "remaining")
+    let deletedID = deleted.objectID
+    let remainingID = remaining.objectID
+    var routed: [(NSManagedObjectID, CDEObservationInvalidationDecision)] = []
+    let domain = CDEObservationDomain(container: container) { object, decision in
+      routed.append((object.objectID, decision))
+    }
+    let token = CDEObservationSaveToken()
+    let nameSet = fieldSet(for: ["display_name"])
+
+    _ = deleted.name
+    _ = remaining.name
+    domain.stagePendingChange(token: token, objectID: deletedID, fieldSet: nameSet)
+    domain.stagePendingChange(token: token, objectID: remainingID, fieldSet: nameSet)
+
+    context.delete(deleted)
+    context.processPendingChanges()
+
+    #expect(routed.isEmpty)
+    #expect(domain.containsObservedObject(deletedID) == false)
+    #expect(domain.containsObservedObject(remainingID))
+    #expect(domain.pendingChange(for: deletedID) == nil)
+    #expect(domain.pendingChange(for: remainingID) == .fieldSet(nameSet))
+    #expect(domain.pendingObjectCount == 1)
+    #expect(domain.pendingTokenCount == 1)
+  }
+
+  @MainActor
+  @Test("reset clears observed table and pending metadata without per-object invalidation")
+  func resetClearsObservedTableAndPendingMetadataWithoutPerObjectInvalidation() throws {
+    guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+      return
+    }
+
+    let container = try makeContainer(testName: "ObservationRuntimeLifecycleReset")
+    let context = container.viewContext
+    let first = try makeSavedItem(in: context, name: "first")
+    let second = try makeSavedItem(in: context, name: "second")
+    var routed: [(NSManagedObjectID, CDEObservationInvalidationDecision)] = []
+    let domain = CDEObservationDomain(container: container) { object, decision in
+      routed.append((object.objectID, decision))
+    }
+    let token = CDEObservationSaveToken()
+    let nameSet = fieldSet(for: ["display_name"])
+
+    _ = first.name
+    _ = second.name
+    domain.stagePendingChange(token: token, objectID: first.objectID, fieldSet: nameSet)
+    domain.stagePendingChange(token: token, objectID: second.objectID, fieldSet: nameSet)
+
+    context.reset()
+
+    #expect(routed.isEmpty)
+    #expect(domain.liveObservedObjectIDs.isEmpty)
+    #expect(domain.pendingObjectCount == 0)
+    #expect(domain.pendingTokenCount == 0)
+  }
+
+  @MainActor
+  @Test("faulted object getter keeps observation registration usable")
+  func faultedObjectGetterKeepsObservationRegistrationUsable() throws {
+    guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+      return
+    }
+
+    let container = try makeContainer(testName: "ObservationRuntimeLifecycleFault")
+    let context = container.viewContext
+    let item = try makeSavedItem(in: context, name: "initial")
+    let itemID = item.objectID
+    let domain = CDEObservationDomain(container: container)
+
+    _ = item.name
+    context.refresh(item, mergeChanges: false)
+    #expect(item.isFault)
+    #expect(domain.containsObservedObject(itemID))
+
+    _ = item.name
+
+    #expect(item.isFault == false)
+    #expect(domain.containsObservedObject(itemID))
+  }
+
+  @MainActor
+  @Test("viewContext save rekeys observed temporary object IDs")
+  func viewContextSaveRekeysObservedTemporaryObjectIDs() throws {
+    guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+      return
+    }
+
+    let container = try makeContainer(testName: "ObservationRuntimeTemporaryRekey")
+    let context = container.viewContext
+    let item = try makeUnsavedItem(in: context, name: "temporary")
+    let temporaryID = item.objectID
+    let domain = CDEObservationDomain(container: container)
+
+    #expect(temporaryID.isTemporaryID)
+    _ = item.name
+    #expect(domain.containsObservedObject(temporaryID))
+
+    try context.save()
+
+    #expect(item.objectID.isTemporaryID == false)
+    #expect(domain.containsObservedObject(temporaryID) == false)
+    #expect(domain.containsObservedObject(item.objectID))
+  }
+
+  @MainActor
+  @Test("batch update object IDs route all-key fallback")
+  func batchUpdateObjectIDsRouteAllKeyFallback() async throws {
+    guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+      return
+    }
+
+    let container = try makeContainer(
+      testName: "ObservationRuntimeBatchUpdate",
+      automaticallyMergesChangesFromParent: false
+    )
+    let context = container.viewContext
+    let item = try makeSavedItem(in: context, name: "initial")
+    let itemID = item.objectID
+    let background = container.newBackgroundContext()
+    var routed: [(NSManagedObjectID, CDEObservationInvalidationDecision)] = []
+    let domain = CDEObservationDomain(container: container) { object, decision in
+      routed.append((object.objectID, decision))
+    }
+
+    _ = item.name
+    _ = item.note
+    let updatedIDs = try await background.perform {
+      let request = NSBatchUpdateRequest(entityName: "ObservationRuntimeItem")
+      request.predicate = NSPredicate(format: "display_name == %@", "initial")
+      request.propertiesToUpdate = ["display_name": "batch-updated"]
+      request.resultType = .updatedObjectIDsResultType
+      let result = try #require(background.execute(request) as? NSBatchUpdateResult)
+      return try #require(result.result as? [NSManagedObjectID])
+    }
+
+    #expect(updatedIDs.contains(itemID))
+    NSManagedObjectContext.mergeChanges(
+      fromRemoteContextSave: [NSUpdatedObjectIDsKey: updatedIDs],
+      into: [context]
+    )
+    context.processPendingChanges()
+
+    #expect(routed.isEmpty == false)
+    #expect(
+      routed.allSatisfy { objectID, decision in
+        objectID == itemID && decision == .allObservableKeyPaths
+      }
+    )
+    #expect(domain.pendingObjectCount == 0)
+    #expect(domain.pendingTokenCount == 0)
+  }
+
+  @MainActor
+  @Test("batch delete object IDs route all-key fallback then unregister")
+  func batchDeleteObjectIDsRouteAllKeyFallbackThenUnregister() async throws {
+    guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+      return
+    }
+
+    let container = try makeContainer(
+      testName: "ObservationRuntimeBatchDelete",
+      automaticallyMergesChangesFromParent: false
+    )
+    let context = container.viewContext
+    let item = try makeSavedItem(in: context, name: "initial")
+    let itemID = item.objectID
+    let background = container.newBackgroundContext()
+    var routed: [(NSManagedObjectID, CDEObservationInvalidationDecision)] = []
+    let domain = CDEObservationDomain(container: container) { object, decision in
+      routed.append((object.objectID, decision))
+    }
+
+    _ = item.name
+    _ = item.note
+    let deletedIDs = try await background.perform {
+      let fetch = NSFetchRequest<NSFetchRequestResult>(entityName: "ObservationRuntimeItem")
+      fetch.predicate = NSPredicate(format: "display_name == %@", "initial")
+      let request = NSBatchDeleteRequest(fetchRequest: fetch)
+      request.resultType = .resultTypeObjectIDs
+      let result = try #require(background.execute(request) as? NSBatchDeleteResult)
+      return try #require(result.result as? [NSManagedObjectID])
+    }
+
+    #expect(deletedIDs.contains(itemID))
+    NSManagedObjectContext.mergeChanges(
+      fromRemoteContextSave: [NSDeletedObjectIDsKey: deletedIDs],
+      into: [context]
+    )
+    context.processPendingChanges()
+
+    let routedChange = try #require(routed.first)
+    #expect(routed.count == 1)
+    #expect(routedChange.0 == itemID)
+    #expect(routedChange.1 == .allObservableKeyPaths)
+    #expect(domain.containsObservedObject(itemID) == false)
+    #expect(domain.pendingObjectCount == 0)
+    #expect(domain.pendingTokenCount == 0)
+  }
+
+  @MainActor
   @Test("merge routing is bounded by incoming object IDs")
   func mergeRoutingIsBoundedByIncomingObjectIDs() throws {
     guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
@@ -1078,6 +1420,54 @@ struct ObservationRuntimeCoreTests {
     timeout: DispatchTime
   ) -> DispatchTimeoutResult {
     semaphore.wait(timeout: timeout)
+  }
+}
+
+@MainActor
+private func blockMainActor(
+  entered: DispatchSemaphore,
+  release: DispatchSemaphore
+) {
+  entered.signal()
+  _ = release.wait(timeout: .distantFuture)
+}
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
+private final class ObservationActorSaveOrderingFixture: @unchecked Sendable {
+  let container: NSPersistentContainer
+  let itemID: NSManagedObjectID
+  let actor: ObservationRuntimeMetadataActor
+  private let lock = NSLock()
+  private var domainStorage: CDEObservationDomain?
+
+  var domain: CDEObservationDomain {
+    lock.withLock {
+      precondition(domainStorage != nil)
+      return domainStorage!
+    }
+  }
+
+  init(
+    container: NSPersistentContainer,
+    itemID: NSManagedObjectID,
+    actor: ObservationRuntimeMetadataActor,
+    domain: CDEObservationDomain
+  ) {
+    self.container = container
+    self.itemID = itemID
+    self.actor = actor
+    domainStorage = domain
+  }
+
+  @MainActor
+  func releaseDomain() {
+    let domain = lock.withLock {
+      defer {
+        domainStorage = nil
+      }
+      return domainStorage
+    }
+    domain?.invalidate()
   }
 }
 

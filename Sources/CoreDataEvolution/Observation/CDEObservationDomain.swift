@@ -37,6 +37,7 @@ internal final class CDEObservationPendingBuffer: @unchecked Sendable {
   private var tokenIndex: [CDEObservationSaveToken: Set<NSManagedObjectID>] = [:]
   private var tokenContributions:
     [CDEObservationSaveToken: [NSManagedObjectID: CDEObservationInvalidationDecision]] = [:]
+  private var producerBackedTokens: Set<CDEObservationSaveToken> = []
 
   internal var pendingObjectCount: Int {
     lock.withLock { pendingByObjectID.count }
@@ -62,8 +63,28 @@ internal final class CDEObservationPendingBuffer: @unchecked Sendable {
     token: CDEObservationSaveToken,
     changesByObjectID: [NSManagedObjectID: CDEObservationFieldSet]
   ) {
+    register(
+      token: token,
+      changesByObjectID: changesByObjectID,
+      preservesDuringLifecycleFallback: false
+    )
+  }
+
+  internal func register(
+    token: CDEObservationSaveToken,
+    changesByObjectID: [NSManagedObjectID: CDEObservationFieldSet],
+    preservesDuringLifecycleFallback: Bool
+  ) {
     for (objectID, fieldSet) in changesByObjectID {
-      register(token: token, objectID: objectID, fieldSet: fieldSet)
+      guard fieldSet.isEmpty == false else {
+        continue
+      }
+      register(
+        token: token,
+        objectID: objectID,
+        decision: .fieldSet(fieldSet),
+        preservesDuringLifecycleFallback: preservesDuringLifecycleFallback
+      )
     }
   }
 
@@ -71,6 +92,14 @@ internal final class CDEObservationPendingBuffer: @unchecked Sendable {
     for objectID: NSManagedObjectID
   ) -> CDEObservationInvalidationDecision? {
     lock.withLock { pendingByObjectID[objectID]?.decision }
+  }
+
+  internal func hasProducerBackedPendingChange(for objectID: NSManagedObjectID) -> Bool {
+    lock.withLock {
+      pendingByObjectID[objectID]?.tokens.contains { token in
+        producerBackedTokens.contains(token)
+      } == true
+    }
   }
 
   internal func consume(
@@ -87,6 +116,7 @@ internal final class CDEObservationPendingBuffer: @unchecked Sendable {
         if tokenIndex[token]?.isEmpty == true {
           tokenIndex.removeValue(forKey: token)
           tokenContributions.removeValue(forKey: token)
+          producerBackedTokens.remove(token)
         }
       }
 
@@ -103,6 +133,7 @@ internal final class CDEObservationPendingBuffer: @unchecked Sendable {
       pendingByObjectID.removeAll()
       tokenIndex.removeAll()
       tokenContributions.removeAll()
+      producerBackedTokens.removeAll()
     }
   }
 
@@ -132,9 +163,26 @@ internal final class CDEObservationPendingBuffer: @unchecked Sendable {
     objectID: NSManagedObjectID,
     decision: CDEObservationInvalidationDecision
   ) {
+    register(
+      token: token,
+      objectID: objectID,
+      decision: decision,
+      preservesDuringLifecycleFallback: false
+    )
+  }
+
+  private func register(
+    token: CDEObservationSaveToken,
+    objectID: NSManagedObjectID,
+    decision: CDEObservationInvalidationDecision,
+    preservesDuringLifecycleFallback: Bool
+  ) {
     lock.withLock {
       tokenIndex[token, default: []].insert(objectID)
       tokenContributions[token, default: [:]][objectID] = decision
+      if preservesDuringLifecycleFallback {
+        producerBackedTokens.insert(token)
+      }
 
       if var pending = pendingByObjectID[objectID] {
         pending.decision = pending.decision.merged(with: decision)
@@ -151,6 +199,7 @@ internal final class CDEObservationPendingBuffer: @unchecked Sendable {
       return
     }
     tokenContributions.removeValue(forKey: token)
+    producerBackedTokens.remove(token)
 
     for objectID in objectIDs {
       guard var pending = pendingByObjectID[objectID] else {
@@ -496,6 +545,21 @@ public final class CDEObservationDomain {
     }
   }
 
+  /// Rolls back the domain's `viewContext` and conservatively invalidates affected live objects.
+  ///
+  /// Newly inserted observed objects are unregistered instead of invalidated because rollback
+  /// detaches them from the persistent graph.
+  public func rollbackObservedChanges() {
+    let insertedObjectIDs = objectIDs(from: viewContext.insertedObjects)
+    let affectedObjectIDs = objectIDs(
+      from: viewContext.updatedObjects.union(viewContext.deletedObjects)
+    )
+
+    viewContext.rollback()
+    routeAllKeyFallback(affectedObjectIDs: affectedObjectIDs)
+    removeObservedObjects(insertedObjectIDs)
+  }
+
   internal var liveObservedObjectIDs: Set<NSManagedObjectID> {
     observedObjects.liveObjectIDs
   }
@@ -545,7 +609,11 @@ public final class CDEObservationDomain {
     token: CDEObservationSaveToken,
     changesByObjectID: [NSManagedObjectID: CDEObservationFieldSet]
   ) {
-    pendingBuffer.register(token: token, changesByObjectID: changesByObjectID)
+    pendingBuffer.register(
+      token: token,
+      changesByObjectID: changesByObjectID,
+      preservesDuringLifecycleFallback: true
+    )
   }
 
   internal nonisolated func rollbackPendingChangesFromProducer(token: CDEObservationSaveToken) {
@@ -673,12 +741,14 @@ public final class CDEObservationDomain {
       return
     }
 
-    removeObservedObjects(
-      objectIDs(
-        fromObjectIDSetsIn: notification,
-        keys: [NSDeletedObjectIDsKey]
-      )
+    let deletedObjectIDs = objectIDs(
+      fromObjectIDSetsIn: notification,
+      keys: [NSDeletedObjectIDsKey]
     )
+    // Batch deletes arrive as object IDs rather than deleted instances, so route one final
+    // object-scoped fallback before unregistering the live viewContext object.
+    routeAllKeyFallback(affectedObjectIDs: deletedObjectIDs)
+    removeObservedObjects(deletedObjectIDs)
     routeMerge(
       affectedObjectIDs: objectIDs(
         fromObjectIDSetsIn: notification,
@@ -702,14 +772,29 @@ public final class CDEObservationDomain {
       return
     }
 
-    removeObservedObjects(objectIDs(fromObjectSetsIn: notification, keys: [NSDeletedObjectsKey]))
+    let deletedObjectIDs = objectIDs(fromObjectSetsIn: notification, keys: [NSDeletedObjectsKey])
+    // Core Data exposes this merge marker only as a userInfo key string; it is the reliable
+    // difference between remote merge deletes and caller-owned local deletes.
+    let isMergeDrivenObjectChange =
+      notification.userInfo?["NSObjectsChangedByMergeChangesKey"] != nil
+    let locallyDeletedObjectIDs = Set(viewContext.deletedObjects.map(\.objectID))
+    let remotelyDeletedObjectIDs =
+      isMergeDrivenObjectChange
+      ? deletedObjectIDs
+      : deletedObjectIDs.filter { objectID in
+        locallyDeletedObjectIDs.contains(objectID) == false
+      }
+    // Remote/batch deletes can reach ObjectsDidChange before didMerge object IDs. Local deletes
+    // remain cleanup-only per the lifecycle table because `deletedObjects` still owns them.
+    routeAllKeyFallback(affectedObjectIDs: remotelyDeletedObjectIDs)
+    removeObservedObjects(deletedObjectIDs)
     let fallbackObjectIDs = objectIDs(
       fromObjectSetsIn: notification,
       keys: [NSRefreshedObjectsKey, NSInvalidatedObjectsKey]
     ).filter { objectID in
       // Automatic background merges can refresh the viewContext object before the
       // didMergeChangesObjectIDs notification that consumes precise pending metadata.
-      guard pendingBuffer.pendingChange(for: objectID) == nil else {
+      guard pendingBuffer.hasProducerBackedPendingChange(for: objectID) == false else {
         return false
       }
       return true
@@ -786,6 +871,10 @@ public final class CDEObservationDomain {
         Array(notification.userInfo?[key] as? Set<NSManagedObjectID> ?? [])
       }
     )
+  }
+
+  private func objectIDs(from objects: Set<NSManagedObject>) -> [NSManagedObjectID] {
+    uniqueObjectIDs(objects.map(\.objectID))
   }
 
   private func uniqueObjectIDs(_ objectIDs: [NSManagedObjectID]) -> [NSManagedObjectID] {
