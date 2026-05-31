@@ -322,6 +322,30 @@ public final class CDEObservationDomain {
     pendingBuffer.register(token: token, objectID: objectID, fieldSet: fieldSet)
   }
 
+  internal func stagePendingChanges(
+    token: CDEObservationSaveToken,
+    changesByObjectID: [NSManagedObjectID: CDEObservationFieldSet]
+  ) {
+    pendingBuffer.register(token: token, changesByObjectID: changesByObjectID)
+  }
+
+  internal func rollbackPendingChanges(token: CDEObservationSaveToken) {
+    pendingBuffer.rollback(token: token)
+  }
+
+  // Producer-side staging is intentionally nonisolated: CDE-managed background saves must not
+  // suspend between their field snapshot and `save()`.
+  internal nonisolated func stagePendingChangesFromProducer(
+    token: CDEObservationSaveToken,
+    changesByObjectID: [NSManagedObjectID: CDEObservationFieldSet]
+  ) {
+    pendingBuffer.register(token: token, changesByObjectID: changesByObjectID)
+  }
+
+  internal nonisolated func rollbackPendingChangesFromProducer(token: CDEObservationSaveToken) {
+    pendingBuffer.rollback(token: token)
+  }
+
   internal func pendingChange(
     for objectID: NSManagedObjectID
   ) -> CDEObservationInvalidationDecision? {
@@ -413,7 +437,7 @@ public final class CDEObservationDomain {
     }
 
     let token = CDEObservationSaveToken()
-    let changes = collectChangedFieldSets(from: viewContext.updatedObjects)
+    let changes = collectChangedObservationFieldSets(from: viewContext.updatedObjects)
     pendingBuffer.register(token: token, changesByObjectID: changes)
     pendingTemporaryObjectIDs = viewContext.insertedObjects.compactMap { object in
       guard object.objectID.isTemporaryID, observedObjects.contains(object.objectID) else {
@@ -473,34 +497,20 @@ public final class CDEObservationDomain {
     }
 
     removeObservedObjects(objectIDs(fromObjectSetsIn: notification, keys: [NSDeletedObjectsKey]))
-    routeAllKeyFallback(
-      affectedObjectIDs: objectIDs(
-        fromObjectSetsIn: notification,
-        keys: [NSRefreshedObjectsKey, NSInvalidatedObjectsKey]
-      )
-    )
-  }
-
-  private func collectChangedFieldSets(
-    from objects: Set<NSManagedObject>
-  ) -> [NSManagedObjectID: CDEObservationFieldSet] {
-    objects.reduce(into: [:]) { result, object in
-      guard object.objectID.isTemporaryID == false else {
-        return
+    let fallbackObjectIDs = objectIDs(
+      fromObjectSetsIn: notification,
+      keys: [NSRefreshedObjectsKey, NSInvalidatedObjectsKey]
+    ).filter { objectID in
+      // Automatic background merges can refresh the viewContext object before the
+      // didMergeChangesObjectIDs notification that consumes precise pending metadata.
+      guard pendingBuffer.pendingChange(for: objectID) == nil else {
+        return false
       }
-      guard let modelType = type(of: object) as? any CDEObservationFieldMapProviding.Type else {
-        return
-      }
-
-      let fieldSet = modelType.__cdObservationFieldSet(
-        forCoreDataKeys: object.changedValues().keys
-      )
-      guard fieldSet.isEmpty == false else {
-        return
-      }
-
-      result[object.objectID] = fieldSet
+      return true
     }
+    routeAllKeyFallback(
+      affectedObjectIDs: fallbackObjectIDs
+    )
   }
 
   private func rekeyTemporaryObservedObjects() {
@@ -554,17 +564,28 @@ public final class CDEObservationDomain {
     fromObjectSetsIn notification: Notification,
     keys: [String]
   ) -> [NSManagedObjectID] {
-    keys.flatMap { key in
-      (notification.userInfo?[key] as? Set<NSManagedObject>)?.map(\.objectID) ?? []
-    }
+    uniqueObjectIDs(
+      keys.flatMap { key in
+        (notification.userInfo?[key] as? Set<NSManagedObject>)?.map(\.objectID) ?? []
+      }
+    )
   }
 
   private func objectIDs(
     fromObjectIDSetsIn notification: Notification,
     keys: [String]
   ) -> [NSManagedObjectID] {
-    keys.flatMap { key in
-      Array(notification.userInfo?[key] as? Set<NSManagedObjectID> ?? [])
+    uniqueObjectIDs(
+      keys.flatMap { key in
+        Array(notification.userInfo?[key] as? Set<NSManagedObjectID> ?? [])
+      }
+    )
+  }
+
+  private func uniqueObjectIDs(_ objectIDs: [NSManagedObjectID]) -> [NSManagedObjectID] {
+    var seen: Set<NSManagedObjectID> = []
+    return objectIDs.filter { objectID in
+      seen.insert(objectID).inserted
     }
   }
 }

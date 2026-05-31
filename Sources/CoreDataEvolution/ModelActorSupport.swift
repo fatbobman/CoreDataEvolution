@@ -38,3 +38,26 @@ func withModelContext<T: Sendable>(
 ) throws -> T {
   try action(context, container)
 }
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
+func collectChangedObservationFieldSets(
+  from objects: Set<NSManagedObject>
+) -> [NSManagedObjectID: CDEObservationFieldSet] {
+  objects.reduce(into: [:]) { result, object in
+    guard object.objectID.isTemporaryID == false else {
+      return
+    }
+    guard let modelType = type(of: object) as? any CDEObservationFieldMapProviding.Type else {
+      return
+    }
+
+    let fieldSet = modelType.__cdObservationFieldSet(
+      forCoreDataKeys: object.changedValues().keys
+    )
+    guard fieldSet.isEmpty == false else {
+      return
+    }
+
+    result[object.objectID] = fieldSet
+  }
+}
