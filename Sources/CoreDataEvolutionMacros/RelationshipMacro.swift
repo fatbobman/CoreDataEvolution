@@ -120,7 +120,7 @@ private func buildRelationshipInfo(
     propertyName: propertyName,
     persistentName: arguments.persistentName ?? propertyName,
     kind: kind,
-    observation: observationMode(in: variable)
+    observation: observationMode(in: variable, context: context)
   )
 }
 

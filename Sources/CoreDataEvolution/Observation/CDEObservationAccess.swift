@@ -9,6 +9,7 @@
 //  ------------------------------------------------
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
+@preconcurrency import CoreData
 import Observation
 
 @available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
@@ -24,4 +25,9 @@ public func _cdeObservationAccess<Root: CDEObservable, Value>(
   registrar: CDEObservationRegistrar
 ) {
   registrar.access(object, keyPath: keyPath)
+  guard let managedObject = object as? NSManagedObject else {
+    return
+  }
+
+  _cdeRegisterObservedObjectIfNeeded(managedObject)
 }

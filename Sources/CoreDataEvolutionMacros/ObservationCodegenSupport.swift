@@ -10,6 +10,7 @@
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
 import SwiftSyntax
+import SwiftSyntaxMacros
 
 let cdeObservationAvailability =
   "@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)"
@@ -29,6 +30,50 @@ func observationMode(in variable: VariableDeclSyntax) -> ParsedPersistentModelOb
     }
   }
   return .none
+}
+
+func observationMode(
+  in variable: VariableDeclSyntax,
+  context: some MacroExpansionContext
+) -> ParsedPersistentModelObservationMode {
+  let markerMode = observationMode(in: variable)
+  if markerMode != .none {
+    return markerMode
+  }
+
+  return enclosingPersistentModelObservationMode(in: context)
+}
+
+private func enclosingPersistentModelObservationMode(
+  in context: some MacroExpansionContext
+) -> ParsedPersistentModelObservationMode {
+  // In the real compiler pipeline, accessor macros cannot rely on member-attribute markers
+  // being visible, so observed accessors also read the enclosing @PersistentModel contract.
+  for syntax in context.lexicalContext {
+    guard let classDecl = syntax.as(ClassDeclSyntax.self),
+      let persistentModel = firstAttribute(named: "PersistentModel", in: classDecl.attributes),
+      let arguments = parsePersistentModelArguments(
+        from: persistentModel,
+        context: context,
+        emitDiagnostics: false
+      )
+    else {
+      continue
+    }
+
+    return arguments.observation
+  }
+
+  return .none
+}
+
+private func firstAttribute(
+  named name: String,
+  in attributes: AttributeListSyntax
+) -> AttributeSyntax? {
+  attributes
+    .compactMap { $0.as(AttributeSyntax.self) }
+    .first { attributeName(of: $0) == name }
 }
 
 func makeObservationTrackedGetter(
@@ -56,7 +101,15 @@ func makeObservationTrackedGetter(
       registrar: _$observationRegistrar
     )
     """
-  body.statements = CodeBlockItemListSyntax([accessItem] + Array(body.statements))
+  // Once access() is prepended, expression-style getter bodies need an explicit return.
+  let originalStatements = body.statements.description
+  let returnItem: CodeBlockItemSyntax =
+    """
+    return {
+    \(raw: originalStatements)
+    }()
+    """
+  body.statements = CodeBlockItemListSyntax([accessItem, returnItem])
   observedGetter.body = body
   return observedGetter
 }
