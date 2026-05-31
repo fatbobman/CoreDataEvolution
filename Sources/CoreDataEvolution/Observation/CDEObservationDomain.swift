@@ -274,13 +274,18 @@ internal final class CDEObservationObjectIDTable {
 @available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
 internal struct CDEObservationHubRoutePlan {
   internal var decisionsByObjectID: [NSManagedObjectID: CDEObservationInvalidationDecision]
+  // A merge route can be intentionally suppressed by same-save duplicate protection. The caller
+  // must still treat that object as handled when routing refreshed IDs from the same notification.
+  internal var sameCycleSuppressedObjectIDs: Set<NSManagedObjectID>
   internal var lookupCount: Int
 
   internal init(
     decisionsByObjectID: [NSManagedObjectID: CDEObservationInvalidationDecision],
+    sameCycleSuppressedObjectIDs: Set<NSManagedObjectID> = [],
     lookupCount: Int
   ) {
     self.decisionsByObjectID = decisionsByObjectID
+    self.sameCycleSuppressedObjectIDs = sameCycleSuppressedObjectIDs
     self.lookupCount = lookupCount
   }
 }
@@ -330,6 +335,7 @@ public final class CDEObservationProducerRegistration: @unchecked Sendable {
       guard observing else {
         return (
           observerTokens: [NSObjectProtocol](),
+          stagedSave: CDEObservationProducerStagedSave?.none,
           committedTokens: Set<CDEObservationSaveToken>()
         )
       }
@@ -337,14 +343,18 @@ public final class CDEObservationProducerRegistration: @unchecked Sendable {
       observing = false
       let tokens = observerTokens
       observerTokens.removeAll()
+      let staged = stagedSave
       stagedSave = nil
       let committed = committedTokens
       committedTokens.removeAll()
-      return (observerTokens: tokens, committedTokens: committed)
+      return (observerTokens: tokens, stagedSave: staged, committedTokens: committed)
     }
 
     for token in state.observerTokens {
       NotificationCenter.default.removeObserver(token)
+    }
+    if let stagedSave = state.stagedSave {
+      domain?.rollbackPendingChangesFromProducer(token: stagedSave.token)
     }
     for token in state.committedTokens {
       domain?.rollbackPendingChangesFromProducer(token: token)
@@ -383,17 +393,39 @@ public final class CDEObservationProducerRegistration: @unchecked Sendable {
     }
 
     let changes = collectChangedObservationFieldSets(from: context.updatedObjects)
+    // Publish producer metadata in `willSave`, before automatic viewContext merge notifications can
+    // race ahead and degrade an otherwise precise background save into all-key invalidation.
+    var previousStagedSave: CDEObservationProducerStagedSave?
+    var newStagedSave: CDEObservationProducerStagedSave?
     lock.withLock {
       guard observing else {
         return
       }
 
+      previousStagedSave = stagedSave
       guard changes.isEmpty == false else {
         stagedSave = nil
         return
       }
 
-      stagedSave = .init(token: CDEObservationSaveToken(), changesByObjectID: changes)
+      let staged = CDEObservationProducerStagedSave(
+        token: CDEObservationSaveToken(),
+        changesByObjectID: changes
+      )
+      stagedSave = staged
+      newStagedSave = staged
+    }
+
+    if let previousStagedSave {
+      // Replacing a staged save must also remove its early-published domain metadata; otherwise a
+      // later lifecycle cleanup could consume stale field information for the same object.
+      domain?.rollbackPendingChangesFromProducer(token: previousStagedSave.token)
+    }
+    if let newStagedSave {
+      domain?.stagePendingChangesFromProducer(
+        token: newStagedSave.token,
+        changesByObjectID: newStagedSave.changesByObjectID
+      )
     }
   }
 
@@ -410,12 +442,8 @@ public final class CDEObservationProducerRegistration: @unchecked Sendable {
 
       stagedSave = nil
       committedTokens.insert(staged.token)
-      // Direct-save producers cannot know thrown saves. Keep will-save metadata local until didSave
-      // proves the save committed, then publish it before the viewContext merge can consume IDs.
-      domain?.stagePendingChangesFromProducer(
-        token: staged.token,
-        changesByObjectID: staged.changesByObjectID
-      )
+      // `willSave` publishes metadata early enough for automatic viewContext merges. `didSave`
+      // only promotes the token; failed saves stay staged and are rolled back by rollback/reset.
     }
   }
 
@@ -432,20 +460,30 @@ public final class CDEObservationProducerRegistration: @unchecked Sendable {
   }
 
   private func discardStagedSave() {
-    lock.withLock {
+    let staged = lock.withLock {
+      let staged = stagedSave
       stagedSave = nil
+      return staged
+    }
+
+    if let staged {
+      domain?.rollbackPendingChangesFromProducer(token: staged.token)
     }
   }
 
   private func clearProducerState() {
-    let tokens = lock.withLock {
+    let state = lock.withLock {
+      let staged = stagedSave
       stagedSave = nil
       let committed = committedTokens
       committedTokens.removeAll()
-      return committed
+      return (stagedSave: staged, committedTokens: committed)
     }
 
-    for token in tokens {
+    if let stagedSave = state.stagedSave {
+      domain?.rollbackPendingChangesFromProducer(token: stagedSave.token)
+    }
+    for token in state.committedTokens {
       domain?.rollbackPendingChangesFromProducer(token: token)
     }
   }
@@ -463,6 +501,8 @@ public final class CDEObservationDomain {
   private var observerTokens: [NSObjectProtocol] = []
   private var producerRegistrations: [CDEObservationProducerRegistration] = []
   private var pendingTemporaryObjectIDs: [(oldID: NSManagedObjectID, object: NSManagedObject)] = []
+  private var sameCyclePreciseMergeSuppressions: [NSManagedObjectID: Int] = [:]
+  private var sameCyclePrecisionCleanupTask: Task<Void, Never>?
   private var isActive = true
 
   /// Creates the retained observation runtime for one container's `viewContext`.
@@ -505,6 +545,9 @@ public final class CDEObservationDomain {
     pendingBuffer.removeAll()
     observedObjects.removeAll()
     pendingTemporaryObjectIDs.removeAll()
+    sameCyclePreciseMergeSuppressions.removeAll()
+    sameCyclePrecisionCleanupTask?.cancel()
+    sameCyclePrecisionCleanupTask = nil
     CDEObservationDomainRegistry.deactivate(self, for: viewContext)
   }
 
@@ -628,16 +671,36 @@ public final class CDEObservationDomain {
 
   @discardableResult
   internal func routeMerge(affectedObjectIDs: [NSManagedObjectID]) -> CDEObservationHubRoutePlan {
-    route(affectedObjectIDs: affectedObjectIDs) { objectID in
-      pendingBuffer.consume(objectID: objectID) ?? .allObservableKeyPaths
+    var sameCycleSuppressedObjectIDs: Set<NSManagedObjectID> = []
+    var plan = route(affectedObjectIDs: affectedObjectIDs) { objectID in
+      guard let pending = pendingBuffer.consume(objectID: objectID) else {
+        if consumeSameCyclePreciseMergeSuppression(objectID, clearsRemaining: true) {
+          // The duplicate merge is handled here, but its refreshed half is routed later by the same
+          // caller. Return the object ID so that fallback path does not widen it to all-key.
+          sameCycleSuppressedObjectIDs.insert(objectID)
+          return nil
+        }
+        return .allObservableKeyPaths
+      }
+      if case .fieldSet = pending {
+        markSameCyclePreciseMerge(objectID)
+      }
+      return pending
     }
+    // Preserve skipped duplicate IDs for same-notification refresh suppression. Do not keep this as
+    // domain state; the same-cycle table itself remains short-lived to avoid hiding later saves.
+    plan.sameCycleSuppressedObjectIDs = sameCycleSuppressedObjectIDs
+    return plan
   }
 
   @discardableResult
   internal func routeAllKeyFallback(
     affectedObjectIDs: [NSManagedObjectID]
   ) -> CDEObservationHubRoutePlan {
-    routeAllKeyFallback(affectedObjectIDs: affectedObjectIDs, skipsProducerBackedPrecise: false)
+    routeAllKeyFallback(
+      affectedObjectIDs: affectedObjectIDs,
+      skipsProducerBackedPrecise: false
+    )
   }
 
   @discardableResult
@@ -756,13 +819,13 @@ public final class CDEObservationDomain {
     }
 
     rekeyTemporaryObservedObjects()
-    removeObservedObjects(objectIDs(fromObjectSetsIn: notification, keys: [NSDeletedObjectsKey]))
-    routeMerge(
-      affectedObjectIDs: objectIDs(
-        fromObjectSetsIn: notification,
-        keys: [NSInsertedObjectsKey, NSUpdatedObjectsKey]
-      )
+    let deletedObjectIDs = objectIDs(fromObjectSetsIn: notification, keys: [NSDeletedObjectsKey])
+    let savedObjectIDs = objectIDs(
+      fromObjectSetsIn: notification,
+      keys: [NSInsertedObjectsKey, NSUpdatedObjectsKey]
     )
+    removeObservedObjects(deletedObjectIDs)
+    routeMerge(affectedObjectIDs: savedObjectIDs)
   }
 
   private func handleViewContextDidMergeObjectIDs(_ notification: Notification) {
@@ -774,19 +837,22 @@ public final class CDEObservationDomain {
       fromObjectIDSetsIn: notification,
       keys: [NSDeletedObjectIDsKey]
     )
+    let mergedObjectIDs = objectIDs(
+      fromObjectIDSetsIn: notification,
+      keys: [
+        NSInsertedObjectIDsKey,
+        NSUpdatedObjectIDsKey,
+      ]
+    )
+    let refreshedObjectIDs = objectIDs(
+      fromObjectIDSetsIn: notification,
+      keys: [NSRefreshedObjectIDsKey, NSInvalidatedObjectIDsKey]
+    )
     // Batch deletes arrive as object IDs rather than deleted instances, so route one final
     // object-scoped fallback before unregistering the live viewContext object.
     routeAllKeyFallback(affectedObjectIDs: deletedObjectIDs)
     removeObservedObjects(deletedObjectIDs)
-    let mergePlan = routeMerge(
-      affectedObjectIDs: objectIDs(
-        fromObjectIDSetsIn: notification,
-        keys: [
-          NSInsertedObjectIDsKey,
-          NSUpdatedObjectIDsKey,
-        ]
-      )
-    )
+    let mergePlan = routeMerge(affectedObjectIDs: mergedObjectIDs)
     let preciseRoutedObjectIDs = Set(
       mergePlan.decisionsByObjectID.compactMap { objectID, decision in
         if case .fieldSet = decision {
@@ -794,15 +860,12 @@ public final class CDEObservationDomain {
         }
         return nil
       }
-    )
-    // A single Core Data merge notification can list the same object as updated and refreshed.
-    // When producer metadata already routed a field set, that notification-local refresh must not
-    // widen the same object to all-key. Future notifications remain free to fall back normally.
+    ).union(mergePlan.sameCycleSuppressedObjectIDs)
+    // A Core Data merge notification can list the same object as both updated and refreshed, and
+    // duplicate merge notifications can leave only the refreshed half after routeMerge is skipped.
+    // Both cases are same-notification noise; neither should widen a precise save to all-key.
     routeAllKeyFallback(
-      affectedObjectIDs: objectIDs(
-        fromObjectIDSetsIn: notification,
-        keys: [NSRefreshedObjectIDsKey, NSInvalidatedObjectIDsKey]
-      ),
+      affectedObjectIDs: refreshedObjectIDs,
       suppressingObjectIDs: preciseRoutedObjectIDs,
       skipsProducerBackedPrecise: true
     )
@@ -819,6 +882,10 @@ public final class CDEObservationDomain {
     }
 
     let deletedObjectIDs = objectIDs(fromObjectSetsIn: notification, keys: [NSDeletedObjectsKey])
+    let refreshedObjectIDs = objectIDs(
+      fromObjectSetsIn: notification,
+      keys: [NSRefreshedObjectsKey, NSInvalidatedObjectsKey]
+    )
     // Core Data exposes this merge marker only as a userInfo key string; it is the reliable
     // difference between remote merge deletes and caller-owned local deletes.
     let isMergeDrivenObjectChange =
@@ -832,15 +899,19 @@ public final class CDEObservationDomain {
       }
     // Remote/batch deletes can reach ObjectsDidChange before didMerge object IDs. Local deletes
     // remain cleanup-only per the lifecycle table because `deletedObjects` still owns them.
-    routeAllKeyFallback(affectedObjectIDs: remotelyDeletedObjectIDs)
+    routeAllKeyFallback(
+      affectedObjectIDs: remotelyDeletedObjectIDs
+    )
     removeObservedObjects(deletedObjectIDs)
-    let fallbackObjectIDs = objectIDs(
-      fromObjectSetsIn: notification,
-      keys: [NSRefreshedObjectsKey, NSInvalidatedObjectsKey]
-    ).filter { objectID in
+    let fallbackObjectIDs = refreshedObjectIDs.filter { objectID in
       // Automatic background merges can refresh the viewContext object before the
       // didMergeChangesObjectIDs notification that consumes precise pending metadata.
       guard pendingBuffer.hasProducerBackedPendingChange(for: objectID) == false else {
+        return false
+      }
+      // If the precise merge already fired, Core Data may still post a duplicate refresh before the
+      // one-turn cleanup runs. Swallow only that duplicate; later saves remain fallback-capable.
+      guard consumeSameCyclePreciseMergeSuppression(objectID) == false else {
         return false
       }
       return true
@@ -897,6 +968,42 @@ public final class CDEObservationDomain {
       dispatcher.__cdObservationInvalidate(fieldSet: fieldSet)
     case .allObservableKeyPaths:
       dispatcher.__cdObservationInvalidateAllObservableKeyPaths()
+    }
+  }
+
+  private func markSameCyclePreciseMerge(_ objectID: NSManagedObjectID) {
+    sameCyclePreciseMergeSuppressions[objectID] = 2
+    scheduleSameCyclePrecisionCleanup()
+  }
+
+  private func consumeSameCyclePreciseMergeSuppression(
+    _ objectID: NSManagedObjectID,
+    clearsRemaining: Bool = false
+  ) -> Bool {
+    guard let remaining = sameCyclePreciseMergeSuppressions[objectID], remaining > 0 else {
+      return false
+    }
+
+    if clearsRemaining || remaining == 1 {
+      sameCyclePreciseMergeSuppressions.removeValue(forKey: objectID)
+    } else {
+      sameCyclePreciseMergeSuppressions[objectID] = remaining - 1
+    }
+    return true
+  }
+
+  private func scheduleSameCyclePrecisionCleanup() {
+    guard sameCyclePrecisionCleanupTask == nil else {
+      return
+    }
+
+    sameCyclePrecisionCleanupTask = Task { @MainActor [weak self] in
+      await Task.yield()
+      guard let self else {
+        return
+      }
+      sameCyclePreciseMergeSuppressions.removeAll()
+      sameCyclePrecisionCleanupTask = nil
     }
   }
 

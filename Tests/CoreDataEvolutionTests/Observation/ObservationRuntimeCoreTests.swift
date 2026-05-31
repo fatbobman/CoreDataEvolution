@@ -365,8 +365,8 @@ struct ObservationRuntimeCoreTests {
   }
 
   @MainActor
-  @Test("producer precise route suppresses notification-local fallback only")
-  func producerPreciseRouteSuppressesNotificationLocalFallbackOnly() throws {
+  @Test("producer precise route suppresses same-cycle duplicate fallback")
+  func producerPreciseRouteSuppressesSameCycleDuplicateFallback() throws {
     guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
       return
     }
@@ -403,11 +403,22 @@ struct ObservationRuntimeCoreTests {
       suppressingObjectIDs: preciseRoutedObjectIDs,
       skipsProducerBackedPrecise: true
     )
+    let duplicateMergePlan = domain.routeMerge(affectedObjectIDs: [itemID])
+    let duplicateRefreshFallbackPlan = domain.routeAllKeyFallback(
+      affectedObjectIDs: [itemID],
+      suppressingObjectIDs: duplicateMergePlan.sameCycleSuppressedObjectIDs,
+      skipsProducerBackedPrecise: true
+    )
     let laterFallbackPlan = domain.routeMerge(affectedObjectIDs: [itemID])
 
     #expect(precisePlan.decisionsByObjectID[itemID] == .fieldSet(nameSet))
     #expect(refreshFallbackPlan.lookupCount == 1)
     #expect(refreshFallbackPlan.decisionsByObjectID.isEmpty)
+    #expect(duplicateMergePlan.lookupCount == 1)
+    #expect(duplicateMergePlan.decisionsByObjectID.isEmpty)
+    #expect(duplicateMergePlan.sameCycleSuppressedObjectIDs == [itemID])
+    #expect(duplicateRefreshFallbackPlan.lookupCount == 1)
+    #expect(duplicateRefreshFallbackPlan.decisionsByObjectID.isEmpty)
     #expect(laterFallbackPlan.lookupCount == 1)
     #expect(laterFallbackPlan.decisionsByObjectID[itemID] == .allObservableKeyPaths)
     #expect(routed.count == 2)
