@@ -555,6 +555,10 @@ guarantee), **T18** (fault / refresh / invalidation / rollback / delete / reset 
 
 - Batch: merge the result object IDs and route to all-key; never enter property-precision.
 - Faulted observed object re-registers on next getter read (T18) — do not break that.
+- Runtime refinement (added during implementation): the `refresh → all-key` row holds for a *new*
+  refresh, but the same-cycle echo of a precise merge for the same object is suppressed instead of
+  widened, so a precise save is not re-broadened by a duplicate merge / refresh in its own cycle. See
+  [`MainActorObservationMechanism.md` → Same-Cycle Precise-Merge Suppression](MainActorObservationMechanism.md#same-cycle-precise-merge-suppression).
 
 **Tests & acceptance.** Runtime versions of T14 + T18 (refresh/rollback/delete/reset/fault) +
 temp-ID rekey on save-driven insert. All under the concurrency-debug flag.

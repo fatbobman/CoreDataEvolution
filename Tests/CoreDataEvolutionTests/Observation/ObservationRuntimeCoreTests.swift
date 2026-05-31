@@ -431,6 +431,37 @@ struct ObservationRuntimeCoreTests {
   }
 
   @MainActor
+  @Test("same-cycle precision guard clears when the run loop drains")
+  func sameCyclePrecisionGuardClearsWhenRunLoopDrains() async throws {
+    guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+      return
+    }
+
+    let container = try makeContainer(testName: "ObservationRuntimeSameCycleDrain")
+    let context = container.viewContext
+    let item = try makeSavedItem(in: context, name: "initial")
+    let itemID = item.objectID
+    let token = CDEObservationSaveToken()
+    let nameSet = fieldSet(for: ["display_name"])
+    let domain = CDEObservationDomain(container: container)
+
+    _ = item.name
+    _ = item.note
+    domain.stagePendingChangesFromProducer(token: token, changesByObjectID: [itemID: nameSet])
+
+    // A precise merge arms the guard synchronously so a same-cycle duplicate merge / refresh echo is
+    // suppressed.
+    domain.routeMerge(affectedObjectIDs: [itemID])
+    #expect(domain.sameCyclePrecisionGuardCount == 1)
+
+    // The guard is cleared by a `kCFRunLoopBeforeWaiting` observer, not flushed by hand: once the
+    // run loop drains the current burst and is about to sleep, the guard must be gone, so the *next*
+    // save is never wrongly suppressed. This is the invariant that removed the `Task.yield()` race.
+    await waitForCondition { domain.sameCyclePrecisionGuardCount == 0 }
+    #expect(domain.sameCyclePrecisionGuardCount == 0)
+  }
+
+  @MainActor
   @Test("background actor observed save failure rolls back staged token")
   func backgroundActorObservedSaveFailureRollsBackStagedToken() async throws {
     guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {

@@ -501,8 +501,33 @@ public final class CDEObservationDomain {
   private var observerTokens: [NSObjectProtocol] = []
   private var producerRegistrations: [CDEObservationProducerRegistration] = []
   private var pendingTemporaryObjectIDs: [(oldID: NSManagedObjectID, object: NSManagedObject)] = []
+  // Same-cycle precise-merge guard. DO NOT remove or "simplify" either this guard or its run-loop
+  // cleanup without reading this — both halves are load-bearing and have each regressed before.
+  //
+  // Symptom it prevents (SwiftUI, reproduced on device): a background save changes ONE field, say
+  // `Memo.content`. Core Data merges it into the viewContext and `routeMerge` invalidates exactly
+  // `content`. But Core Data can post a SECOND merge/refresh for the SAME object in the SAME save
+  // cycle (a duplicate `didMergeChangesObjectIDs`, or the refreshed half of one notification). By
+  // then the precise pending metadata is already consumed, so a naive route falls back to
+  // `.allObservableKeyPaths` and wakes observers of UNCHANGED siblings — a view reading only
+  // `Memo.date` refreshes spuriously.
+  //
+  // The guard records "objectID X was just precisely routed this cycle" (see
+  // `markSameCyclePreciseMerge`); the three consumers swallow that echo instead of widening it:
+  //   1. `routeMerge` — a duplicate merge whose pending is already consumed.
+  //   2. `handleViewContextDidMergeObjectIDs` — the refreshed half of the same notification.
+  //   3. `handleViewContextObjectsDidChange` — a duplicate refresh in a later turn of the cycle.
+  //
+  // Two regressions this has already caused — each re-broke one of the two requirements:
+  //   (a) Dropping the guard / making `routeMerge` always all-key on empty pending → the duplicate
+  //       merge widens precise→all-key again → the SwiftUI spurious-wake returns.
+  //   (b) Clearing the guard on a fixed timer (`Task { await Task.yield() }`) → under MainActor load
+  //       the clear is starved past the NEXT save, so a stale guard swallows that save's legitimate
+  //       all-key fallback → flaky concurrency failure (a direct save right after an observed save).
+  // The only correct lifetime is "the current run-loop event cycle": long enough to cover every
+  // same-cycle echo, gone before the next user-initiated save. See `scheduleSameCyclePrecisionCleanup`.
   private var sameCyclePreciseMergeSuppressions: [NSManagedObjectID: Int] = [:]
-  private var sameCyclePrecisionCleanupTask: Task<Void, Never>?
+  private var sameCyclePrecisionCleanupObserver: CFRunLoopObserver?
   private var isActive = true
 
   /// Creates the retained observation runtime for one container's `viewContext`.
@@ -546,8 +571,7 @@ public final class CDEObservationDomain {
     observedObjects.removeAll()
     pendingTemporaryObjectIDs.removeAll()
     sameCyclePreciseMergeSuppressions.removeAll()
-    sameCyclePrecisionCleanupTask?.cancel()
-    sameCyclePrecisionCleanupTask = nil
+    cancelSameCyclePrecisionCleanup()
     CDEObservationDomainRegistry.deactivate(self, for: viewContext)
   }
 
@@ -615,6 +639,10 @@ public final class CDEObservationDomain {
     pendingBuffer.tokenCount
   }
 
+  internal var sameCyclePrecisionGuardCount: Int {
+    sameCyclePreciseMergeSuppressions.count
+  }
+
   internal func containsObservedObject(_ objectID: NSManagedObjectID) -> Bool {
     observedObjects.contains(objectID)
   }
@@ -674,9 +702,17 @@ public final class CDEObservationDomain {
     var sameCycleSuppressedObjectIDs: Set<NSManagedObjectID> = []
     var plan = route(affectedObjectIDs: affectedObjectIDs) { objectID in
       guard let pending = pendingBuffer.consume(objectID: objectID) else {
+        // Empty pending means one of two things, told apart ONLY by the same-cycle guard (see
+        // `sameCyclePreciseMergeSuppressions`):
+        //   • guard armed  → a DUPLICATE merge of an object already routed precisely this cycle.
+        //     Must NOT widen to all-key, or it wakes unchanged siblings (the `content`→`date` bug).
+        //   • guard unset  → a genuinely new / unobserved save (e.g. a plain `context.save()`).
+        //     Must fall back to all-key.
+        // Do not "simplify" this to always return `.allObservableKeyPaths`: that is exactly
+        // regression (a) and re-breaks SwiftUI precision on duplicate merges.
         if consumeSameCyclePreciseMergeSuppression(objectID, clearsRemaining: true) {
-          // The duplicate merge is handled here, but its refreshed half is routed later by the same
-          // caller. Return the object ID so that fallback path does not widen it to all-key.
+          // Duplicate handled here; its refreshed half is routed later by the same caller, so report
+          // the ID to keep that fallback from widening it to all-key.
           sameCycleSuppressedObjectIDs.insert(objectID)
           return nil
         }
@@ -910,7 +946,8 @@ public final class CDEObservationDomain {
         return false
       }
       // If the precise merge already fired, Core Data may still post a duplicate refresh before the
-      // one-turn cleanup runs. Swallow only that duplicate; later saves remain fallback-capable.
+      // run-loop-drain cleanup runs (see `sameCyclePreciseMergeSuppressions`). Swallow only that
+      // same-cycle echo; the guard is gone by the next save, so later saves stay fallback-capable.
       guard consumeSameCyclePreciseMergeSuppression(objectID) == false else {
         return false
       }
@@ -972,10 +1009,17 @@ public final class CDEObservationDomain {
   }
 
   private func markSameCyclePreciseMerge(_ objectID: NSManagedObjectID) {
+    // Arm the guard the instant a precise field set is routed for X, so a same-cycle duplicate
+    // merge / refresh echo for X is swallowed rather than widened to all-key. Budget 2 covers the
+    // up-to-two echoes Core Data can post per cycle (e.g. a refreshed half plus a duplicate refresh);
+    // the run-loop-drain cleanup clears any unused remainder before the next save.
     sameCyclePreciseMergeSuppressions[objectID] = 2
     scheduleSameCyclePrecisionCleanup()
   }
 
+  // Returns true iff X is currently guarded (caller must then swallow X instead of widening it).
+  // The merge path passes `clearsRemaining: true` because it fully handles the duplicate in one shot;
+  // the refresh path decrements by one so a second same-cycle echo is still covered.
   private func consumeSameCyclePreciseMergeSuppression(
     _ objectID: NSManagedObjectID,
     clearsRemaining: Bool = false
@@ -992,19 +1036,48 @@ public final class CDEObservationDomain {
     return true
   }
 
+  // Cleanup boundary for the same-cycle guard. Do NOT swap this for a plain `Task`, `Task.yield()`,
+  // `DispatchQueue.main.async`, or a synchronous clear — each re-introduces one of the two
+  // regressions documented on `sameCyclePreciseMergeSuppressions` (too-early clear ⇒ SwiftUI
+  // spurious wake; starvable/racy clear ⇒ stale guard eats the next save's fallback).
+  //
+  // The guard must outlive the *whole* current event cycle — Core Data can post a duplicate merge
+  // (or a refresh echo) for the same save in a later run-loop turn, and that echo must still be
+  // suppressed — yet it must be gone before the next user-initiated save. A `kCFRunLoopBeforeWaiting`
+  // observer is exactly that boundary: it fires only when the run loop has drained *all* queued work
+  // (so every notification belonging to the current burst, across however many turns, is already
+  // processed) and is about to sleep. Unlike `Task { await Task.yield() }` it is not a queued item
+  // that can be starved or reordered ahead of a still-pending merge, and unlike a fixed number of
+  // hops it does not race a back-to-back save: the next save arrives on a later run-loop wakeup.
   private func scheduleSameCyclePrecisionCleanup() {
-    guard sameCyclePrecisionCleanupTask == nil else {
+    guard sameCyclePrecisionCleanupObserver == nil else {
       return
     }
 
-    sameCyclePrecisionCleanupTask = Task { @MainActor [weak self] in
-      await Task.yield()
-      guard let self else {
-        return
+    let observer = CFRunLoopObserverCreateWithHandler(
+      kCFAllocatorDefault,
+      CFRunLoopActivity.beforeWaiting.rawValue,
+      false,  // one-shot: fires once at the end of the current cycle, then invalidates
+      0
+    ) { [weak self] _, _ in
+      MainActor.assumeIsolated {
+        guard let self else {
+          return
+        }
+        self.sameCyclePreciseMergeSuppressions.removeAll()
+        self.sameCyclePrecisionCleanupObserver = nil
       }
-      sameCyclePreciseMergeSuppressions.removeAll()
-      sameCyclePrecisionCleanupTask = nil
     }
+    sameCyclePrecisionCleanupObserver = observer
+    CFRunLoopAddObserver(CFRunLoopGetMain(), observer, .commonModes)
+  }
+
+  private func cancelSameCyclePrecisionCleanup() {
+    guard let observer = sameCyclePrecisionCleanupObserver else {
+      return
+    }
+    CFRunLoopObserverInvalidate(observer)
+    sameCyclePrecisionCleanupObserver = nil
   }
 
   private func objectIDs(

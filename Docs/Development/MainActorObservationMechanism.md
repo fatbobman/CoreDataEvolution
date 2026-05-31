@@ -298,6 +298,47 @@ sequenceDiagram
   end
 ```
 
+## Same-Cycle Precise-Merge Suppression
+
+The merge / refresh fallback above ("no pending keys -> all observable key paths") is unconditional
+*only for a genuinely new change*. A precise merge can be followed, **within the same Core Data event
+cycle**, by an echo naming the same object again: a duplicate `didMergeChangesObjectIDs`, the refreshed
+half of one notification, or a duplicate `objectsDidChange` refresh. By the time that echo arrives the
+precise pending metadata is already consumed, so the naive fallback widens it to all observable key
+paths — which re-wakes readers of *unchanged* sibling properties and breaks the precision promise (a
+view reading only `memo.date` refreshes when a background save touched only `memo.content`).
+
+The runtime therefore keeps a short-lived **same-cycle precise-merge guard**
+(`sameCyclePreciseMergeSuppressions`, keyed by `NSManagedObjectID`):
+
+- When `routeMerge` routes a precise field set for object X, it arms the guard for X.
+- The three fallback sites — the duplicate-merge branch of `routeMerge`, the refreshed half in
+  `handleViewContextDidMergeObjectIDs`, and the refresh path in `handleViewContextObjectsDidChange` —
+  swallow an object that is still guarded instead of widening it to all-key.
+- A genuinely new save is told apart from an echo purely by the guard: **armed => echo (swallow);
+  unset => new change (all-key)**. At `objectID + empty-pending` granularity the two are otherwise
+  identical, so the only discriminator is *which event cycle the notification belongs to*.
+
+That makes the guard's **lifetime** the whole correctness contract: it must outlive every echo of the
+current cycle, yet be gone before the next user-initiated save. The cleanup is anchored to a
+`kCFRunLoopBeforeWaiting` observer — the run loop fires it only once all queued work for the current
+cycle (across however many turns, as long as none sleeps) has drained and it is about to sleep. The
+next save arrives on a later run-loop wakeup, so the guard is always clear by then.
+
+Two boundaries that do **not** work, both of which regressed during development:
+
+- **Dropping the guard** (always all-key on empty pending) re-introduces the sibling-wake bug on
+  duplicate merges.
+- **A timer-based clear** (`Task { await Task.yield() }`, a fixed number of hops, or a queued
+  `DispatchQueue.main.async`) is a *queued item*, not a *drain observer*: under MainActor load it can
+  be starved or reordered past the next save, so a stale guard swallows that save's legitimate all-key
+  fallback (a flaky concurrent-test failure of "a direct save right after an observed save").
+
+Scope limit: the guard covers echoes delivered inside the same run-loop wakeup. An echo that crosses a
+run-loop sleep (for example a separate CloudKit import / history merge in a later wakeup) is treated as
+a new cycle and falls back to all-key; recovering precision across that boundary would instead require
+keeping the producer-backed pending re-routable rather than consuming it on the first merge.
+
 ## Spike Results: Save Metadata, Local Keys, Merge Alignment, Batch Fallback
 
 The T03 / T06 / T07 / T08 / T09 / T10 / T12 / T13 / T14 / T15 / T16 / T17 /
@@ -608,7 +649,9 @@ Observed results:
 
 Conclusion: lifecycle fallback is object-scoped and conservative. Refresh / invalidation / rollback
 may notify all observable key paths; delete / reset mainly clean routing state so the hub does not
-touch invalid or detached instances.
+touch invalid or detached instances. One runtime refinement layers on top: a refresh that is the
+same-cycle echo of a precise merge for the same object is suppressed rather than widened — see
+[Same-Cycle Precise-Merge Suppression](#same-cycle-precise-merge-suppression).
 
 ### T20 Performance And Cost Envelope
 
@@ -1279,5 +1322,8 @@ membership refresh becomes a supported mode.
   objects change object ID on save.
 - Verify the all-key-paths degradation stays per-object and does not fan out across the relationship
   graph.
+- Verify the same-cycle precise-merge guard: a duplicate merge / refresh echo for an object just routed
+  precisely is suppressed (the unchanged sibling does not wake), while the guard is cleared on the
+  next run-loop drain so a back-to-back later save still falls back to all-key.
 - Verify merge routing cost remains O(incoming object IDs), with no scan over all registered
   objects, observed objects, pending history, or relationship graph nodes.
