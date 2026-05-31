@@ -240,15 +240,179 @@ internal struct CDEObservationHubRoutePlan {
 internal typealias CDEObservationInvalidationHandler =
   @MainActor (NSManagedObject, CDEObservationInvalidationDecision) -> Void
 
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
+private struct CDEObservationProducerStagedSave {
+  var token: CDEObservationSaveToken
+  var changesByObjectID: [NSManagedObjectID: CDEObservationFieldSet]
+}
+
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
+/// Removable registration for an ordinary Core Data context that produces observation metadata.
+public final class CDEObservationProducerRegistration: @unchecked Sendable {
+  private weak var domain: CDEObservationDomain?
+  private let context: NSManagedObjectContext
+  private let lock = NSLock()
+  private var observerTokens: [NSObjectProtocol] = []
+  private var observing = true
+  private var stagedSave: CDEObservationProducerStagedSave?
+  private var committedTokens: Set<CDEObservationSaveToken> = []
+
+  internal var isObserving: Bool {
+    lock.withLock { observing }
+  }
+
+  internal var stagedSaveCount: Int {
+    lock.withLock { stagedSave == nil ? 0 : 1 }
+  }
+
+  internal init(context: NSManagedObjectContext, domain: CDEObservationDomain) {
+    self.context = context
+    self.domain = domain
+    installObservers()
+  }
+
+  deinit {
+    invalidate()
+  }
+
+  /// Removes context observers and clears metadata produced by this registration.
+  public func invalidate() {
+    let state = lock.withLock {
+      guard observing else {
+        return (
+          observerTokens: [NSObjectProtocol](),
+          committedTokens: Set<CDEObservationSaveToken>()
+        )
+      }
+
+      observing = false
+      let tokens = observerTokens
+      observerTokens.removeAll()
+      stagedSave = nil
+      let committed = committedTokens
+      committedTokens.removeAll()
+      return (observerTokens: tokens, committedTokens: committed)
+    }
+
+    for token in state.observerTokens {
+      NotificationCenter.default.removeObserver(token)
+    }
+    for token in state.committedTokens {
+      domain?.rollbackPendingChangesFromProducer(token: token)
+    }
+  }
+
+  private func installObservers() {
+    observerTokens = [
+      NotificationCenter.default.addObserver(
+        forName: Notification.Name.NSManagedObjectContextWillSave,
+        object: context,
+        queue: nil
+      ) { [weak self] notification in
+        self?.stageSave(from: notification)
+      },
+      NotificationCenter.default.addObserver(
+        forName: Notification.Name.NSManagedObjectContextDidSave,
+        object: context,
+        queue: nil
+      ) { [weak self] notification in
+        self?.commitSave(from: notification)
+      },
+      NotificationCenter.default.addObserver(
+        forName: Notification.Name.NSManagedObjectContextObjectsDidChange,
+        object: context,
+        queue: nil
+      ) { [weak self] notification in
+        self?.handleObjectsDidChange(notification)
+      },
+    ]
+  }
+
+  private func stageSave(from notification: Notification) {
+    guard notification.object as? NSManagedObjectContext === context else {
+      return
+    }
+
+    let changes = collectChangedObservationFieldSets(from: context.updatedObjects)
+    lock.withLock {
+      guard observing else {
+        return
+      }
+
+      guard changes.isEmpty == false else {
+        stagedSave = nil
+        return
+      }
+
+      stagedSave = .init(token: CDEObservationSaveToken(), changesByObjectID: changes)
+    }
+  }
+
+  private func commitSave(from notification: Notification) {
+    guard notification.object as? NSManagedObjectContext === context else {
+      return
+    }
+
+    lock.withLock {
+      guard observing, let staged = stagedSave else {
+        stagedSave = nil
+        return
+      }
+
+      stagedSave = nil
+      committedTokens.insert(staged.token)
+      // Direct-save producers cannot know thrown saves. Keep will-save metadata local until didSave
+      // proves the save committed, then publish it before the viewContext merge can consume IDs.
+      domain?.stagePendingChangesFromProducer(
+        token: staged.token,
+        changesByObjectID: staged.changesByObjectID
+      )
+    }
+  }
+
+  private func handleObjectsDidChange(_ notification: Notification) {
+    guard notification.object as? NSManagedObjectContext === context else {
+      return
+    }
+
+    if notification.userInfo?[NSInvalidatedAllObjectsKey] != nil {
+      clearProducerState()
+    } else {
+      discardStagedSave()
+    }
+  }
+
+  private func discardStagedSave() {
+    lock.withLock {
+      stagedSave = nil
+    }
+  }
+
+  private func clearProducerState() {
+    let tokens = lock.withLock {
+      stagedSave = nil
+      let committed = committedTokens
+      committedTokens.removeAll()
+      return committed
+    }
+
+    for token in tokens {
+      domain?.rollbackPendingChangesFromProducer(token: token)
+    }
+  }
+}
+
 @MainActor
 @available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
 /// Container-bound MainActor observation runtime for one Core Data `viewContext`.
 public final class CDEObservationDomain {
+  private let container: NSPersistentContainer
   private let viewContext: NSManagedObjectContext
   private let observedObjects = CDEObservationObjectIDTable()
   private let pendingBuffer = CDEObservationPendingBuffer()
   private let invalidationHandler: CDEObservationInvalidationHandler?
   private var observerTokens: [NSObjectProtocol] = []
+  private var producerRegistrations: [CDEObservationProducerRegistration] = []
   private var pendingTemporaryObjectIDs: [(oldID: NSManagedObjectID, object: NSManagedObject)] = []
   private var isActive = true
 
@@ -261,6 +425,7 @@ public final class CDEObservationDomain {
     container: NSPersistentContainer,
     invalidationHandler: CDEObservationInvalidationHandler?
   ) {
+    self.container = container
     viewContext = container.viewContext
     self.invalidationHandler = invalidationHandler
     CDEObservationDomainRegistry.activate(self, for: viewContext)
@@ -284,10 +449,51 @@ public final class CDEObservationDomain {
       NotificationCenter.default.removeObserver(token)
     }
     observerTokens.removeAll()
+    for registration in producerRegistrations {
+      registration.invalidate()
+    }
+    producerRegistrations.removeAll()
     pendingBuffer.removeAll()
     observedObjects.removeAll()
     pendingTemporaryObjectIDs.removeAll()
     CDEObservationDomainRegistry.deactivate(self, for: viewContext)
+  }
+
+  /// Registers an ordinary context whose direct saves should produce precise observation metadata.
+  @discardableResult
+  public func registerChangeProducer(
+    context: NSManagedObjectContext
+  ) -> CDEObservationProducerRegistration {
+    let registration = CDEObservationProducerRegistration(context: context, domain: self)
+    producerRegistrations.append(registration)
+    return registration
+  }
+
+  /// Creates and registers a background context for direct-save observation metadata.
+  public func newObservedBackgroundContext() -> NSManagedObjectContext {
+    let context = container.newBackgroundContext()
+    registerChangeProducer(context: context)
+    return context
+  }
+
+  /// Saves an arbitrary context with wrapper-owned rollback of staged observation metadata.
+  public nonisolated func saveObservedChanges(in context: NSManagedObjectContext) async throws {
+    try await withCheckedThrowingContinuation { continuation in
+      context.perform {
+        let token = CDEObservationSaveToken()
+        let changes = collectChangedObservationFieldSets(from: context.updatedObjects)
+
+        self.stagePendingChangesFromProducer(token: token, changesByObjectID: changes)
+        do {
+          try context.save()
+          continuation.resume()
+        } catch {
+          self.rollbackPendingChangesFromProducer(token: token)
+          context.rollback()
+          continuation.resume(throwing: error)
+        }
+      }
+    }
   }
 
   internal var liveObservedObjectIDs: Set<NSManagedObjectID> {

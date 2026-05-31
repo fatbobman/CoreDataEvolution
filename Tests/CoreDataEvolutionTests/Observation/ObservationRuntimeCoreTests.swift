@@ -392,6 +392,332 @@ struct ObservationRuntimeCoreTests {
   }
 
   @MainActor
+  @Test("registered ordinary background context direct save routes exact changed field")
+  func registeredOrdinaryBackgroundContextDirectSaveRoutesExactChangedField() async throws {
+    guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+      return
+    }
+
+    let container = try makeContainer(testName: "ObservationRuntimeRegisteredContextAutomatic")
+    let context = container.viewContext
+    let item = try makeSavedItem(in: context, name: "initial")
+    let itemID = item.objectID
+    let background = container.newBackgroundContext()
+    var routed: [(NSManagedObjectID, CDEObservationInvalidationDecision)] = []
+    let domain = CDEObservationDomain(container: container) { object, decision in
+      routed.append((object.objectID, decision))
+    }
+    let registration = domain.registerChangeProducer(context: background)
+
+    _ = item.name
+    _ = item.note
+    try await background.perform {
+      let backgroundItem = try #require(
+        try background.existingObject(with: itemID) as? ObservationRuntimeItem
+      )
+      backgroundItem.name = "ordinary-registered"
+      try background.save()
+    }
+    await waitForCondition { routed.isEmpty == false }
+
+    let routedChange = try #require(routed.first)
+    #expect(registration.isObserving)
+    #expect(routed.count == 1)
+    #expect(routedChange.0 == itemID)
+    #expect(paths(for: routedChange.1) == ["name"])
+    #expect(domain.pendingObjectCount == 0)
+    #expect(domain.pendingTokenCount == 0)
+  }
+
+  @MainActor
+  @Test("unregistered ordinary background context falls back to all-key")
+  func unregisteredOrdinaryBackgroundContextFallsBackToAllKey() async throws {
+    guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+      return
+    }
+
+    let container = try makeContainer(testName: "ObservationRuntimeUnregisteredContextFallback")
+    let context = container.viewContext
+    let item = try makeSavedItem(in: context, name: "initial")
+    let itemID = item.objectID
+    let background = container.newBackgroundContext()
+    var routed: [(NSManagedObjectID, CDEObservationInvalidationDecision)] = []
+    let domain = CDEObservationDomain(container: container) { object, decision in
+      routed.append((object.objectID, decision))
+    }
+
+    _ = item.name
+    _ = item.note
+    try await background.perform {
+      let backgroundItem = try #require(
+        try background.existingObject(with: itemID) as? ObservationRuntimeItem
+      )
+      backgroundItem.name = "ordinary-unregistered"
+      try background.save()
+    }
+    await waitForCondition { routed.isEmpty == false }
+
+    #expect(routed.isEmpty == false)
+    #expect(
+      routed.allSatisfy { objectID, decision in
+        objectID == itemID && decision == .allObservableKeyPaths
+      }
+    )
+    #expect(routed.contains { _, decision in paths(for: decision) == ["*"] })
+    #expect(domain.pendingObjectCount == 0)
+  }
+
+  @MainActor
+  @Test("registered ordinary background context supports manual merge consumption")
+  func registeredOrdinaryBackgroundContextSupportsManualMergeConsumption() async throws {
+    guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+      return
+    }
+
+    let container = try makeContainer(
+      testName: "ObservationRuntimeRegisteredContextManual",
+      automaticallyMergesChangesFromParent: false
+    )
+    let context = container.viewContext
+    let item = try makeSavedItem(in: context, name: "initial")
+    let itemID = item.objectID
+    let background = container.newBackgroundContext()
+    let saveRecorder = ObservationNotificationRecorder(
+      context: background,
+      name: Notification.Name.NSManagedObjectContextDidSave
+    )
+    var routed: [(NSManagedObjectID, CDEObservationInvalidationDecision)] = []
+    let domain = CDEObservationDomain(container: container) { object, decision in
+      routed.append((object.objectID, decision))
+    }
+    let registration = domain.registerChangeProducer(context: background)
+
+    _ = item.name
+    _ = item.note
+    try await background.perform {
+      let backgroundItem = try #require(
+        try background.existingObject(with: itemID) as? ObservationRuntimeItem
+      )
+      backgroundItem.name = "ordinary-manual"
+      try background.save()
+    }
+
+    let saveNotification = try #require(saveRecorder.lastNotification)
+    context.mergeChanges(fromContextDidSave: saveNotification)
+    context.processPendingChanges()
+    await waitForCondition { routed.isEmpty == false }
+
+    let routedChange = try #require(routed.first)
+    #expect(registration.isObserving)
+    #expect(routed.count == 1)
+    #expect(routedChange.0 == itemID)
+    #expect(paths(for: routedChange.1) == ["name"])
+    #expect(domain.pendingObjectCount == 0)
+    #expect(domain.pendingTokenCount == 0)
+  }
+
+  @MainActor
+  @Test("registered ordinary contexts keep producer and container scope")
+  func registeredOrdinaryContextsKeepProducerAndContainerScope() async throws {
+    guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+      return
+    }
+
+    let first = try makeContainer(
+      testName: "ObservationRuntimeRegisteredScopeFirst",
+      automaticallyMergesChangesFromParent: false
+    )
+    let firstContext = first.viewContext
+    let firstItem = try makeSavedItem(in: firstContext, name: "first")
+    let secondItem = try makeSavedItem(in: firstContext, name: "second")
+    let firstItemID = firstItem.objectID
+    let secondItemID = secondItem.objectID
+    let firstDomain = CDEObservationDomain(container: first)
+    let firstBackgroundA = first.newBackgroundContext()
+    let firstBackgroundB = first.newBackgroundContext()
+    let firstRegistrationA = firstDomain.registerChangeProducer(context: firstBackgroundA)
+    let firstRegistrationB = firstDomain.registerChangeProducer(context: firstBackgroundB)
+    let nameSet = fieldSet(for: ["display_name"])
+
+    try await firstBackgroundA.perform {
+      let item = try #require(
+        try firstBackgroundA.existingObject(with: firstItemID) as? ObservationRuntimeItem
+      )
+      item.name = "scope-a"
+      try firstBackgroundA.save()
+    }
+    try await firstBackgroundB.perform {
+      let item = try #require(
+        try firstBackgroundB.existingObject(with: secondItemID) as? ObservationRuntimeItem
+      )
+      item.name = "scope-b"
+      try firstBackgroundB.save()
+    }
+
+    #expect(firstDomain.pendingChange(for: firstItemID) == .fieldSet(nameSet))
+    #expect(firstDomain.pendingChange(for: secondItemID) == .fieldSet(nameSet))
+    #expect(firstDomain.pendingObjectCount == 2)
+    #expect(firstDomain.pendingTokenCount == 2)
+
+    firstRegistrationA.invalidate()
+
+    #expect(firstDomain.pendingChange(for: firstItemID) == nil)
+    #expect(firstDomain.pendingChange(for: secondItemID) == .fieldSet(nameSet))
+    #expect(firstDomain.pendingObjectCount == 1)
+    #expect(firstDomain.pendingTokenCount == 1)
+    #expect(firstRegistrationA.isObserving == false)
+    #expect(firstRegistrationB.isObserving)
+
+    let other = try makeContainer(
+      testName: "ObservationRuntimeRegisteredScopeOther",
+      automaticallyMergesChangesFromParent: false
+    )
+    let otherContext = other.viewContext
+    let otherItem = try makeSavedItem(in: otherContext, name: "other")
+    let otherItemID = otherItem.objectID
+    let otherDomain = CDEObservationDomain(container: other)
+    let otherBackground = other.newBackgroundContext()
+    let otherRegistration = otherDomain.registerChangeProducer(context: otherBackground)
+
+    try await otherBackground.perform {
+      let item = try #require(
+        try otherBackground.existingObject(with: otherItemID) as? ObservationRuntimeItem
+      )
+      item.name = "scope-other"
+      try otherBackground.save()
+    }
+
+    #expect(firstDomain.pendingChange(for: otherItemID) == nil)
+    #expect(otherDomain.pendingChange(for: otherItemID) == .fieldSet(nameSet))
+    #expect(otherRegistration.isObserving)
+  }
+
+  @MainActor
+  @Test("registered ordinary context cleans failure reset and invalidation state")
+  func registeredOrdinaryContextCleansFailureResetAndInvalidationState() async throws {
+    guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+      return
+    }
+
+    let container = try makeContainer(
+      testName: "ObservationRuntimeRegisteredContextCleanup",
+      automaticallyMergesChangesFromParent: false
+    )
+    let context = container.viewContext
+    let item = try makeSavedItem(in: context, name: "initial")
+    let secondItem = try makeSavedItem(in: context, name: "second")
+    let itemID = item.objectID
+    let secondItemID = secondItem.objectID
+    let background = container.newBackgroundContext()
+    let domain = CDEObservationDomain(container: container)
+    let registration = domain.registerChangeProducer(context: background)
+    let nameSet = fieldSet(for: ["display_name"])
+
+    try await background.perform {
+      let backgroundItem = try #require(
+        try background.existingObject(with: itemID) as? ObservationRuntimeItem
+      )
+      backgroundItem.name = "cleanup-success"
+      try background.save()
+    }
+
+    #expect(domain.pendingChange(for: itemID) == .fieldSet(nameSet))
+    #expect(domain.pendingObjectCount == 1)
+    #expect(domain.pendingTokenCount == 1)
+
+    await background.perform {
+      do {
+        let backgroundItem = try background.existingObject(with: secondItemID)
+        backgroundItem.setValue(nil, forKey: "display_name")
+        try background.save()
+        Issue.record("Expected save failure for nil non-optional display_name.")
+      } catch {
+        background.rollback()
+      }
+    }
+
+    #expect(domain.pendingChange(for: itemID) == .fieldSet(nameSet))
+    #expect(domain.pendingChange(for: secondItemID) == nil)
+    #expect(domain.pendingObjectCount == 1)
+    #expect(domain.pendingTokenCount == 1)
+    #expect(registration.stagedSaveCount == 0)
+
+    await background.perform {
+      background.reset()
+    }
+
+    #expect(domain.pendingObjectCount == 0)
+    #expect(domain.pendingTokenCount == 0)
+
+    try await background.perform {
+      let backgroundItem = try #require(
+        try background.existingObject(with: itemID) as? ObservationRuntimeItem
+      )
+      backgroundItem.name = "cleanup-invalidate"
+      try background.save()
+    }
+
+    #expect(domain.pendingChange(for: itemID) == .fieldSet(nameSet))
+
+    registration.invalidate()
+
+    #expect(registration.isObserving == false)
+    #expect(domain.pendingObjectCount == 0)
+    #expect(domain.pendingTokenCount == 0)
+  }
+
+  @MainActor
+  @Test("context save wrapper keeps precision and rolls back token on throw")
+  func contextSaveWrapperKeepsPrecisionAndRollsBackTokenOnThrow() async throws {
+    guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+      return
+    }
+
+    let container = try makeContainer(testName: "ObservationRuntimeContextSaveWrapper")
+    let context = container.viewContext
+    let item = try makeSavedItem(in: context, name: "initial")
+    let itemID = item.objectID
+    let background = container.newBackgroundContext()
+    var routed: [(NSManagedObjectID, CDEObservationInvalidationDecision)] = []
+    let domain = CDEObservationDomain(container: container) { object, decision in
+      routed.append((object.objectID, decision))
+    }
+
+    _ = item.name
+    _ = item.note
+    try await background.perform {
+      let backgroundItem = try #require(
+        try background.existingObject(with: itemID) as? ObservationRuntimeItem
+      )
+      backgroundItem.name = "wrapper-success"
+    }
+    try await domain.saveObservedChanges(in: background)
+    await waitForCondition { routed.isEmpty == false }
+
+    let routedChange = try #require(routed.first)
+    #expect(routed.count == 1)
+    #expect(routedChange.0 == itemID)
+    #expect(paths(for: routedChange.1) == ["name"])
+    #expect(domain.pendingObjectCount == 0)
+    #expect(domain.pendingTokenCount == 0)
+
+    try await background.perform {
+      let backgroundItem = try #require(
+        try background.existingObject(with: itemID) as? ObservationRuntimeItem
+      )
+      backgroundItem.setValue(nil, forKey: "display_name")
+    }
+
+    do {
+      try await domain.saveObservedChanges(in: background)
+      Issue.record("Expected save failure for nil non-optional display_name.")
+    } catch {
+      #expect(domain.pendingObjectCount == 0)
+      #expect(domain.pendingTokenCount == 0)
+    }
+  }
+
+  @MainActor
   @Test("merge routing is bounded by incoming object IDs")
   func mergeRoutingIsBoundedByIncomingObjectIDs() throws {
     guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
@@ -641,12 +967,16 @@ struct ObservationRuntimeCoreTests {
   }
 
   @MainActor
-  private func makeContainer(testName: String) throws -> NSPersistentContainer {
+  private func makeContainer(
+    testName: String,
+    automaticallyMergesChangesFromParent: Bool = true
+  ) throws -> NSPersistentContainer {
     let container = try NSPersistentContainer.makeRuntimeTest(
       modelTypes: [ObservationRuntimeItem.self],
       testName: testName
     )
-    container.viewContext.automaticallyMergesChangesFromParent = true
+    container.viewContext.automaticallyMergesChangesFromParent =
+      automaticallyMergesChangesFromParent
     return container
   }
 
@@ -763,6 +1093,38 @@ private final class ObservationChangeCounter: @unchecked Sendable {
   func increment() {
     lock.withLock {
       storage += 1
+    }
+  }
+}
+
+private final class ObservationNotificationRecorder: @unchecked Sendable {
+  private let lock = NSLock()
+  private var token: NSObjectProtocol?
+  private var storage: Notification?
+
+  var lastNotification: Notification? {
+    lock.withLock { storage }
+  }
+
+  init(context: NSManagedObjectContext, name: Notification.Name) {
+    token = NotificationCenter.default.addObserver(
+      forName: name,
+      object: context,
+      queue: nil
+    ) { [weak self] notification in
+      guard let self else {
+        return
+      }
+
+      self.lock.withLock {
+        self.storage = notification
+      }
+    }
+  }
+
+  deinit {
+    if let token {
+      NotificationCenter.default.removeObserver(token)
     }
   }
 }
