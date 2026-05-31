@@ -153,24 +153,7 @@ func makeObservationRegistrarDecls(modelTypeName: String) -> [DeclSyntax] {
     """
     \(raw: cdeObservationAvailability)
     private let _$observationRegistrar = CoreDataEvolution.CDEObservationRegistrar()
-    """,
     """
-    \(raw: cdeObservationAvailability)
-    nonisolated func access<Member>(
-      keyPath: KeyPath<\(raw: modelTypeName), Member>
-    ) {
-      _$observationRegistrar.access(self, keyPath: keyPath)
-    }
-    """,
-    """
-    \(raw: cdeObservationAvailability)
-    nonisolated func withMutation<Member, MutationResult>(
-      keyPath: KeyPath<\(raw: modelTypeName), Member>,
-      _ mutation: () throws -> MutationResult
-    ) rethrows -> MutationResult {
-      try _$observationRegistrar.withMutation(of: self, keyPath: keyPath, mutation)
-    }
-    """,
   ]
 }
 
