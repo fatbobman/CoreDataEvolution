@@ -45,6 +45,7 @@ private struct RelationshipInfo {
   let propertyName: String
   let persistentName: String
   let kind: Kind
+  let observation: ParsedPersistentModelObservationMode
 }
 
 private func buildRelationshipInfo(
@@ -118,7 +119,8 @@ private func buildRelationshipInfo(
   return RelationshipInfo(
     propertyName: propertyName,
     persistentName: arguments.persistentName ?? propertyName,
-    kind: kind
+    kind: kind,
+    observation: observationMode(in: variable)
   )
 }
 
@@ -201,12 +203,17 @@ private func makeRelationshipAccessors(from info: RelationshipInfo) -> [Accessor
 
   switch info.kind {
   case .toOne(let targetTypeName):
-    return [
+    let getter = makeObservationTrackedGetter(
       """
       get {
         value(forKey: "\(raw: key)") as? \(raw: targetTypeName)
       }
       """,
+      propertyName: info.propertyName,
+      observation: info.observation
+    )
+    return [
+      getter,
       """
       set {
         setValue(newValue, forKey: "\(raw: key)")
@@ -215,7 +222,7 @@ private func makeRelationshipAccessors(from info: RelationshipInfo) -> [Accessor
     ]
 
   case .toManySet(let targetTypeName):
-    return [
+    let getter = makeObservationTrackedGetter(
       """
       get {
         // Expose a plain Swift Set<T> at the public API boundary.
@@ -225,11 +232,16 @@ private func makeRelationshipAccessors(from info: RelationshipInfo) -> [Accessor
           .reduce(into: Set<\(raw: targetTypeName)>()) { $0.insert($1) }
           ?? []
       }
-      """
+      """,
+      propertyName: info.propertyName,
+      observation: info.observation
+    )
+    return [
+      getter
     ]
 
   case .toManyArray(let targetTypeName):
-    return [
+    let getter = makeObservationTrackedGetter(
       """
       get {
         // Expose a plain Swift [T] at the public API boundary.
@@ -238,7 +250,12 @@ private func makeRelationshipAccessors(from info: RelationshipInfo) -> [Accessor
           .compactMap { $0 as? \(raw: targetTypeName) }
           ?? []
       }
-      """
+      """,
+      propertyName: info.propertyName,
+      observation: info.observation
+    )
+    return [
+      getter
     ]
   }
 }

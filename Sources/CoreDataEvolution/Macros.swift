@@ -198,6 +198,14 @@ public macro _CDRelationship(
   _fromPersistentModel: Bool = false
 ) = #externalMacro(module: "CoreDataEvolutionMacros", type: "RelationshipMacro")
 
+/// Internal observation marker automatically attached by `@PersistentModel`.
+///
+/// Do not use this macro directly in user code.
+@attached(peer)
+public macro _CDObserved(
+  _ mode: PersistentModelObservationMode
+) = #externalMacro(module: "CoreDataEvolutionMacros", type: "CDObservedMacro")
+
 /// Declares a Core Data-backed model type.
 ///
 /// `@PersistentModel` is the Swift-facing representation layer for a Core Data entity. It expects
@@ -224,7 +232,7 @@ public macro _CDRelationship(
 ///   generated output unchanged.
 @attached(memberAttribute)
 @attached(member, names: arbitrary, named(__cdRuntimeEntitySchema))
-@attached(extension, conformances: PersistentEntity, CDRuntimeSchemaProviding)
+@attached(extension, conformances: PersistentEntity, CDRuntimeSchemaProviding, CDEObservable)
 public macro PersistentModel(
   generateInit: Bool = false,
   generateToManyCount: Bool = true,

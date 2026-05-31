@@ -16,7 +16,7 @@ public enum PersistentModelMacro {}
 
 extension PersistentModelMacro: ExtensionMacro {
   public static func expansion(
-    of _: AttributeSyntax,
+    of node: AttributeSyntax,
     attachedTo declaration: some DeclGroupSyntax,
     providingExtensionsOf type: some TypeSyntaxProtocol,
     conformingTo _: [TypeSyntax],
@@ -42,7 +42,29 @@ extension PersistentModelMacro: ExtensionMacro {
       )
       return []
     }
-    return [ext]
+
+    guard
+      parsePersistentModelArguments(from: node, context: context, emitDiagnostics: false)?
+        .observation == .mainActor
+    else {
+      return [ext]
+    }
+
+    let observableDecl: DeclSyntax =
+      """
+      \(raw: cdeObservationAvailability)
+      extension \(type.trimmed): CoreDataEvolution.CDEObservable {}
+      """
+    guard let observableExt = observableDecl.as(ExtensionDeclSyntax.self) else {
+      MacroDiagnosticReporter.error(
+        "@PersistentModel failed to generate Observable extension conformance.",
+        domain: persistentModelMacroDomain,
+        in: context,
+        node: declaration
+      )
+      return [ext]
+    }
+    return [ext, observableExt]
   }
 }
 
@@ -107,14 +129,16 @@ extension PersistentModelMacro: MemberAttributeMacro {
       return []
     }
 
-    guard
-      let attribute = autoAttachedAttribute(
-        for: variable
-      )
-    else {
-      return []
+    var attributes: [AttributeSyntax] = []
+    if arguments.observation == .mainActor,
+      shouldAttachObservationMarker(to: variable)
+    {
+      attributes.append("@_CDObserved(.mainActor)")
     }
-    return [attribute]
+    if let attribute = autoAttachedAttribute(for: variable) {
+      attributes.append(attribute)
+    }
+    return attributes
   }
 }
 
@@ -186,6 +210,9 @@ extension PersistentModelMacro: MemberMacro {
     let initProperties = analyzePersistentModelInitProperties(in: classDecl)
 
     var members: [DeclSyntax] = []
+    if arguments.observation == .mainActor {
+      members += makeObservationRegistrarDecls(modelTypeName: modelTypeName)
+    }
     members.append(makeKeysDecl(accessModifier: accessModifier, model: model))
     members.append(
       makePathsDecl(

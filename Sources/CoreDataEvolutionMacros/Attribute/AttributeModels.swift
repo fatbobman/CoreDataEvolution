@@ -25,6 +25,7 @@ struct AttributeInfo {
   let decodeFailurePolicy: ParsedAttributeDecodeFailurePolicy?
   let isUnique: Bool
   let isTransient: Bool
+  let observation: ParsedPersistentModelObservationMode
 }
 
 enum ParsedAttributeStorageMethod: Equatable {

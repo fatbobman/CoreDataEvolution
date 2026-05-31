@@ -280,6 +280,15 @@ survives faulting, rekey, release). Lift the *contract*, not the test helper.
 - A short written decision appended to **this section** naming the chosen propagation channel and the
   empirical ordering/visibility result for channel (2).
 
+**Step 2 decision (2026-05-31).** Chosen propagation channel: sibling marker
+`@_CDObserved(.mainActor)` attached by `@PersistentModel`'s `MemberAttributeMacro` to each eligible
+stored property. Empirical result: in real `SwiftSyntaxMacroExpansion` output, the marker is visible
+to both manually-written `@Attribute(...)` accessor macros and the auto-attached `_CDRelationship`
+accessor macro generated for public `@Relationship(...)` declarations. The opt-in model therefore
+gets registrar storage, `CDEObservable` conformance, and getter access injection for both auto
+attributes and manually annotated attributes/relationships; non-opt-in expansion remains unchanged
+by the isolation and snapshot gates.
+
 **Done when.** Real macro expansion produces an `access`-instrumented, `Observable`-conforming model
 for both annotation styles; the non-opt-in path is provably unchanged; the propagation decision is
 recorded here. **Do not proceed to runtime build until this gate is green** — every later step assumes

@@ -68,6 +68,9 @@ enum MacroTestSupport {
     "_CDRelationship": MacroSpec(
       type: RelationshipMacro.self
     ),
+    "_CDObserved": MacroSpec(
+      type: CDObservedMacro.self
+    ),
     "NSModelActor": MacroSpec(
       type: NSModelActorMacro.self,
       conformances: ["NSModelActor"]

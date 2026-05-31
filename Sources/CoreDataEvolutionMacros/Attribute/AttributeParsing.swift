@@ -88,6 +88,7 @@ func buildAttributeInfo(
   let decodeFailurePolicy = arguments.decodeFailurePolicy
   let isUnique = arguments.traits.contains(.unique)
   let isTransient = arguments.traits.contains(.transient)
+  let observation = observationMode(in: variable)
 
   if defaultValueExpression == nil && storageMethod != .default && storageMethod != .raw {
     if emitDiagnostics {
@@ -241,7 +242,8 @@ func buildAttributeInfo(
     storageMethod: storageMethod,
     decodeFailurePolicy: decodeFailurePolicy,
     isUnique: isUnique,
-    isTransient: isTransient
+    isTransient: isTransient,
+    observation: observation
   )
 }
 

@@ -393,6 +393,41 @@ func autoAttachedAttribute(
   return "@Attribute"
 }
 
+func shouldAttachObservationMarker(to variable: VariableDeclSyntax) -> Bool {
+  guard variable.bindingSpecifier.tokenKind == .keyword(.var) else {
+    return false
+  }
+  guard variable.bindings.count == 1 else {
+    return false
+  }
+  if hasMarkerAttribute("Ignore", in: variable)
+    || hasMarkerAttribute("NSManaged", in: variable)
+    || hasMarkerAttribute("_CDObserved", in: variable)
+  {
+    return false
+  }
+  if variable.modifiers.contains(where: { $0.name.text == "static" || $0.name.text == "class" }) {
+    return false
+  }
+  if variable.modifiers.contains(where: { $0.name.text == "lazy" }) {
+    return false
+  }
+
+  guard let binding = variable.bindings.first else {
+    return false
+  }
+  guard binding.accessorBlock == nil else {
+    return false
+  }
+  guard binding.pattern.as(IdentifierPatternSyntax.self) != nil else {
+    return false
+  }
+  guard let typeAnnotation = binding.typeAnnotation else {
+    return false
+  }
+  return shouldRejectOptionalToManyRelationship(typeAnnotation.type, in: variable) == false
+}
+
 private func parseRelationshipProperty(
   propertyName: String,
   type: TypeSyntax,

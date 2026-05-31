@@ -37,7 +37,12 @@ enum AttributeAccessorBuilderFactory {
 
 func makeAccessors(from info: AttributeInfo) -> [AccessorDeclSyntax] {
   let builder = AttributeAccessorBuilderFactory.makeBuilder(for: info.storageMethod)
-  return [builder.makeGetter(from: info), builder.makeSetter(from: info)]
+  let getter = makeObservationTrackedGetter(
+    builder.makeGetter(from: info),
+    propertyName: info.propertyName,
+    observation: info.observation
+  )
+  return [getter, builder.makeSetter(from: info)]
 }
 
 struct DefaultAttributeAccessorBuilder: AttributeAccessorBuilder {

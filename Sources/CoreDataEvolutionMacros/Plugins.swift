@@ -20,5 +20,6 @@ struct CoreDataEvolutionMacrosPlugin: CompilerPlugin {
     IgnoreMacro.self,
     PublicRelationshipMacro.self,
     RelationshipMacro.self,
+    CDObservedMacro.self,
   ]
 }
