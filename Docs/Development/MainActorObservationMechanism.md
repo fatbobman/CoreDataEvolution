@@ -21,6 +21,40 @@ It is not a universal Core Data observation system. The MVP focuses on:
 - selectively installed context save hook exploration for framework-owned contexts
 - explicit fallback when a merge can provide object IDs but not changed key paths
 
+## Observation Boundaries (Two Axes)
+
+The whole reactivity contract reduces to one precondition: **CDE generated the accessor.** That gives
+two independent boundaries. A property is fully reactive only when it clears both.
+
+### Subscription axis — what can be observed at all
+
+Observation subscribes by calling `access(self, keyPath)` inside a generated getter. A property whose
+accessor CDE does **not** generate has no injection point, never subscribes, and is therefore not
+observable *at all* — not even objectID fallback. This is a hard boundary, not a degradation:
+
+- **`@NSManaged` (raw) properties.** Their accessors are synthesized dynamically by Core Data at
+  runtime (`@dynamic` / KVC); there is no Swift getter body for CDE to instrument. Out of scope by
+  construction. CDE should skip auto-attaching `@Attribute` to them and, under
+  `observation: .mainActor`, emit a warning (not an error — raw `@NSManaged` must keep compiling).
+- **User-written custom getters** over raw storage are equivalent: no CDE-generated getter, no
+  `access(...)`.
+- A **computed property built on observable stored properties stays reactive**, because it reads those
+  instrumented getters. No special handling is needed; reactivity composes through the read.
+
+Only CDE-generated accessors carry the injection point: `@Attribute` storage (`.default`, `.raw`,
+`.codable`, `.transformed`), generated to-one / to-many relationships, the top-level `@Composition`
+property, and generated to-many count accessors.
+
+### Detection axis — whether a change yields a precise key path
+
+Given an observable property, a change is property-precise only when its source can hand CDE the
+changed Core Data key (CDE-managed save or an explicitly registered producer); otherwise it degrades to
+objectID + all observable key paths, or — with no objectID — to no instance-level response. This axis
+is the "Change Sources" table below.
+
+The two axes are orthogonal: an `@NSManaged` attribute changed by a CDE-managed save still has a
+precise *detection* result, but it can never *subscribe*, so it stays invisible to a SwiftUI reader.
+
 ## Core Roles
 
 ```mermaid
@@ -141,6 +175,14 @@ relationships.
 Local changes do not need a merge pass. The same MainActor domain can collect changed keys and notify
 registered observable instances after save. The save-gated MVP does not require generated setters to
 publish Observation immediately; setters only perform Core Data writes.
+
+The `viewContext` is a producer **by construction**: the domain owns it and installs `willSave` /
+`objectsDidChange` observers on it at creation, so a plain `viewContext.save()` is property-precise
+with no special API. Changed keys are snapshotted in the will-save window (they are empty after
+`save()` returns). This is what keeps the explicit-save / no-autosave workflow seamless — read the
+graph, save, the exact key paths refresh. The local will-save path and the background merge path are
+disjoint, so a change is published once. Background contexts, in contrast, become producers only when
+explicitly registered (`registerChangeProducer(context:)`).
 
 ```mermaid
 sequenceDiagram
@@ -1147,8 +1189,15 @@ membership refresh becomes a supported mode.
   ordered to-many relationships, inverse relationship changes, and composition backing fields.
 - Verify generated getters establish subscriptions and generated setters do not publish immediate
   Observation invalidations in the save-gated MVP.
+- Verify the subscription boundary: only CDE-generated accessors carry `access(...)`; `@NSManaged`
+  (raw) and user-written custom getters never subscribe (no injection point), while a computed property
+  over observable stored properties stays reactive. `@NSManaged` on an observed model is skipped from
+  auto-attach and warned, not errored.
 - Verify generated getter access can discover the active `CDEObservationDomain` from the object's
   `viewContext` and register the observed object without a per-object user registration step.
+- Verify the `viewContext` is a producer by construction: a plain `viewContext.save()` yields
+  property-precise invalidation with no special API, and the local will-save path does not double-fire
+  with the background merge path.
 - Verify background save metadata can be registered before `viewContext` consumes the merge.
 - Verify producer metadata can be staged synchronously from context notification callbacks and is
   not dependent on an asynchronous MainActor hop before merge ordering.

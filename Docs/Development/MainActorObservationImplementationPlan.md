@@ -75,13 +75,28 @@ work relative to the "Implementation Phases" list in the mechanism doc.
 
 ### Known limitations to carry into docs and the tracking issue (not bugs — scope)
 
-- **Save-gated UI refresh.** In the MVP, generated setters are Core Data write funnels only; they do
-  **not** call `withMutation`. A view reading `model.name` refreshes after `viewContext.save()` /
-  merge, **not** on an unsaved in-memory edit. This differs from SwiftData, where an unsaved property
-  edit refreshes mirrors immediately. Acceptable for MVP; must be documented prominently. An
-  "immediate unsaved layer" is explicitly future work.
-- **Manually-unregistered background contexts, raw KVC across unmanaged contexts, batch ops, and
-  external/CloudKit imports** are objectID-or-nothing, never property-precise, in MVP.
+The whole reactivity contract reduces to one precondition: **CDE generated the accessor.** That yields
+two independent boundaries — what can *subscribe* (getter side) and what can be *detected* as changed
+(producer side):
+
+- **Subscription side — only CDE-generated accessors are observable.** Observation subscribes by
+  calling `access(...)` inside a generated getter. A property whose accessor CDE does **not** generate
+  has no injection point and never subscribes — it is not observable *at all*, not even
+  objectID-fallback. This covers:
+  - **`@NSManaged` (raw) properties:** the accessor is synthesized dynamically by Core Data at runtime;
+    there is no Swift getter body to instrument. Out of scope by construction (Step 1 handles the
+    skip + warning).
+  - **User-written custom getters** over raw storage: same — no CDE getter, no `access(...)`.
+  - Note: a **computed property built on observable stored properties** *stays* reactive, because it
+    reads those instrumented getters; it needs no special handling.
+- **Detection side, timing — save-gated.** Generated setters are Core Data write funnels only; they do
+  **not** call `withMutation`. A view reading `model.name` refreshes after a save / merge, **not** on
+  an unsaved in-memory edit. Plain `viewContext.save()` *is* precise out of the box (Step 4, "producer
+  by construction"). The "immediate unsaved layer" is explicit future work and is **not** required for
+  the issue #11 workflow, which drives refresh from explicit saves and background/sync merges.
+- **Detection side, precision.** Manually-unregistered background contexts, raw KVC across unmanaged
+  contexts, batch ops, and external/CloudKit imports are objectID-or-nothing, never property-precise,
+  in MVP.
 - **CloudKit property-precision is a spike, not a promise** (Step 10). Keep it out of the MVP gate.
 
 ---
@@ -121,6 +136,18 @@ existing call sites and zero Observation tokens on the non-opt-in path.
     observation work).
   - missing explicit `@objc(EntityName)` (already diagnosed — confirm).
   - `observation: .mainActor` used but the value is not a recognized literal.
+  - **`@NSManaged` properties on an observed model** — they cannot subscribe (no getter to inject
+    `access(...)` into; see Known Limitations / subscription side). Two things here:
+    1. Make `autoAttachedAttribute`
+       ([`PersistentModelModelParsing.swift`](../../Sources/CoreDataEvolutionMacros/PersistentModel/PersistentModelModelParsing.swift))
+       **skip** `@NSManaged` properties so it does not auto-attach `@Attribute`. *Latent bug, verify
+       it:* today `autoAttachedAttribute` does not recognize `@NSManaged` (the macro target has zero
+       `@NSManaged` handling), so a `@NSManaged var name: String` falls through to `return "@Attribute"`
+       and the generated `value(forKey:)` body conflicts with `@NSManaged`. Skipping it both fixes that
+       conflict and lets raw `@NSManaged` coexist *inside* a `@PersistentModel` class, not only in
+       non-macro subclasses.
+    2. Under `observation: .mainActor`, emit a **warning** (never an error — raw `@NSManaged` must keep
+       compiling) telling the user the property will not participate in observation.
 
 **Tests & acceptance.**
 - Extend [`ObservationIsolationTests.swift`](../../Tests/CoreDataEvolutionMacroTests/ObservationIsolationTests.swift):
@@ -285,10 +312,19 @@ table + pending metadata buffer as real (non-test) code, with the MainActor/prod
   would break pre-merge ordering).
 - Wire `viewContext` merge/lifecycle notification observation here, but keep the *decision* logic in
   the lifted `ObservationHubSelector` / `ObservationLifecycleHub` shapes.
+- **viewContext is a producer by construction.** At `init`, the domain installs `willSave` /
+  `objectsDidChange` / merge observers on its *own* `viewContext`, so a plain `viewContext.save()` is
+  property-precise with **no** special API. Local saves (own `willSave`; snapshot `changedValues()` in
+  the will-save window per T06) and background merges (merge notification) are **disjoint** paths →
+  no double-fire. This is load-bearing for the issue #11 workflow (explicit saves, no autosave): "read
+  the graph, save, it refreshes" must hold without the user calling a special save method. Background
+  contexts, by contrast, are producers only when explicitly registered (Step 7).
 
 **Tests & acceptance.** Port the relevant spike assertions to runtime-level tests (they currently test
 private helpers; now they test the public/internal runtime types):
 - domain activation + getter registration without per-object registration (T22),
+- **plain `viewContext.save()` (no special API)** → observed object invalidates the exact changed
+  field (the producer-by-construction guarantee),
 - merge routing cost is O(incoming IDs), no scan over registered/observed/pending history (T20),
 - buffer merge/consume/rollback/compress/scope (T12),
 - weak table prune/rekey/delete/reset (T04, T09).
@@ -365,6 +401,10 @@ new object, but existing relationship owners stay precise; temp-ID rekey point).
   property-level metadata; register the token **before** `save()`; roll back the token if `save()`
   throws.
 - Document direct `modelContext.save()` (bypassing the wrapper) as objectID-only fallback.
+- **`NSMainModelActor.saveObservedChanges(in:)` is ergonomic sugar, not a correctness requirement.**
+  A plain `viewContext.save()` is already property-precise via the domain's viewContext instrumentation
+  (Step 4, producer by construction). Keep the wrapper for symmetry with the background path, but local
+  precision must **not** depend on it.
 
 **Tests & acceptance.** Runtime tests over a `makeTest` container with a real `@NSModelActor` handler
 (follow [`AGENTS.md`](../../AGENTS.md) "Test Requirements": prefer actor handlers, `automatically­MergesChangesFromParent = true`):
