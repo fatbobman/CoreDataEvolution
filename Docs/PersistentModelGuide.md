@@ -50,6 +50,7 @@ Swift, and the macros generate the boilerplate needed for:
 - field metadata for sort and predicate building
 - runtime schema metadata for test/debug-only model construction
 - optional relationship helper methods
+- optional MainActor Observation support for CDE-generated accessors
 
 The macro system works together with these supporting macros:
 
@@ -106,9 +107,34 @@ For a valid model type, the macro generates:
 - no generated to-many setters
 - `PersistentEntity` conformance
 - `CDRuntimeSchemaProviding` conformance
+- when `observation: .mainActor` is enabled on supported platforms: Observation registrar storage,
+  field routing metadata, and invalidation dispatch for CDE-generated accessors
 
 You should treat these generated members as implementation details. Write your model declarations in
 source, and let the macro own the generated layer.
+
+## Optional MainActor Observation
+
+Use `@PersistentModel(observation: .mainActor)` when SwiftUI should observe generated Core Data
+accessors directly on iOS 17+ / macOS 14+ platform families.
+
+```swift
+@objc(Item)
+@PersistentModel(observation: .mainActor)
+final class Item: NSManagedObject {
+  var title: String = ""
+}
+```
+
+The opt-in only affects models that request it. Plain `@PersistentModel` and explicit
+`observation: .none` keep the non-observable generated output.
+
+Observation is MainActor / `viewContext` scoped and save-gated. Keep a retained
+`CDEObservationDomain(container:)` for the container you want to observe, and route background saves
+through a documented producer path when you need property-level precision.
+
+For setup, producer choices, rollback guidance, and fallback limits, see
+[ObservationGuide.md](./ObservationGuide.md).
 
 ## Declaring Attributes
 
@@ -1091,5 +1117,6 @@ Not supported yet:
 - production-oriented runtime model replacement for `.xcdatamodeld`
 - optional to-many declarations
 - non-optional to-one declarations
+- immediate unsaved Observation refresh for `observation: .mainActor`
 
 When in doubt, prefer the simplest declaration shape that matches the rules in this guide.

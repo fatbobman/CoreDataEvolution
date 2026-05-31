@@ -200,10 +200,35 @@ It gives you:
 - generated to-many relationship helper APIs
 - typed key/path metadata for sort and predicate construction
 - runtime schema metadata for tests and debug workflows
+- optional MainActor Observation for generated accessors on iOS 17+ / macOS 14+
 
 Guide:
 
 - [Docs/PersistentModelGuide.md](./Docs/PersistentModelGuide.md)
+- [Docs/ObservationGuide.md](./Docs/ObservationGuide.md)
+
+Observation opt-in:
+
+```swift
+@objc(Item)
+@PersistentModel(observation: .mainActor)
+final class Item: NSManagedObject {
+  var title: String = ""
+}
+
+@MainActor
+final class Store {
+  let observation: CDEObservationDomain
+
+  init(container: NSPersistentContainer) {
+    observation = CDEObservationDomain(container: container)
+  }
+}
+```
+
+This activates Swift Observation for CDE-generated accessors on the container's `viewContext`. It is
+save-gated: views refresh after `viewContext` saves, producer-context merges, or lifecycle fallback
+routing, not on every unsaved setter call.
 
 ### 3. `cde-tool`
 
@@ -475,6 +500,10 @@ Start here based on what you want to do.
 
 - [Docs/PersistentModelGuide.md](./Docs/PersistentModelGuide.md)
 
+### If you want SwiftUI to observe generated Core Data accessors
+
+- [Docs/ObservationGuide.md](./Docs/ObservationGuide.md)
+
 ### If you want remapped fields to still work in sort and predicate code
 
 - [Docs/TypedPathGuide.md](./Docs/TypedPathGuide.md)
@@ -495,6 +524,7 @@ It is trying to make Core Data easier to use in modern Swift codebases by adding
 
 - better isolation patterns
 - better model source declarations
+- better MainActor Observation integration for generated model accessors
 - better schema-to-source tooling
 - better typed mapping for renamed fields
 

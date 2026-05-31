@@ -28,6 +28,13 @@ The `@NSModelActor` macro simplifies Core Data concurrency, mirroring SwiftData'
 
 CoreDataEvolution allows you to create actors with custom executors tied to Core Data contexts, ensuring that all operations within the actor are executed serially on the context's thread.
 
+### MainActor Observation for Persistent Models
+
+`@PersistentModel(observation: .mainActor)` opts a generated `NSManagedObject` model into Swift
+Observation on iOS 17+ / macOS 14+ platform families. A retained `CDEObservationDomain` activates
+MainActor routing for a container's `viewContext`, so SwiftUI can read generated Core Data accessors
+directly and refresh after saved changes or merges.
+
 ## Basic Usage
 
 Here's how you can use CoreDataEvolution to manage concurrent Core Data operations with an actor:
@@ -128,6 +135,12 @@ Thanks to [@rnine](https://github.com/rnine) for sharing and validating the iOS 
 
 - ``NSModelActor``
 - ``NSMainModelActor``
+
+### Observation
+
+- ``PersistentModelObservationMode``
+- ``CDEObservationDomain``
+- ``CDEObservationProducerRegistration``
 
 ### Executors
 

@@ -5,6 +5,8 @@
 > the `ObservationSpike` suite. The ordered, testable build plan is
 > [`MainActorObservationImplementationPlan.md`](MainActorObservationImplementationPlan.md), tracked by
 > [#12](https://github.com/fatbobman/CoreDataEvolution/issues/12).
+> User-facing setup and API guidance lives in
+> [`ObservationGuide.md`](../ObservationGuide.md).
 
 ## Scope
 
