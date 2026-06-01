@@ -462,6 +462,232 @@ struct ObservationRuntimeCoreTests {
   }
 
   @MainActor
+  @Test("local viewContext save suppresses its cross-cycle merge echo")
+  func localViewContextSaveSuppressesCrossCycleMergeEcho() async throws {
+    guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+      return
+    }
+
+    let container = try makeContainer(testName: "ObservationRuntimeLocalSaveEcho")
+    let context = container.viewContext
+    let item = try makeSavedItem(in: context, name: "initial")
+    let itemID = item.objectID
+    var routed: [(NSManagedObjectID, CDEObservationInvalidationDecision)] = []
+    let domain = CDEObservationDomain(
+      container: container,
+      localSaveEchoSuppression: .on
+    ) { object, decision in
+      routed.append((object.objectID, decision))
+    }
+    #expect(domain.isLocalSaveEchoSuppressionActive)
+
+    _ = item.name
+    _ = item.note
+
+    // Real local save: precise-dispatch `name` at didSave and arm the echo marker.
+    item.name = "renamed"
+    try context.save()
+    #expect(routed.count == 1)
+    #expect(paths(for: try #require(routed.first?.1)) == ["name"])
+    #expect(domain.localSaveEchoMarkerCount == 1)
+
+    // Cross-cycle: drain the run loop. The un-honored marker must SURVIVE (this is what the
+    // `beforeWaiting` boundary could not do for the same-cycle guard).
+    await drainRunLoopForEchoWindow()
+    #expect(domain.localSaveEchoMarkerCount == 1)
+
+    // The CloudKit/PHT echo merge (object listed as updated) must skip, not widen to all-key.
+    let echoMerge = domain.routeMerge(affectedObjectIDs: [itemID], source: "didMergeObjectIDs")
+    #expect(echoMerge.decisionsByObjectID[itemID] == nil)
+    #expect(routed.count == 1)
+
+    // Once honored, the next drain clears the marker.
+    await waitForCondition { domain.localSaveEchoMarkerCount == 0 }
+    #expect(domain.localSaveEchoMarkerCount == 0)
+
+    // A later, genuinely foreign merge of the same object now falls back to all-key.
+    let foreignMerge = domain.routeMerge(affectedObjectIDs: [itemID], source: "didMergeObjectIDs")
+    #expect(foreignMerge.decisionsByObjectID[itemID] == .allObservableKeyPaths)
+    #expect(routed.last?.1 == .allObservableKeyPaths)
+  }
+
+  @MainActor
+  @Test("local-save echo suppression off falls back to all-key on the echo")
+  func localSaveEchoSuppressionOffFallsBackToAllKey() async throws {
+    guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+      return
+    }
+
+    let container = try makeContainer(testName: "ObservationRuntimeLocalSaveEchoOff")
+    let context = container.viewContext
+    let item = try makeSavedItem(in: context, name: "initial")
+    let itemID = item.objectID
+    var routed: [(NSManagedObjectID, CDEObservationInvalidationDecision)] = []
+    let domain = CDEObservationDomain(
+      container: container,
+      localSaveEchoSuppression: .off
+    ) { object, decision in
+      routed.append((object.objectID, decision))
+    }
+    #expect(domain.isLocalSaveEchoSuppressionActive == false)
+
+    _ = item.name
+    _ = item.note
+    item.name = "renamed"
+    try context.save()
+
+    // No marker is armed when suppression is off; the same-cycle guard is used instead.
+    #expect(domain.localSaveEchoMarkerCount == 0)
+    await waitForCondition { domain.sameCyclePrecisionGuardCount == 0 }
+
+    // A cross-cycle echo therefore widens to all-key (the legacy behavior, opt-out preserved).
+    let echoMerge = domain.routeMerge(affectedObjectIDs: [itemID], source: "didMergeObjectIDs")
+    #expect(echoMerge.decisionsByObjectID[itemID] == .allObservableKeyPaths)
+  }
+
+  @MainActor
+  @Test("background precise route arms the cross-cycle marker when enabled")
+  func backgroundPreciseRouteArmsCrossCycleMarkerWhenEnabled() throws {
+    guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+      return
+    }
+
+    let container = try makeContainer(testName: "ObservationRuntimeBackgroundArmsMarker")
+    let context = container.viewContext
+    let item = try makeSavedItem(in: context, name: "initial")
+    let itemID = item.objectID
+    let token = CDEObservationSaveToken()
+    let nameSet = fieldSet(for: ["display_name"])
+    let domain = CDEObservationDomain(container: container, localSaveEchoSuppression: .on)
+
+    _ = item.name
+    _ = item.note
+    domain.stagePendingChangesFromProducer(token: token, changesByObjectID: [itemID: nameSet])
+
+    // With suppression enabled, a background/merge precise route also echoes back cross-cycle, so it
+    // arms the cross-cycle marker (not the same-cycle guard, which only survives by luck across a
+    // run-loop sleep).
+    let plan = domain.routeMerge(affectedObjectIDs: [itemID], source: "didMergeObjectIDs")
+    #expect(plan.decisionsByObjectID[itemID] == .fieldSet(nameSet))
+    #expect(domain.localSaveEchoMarkerCount == 1)
+    #expect(domain.sameCyclePrecisionGuardCount == 0)
+  }
+
+  @MainActor
+  @Test("background precise merge suppresses its cross-cycle echo")
+  func backgroundPreciseMergeSuppressesCrossCycleEcho() async throws {
+    guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+      return
+    }
+
+    // Issue #12 refinement ③, confirmed on device: a background save echoes back ~93ms later (cross
+    // run-loop sleep), so the same-cycle guard cannot reliably catch it — the cross-cycle marker must.
+    let container = try makeContainer(testName: "ObservationRuntimeBackgroundCrossCycleEcho")
+    let context = container.viewContext
+    let item = try makeSavedItem(in: context, name: "initial")
+    let itemID = item.objectID
+    let token = CDEObservationSaveToken()
+    let nameSet = fieldSet(for: ["display_name"])
+    var routed: [(NSManagedObjectID, CDEObservationInvalidationDecision)] = []
+    let domain = CDEObservationDomain(
+      container: container,
+      localSaveEchoSuppression: .on
+    ) { object, decision in
+      routed.append((object.objectID, decision))
+    }
+
+    _ = item.name
+    _ = item.note
+    domain.stagePendingChangesFromProducer(token: token, changesByObjectID: [itemID: nameSet])
+
+    // Primary merge: precise dispatch + arm the cross-cycle marker.
+    let primary = domain.routeMerge(affectedObjectIDs: [itemID], source: "didMergeObjectIDs")
+    #expect(primary.decisionsByObjectID[itemID] == .fieldSet(nameSet))
+    #expect(domain.localSaveEchoMarkerCount == 1)
+    #expect(domain.sameCyclePrecisionGuardCount == 0)
+    #expect(routed.count == 1)
+
+    // Cross-cycle: drain. The un-honored marker must survive (the same-cycle guard would not).
+    await drainRunLoopForEchoWindow()
+    #expect(domain.localSaveEchoMarkerCount == 1)
+
+    // The later echo merge skips instead of widening to all-key.
+    let echo = domain.routeMerge(affectedObjectIDs: [itemID], source: "didMergeObjectIDs")
+    #expect(echo.decisionsByObjectID[itemID] == nil)
+    #expect(routed.count == 1)
+
+    // Once honored and cleared, a genuinely foreign merge falls back to all-key.
+    await waitForCondition { domain.localSaveEchoMarkerCount == 0 }
+    let foreign = domain.routeMerge(affectedObjectIDs: [itemID], source: "didMergeObjectIDs")
+    #expect(foreign.decisionsByObjectID[itemID] == .allObservableKeyPaths)
+    #expect(routed.last?.1 == .allObservableKeyPaths)
+  }
+
+  @MainActor
+  @Test("consecutive local saves of the same object do not eat each other")
+  func consecutiveLocalSavesOfSameObjectDoNotEatEachOther() async throws {
+    guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+      return
+    }
+
+    let container = try makeContainer(testName: "ObservationRuntimeLocalSaveConsecutive")
+    let context = container.viewContext
+    let item = try makeSavedItem(in: context, name: "initial")
+    let itemID = item.objectID
+    var routed: [(NSManagedObjectID, CDEObservationInvalidationDecision)] = []
+    let domain = CDEObservationDomain(
+      container: container,
+      localSaveEchoSuppression: .on
+    ) { object, decision in
+      routed.append((object.objectID, decision))
+    }
+
+    _ = item.name
+    _ = item.note
+
+    item.name = "first"
+    try context.save()
+    #expect(domain.localSaveEchoMarkerCount == 1)
+
+    // Second save before the first echo: willSave clears the stale marker, didSave re-arms a fresh
+    // one. Both saves dispatch precisely; neither is swallowed.
+    item.name = "second"
+    try context.save()
+    #expect(domain.localSaveEchoMarkerCount == 1)
+    #expect(routed.count == 2)
+    #expect(paths(for: try #require(routed.last?.1)) == ["name"])
+
+    // The fresh marker still suppresses the echo of the second save.
+    let echoMerge = domain.routeMerge(affectedObjectIDs: [itemID], source: "didMergeObjectIDs")
+    #expect(echoMerge.decisionsByObjectID[itemID] == nil)
+    #expect(routed.count == 2)
+  }
+
+  @MainActor
+  @Test("local-save echo suppression policy resolves from container and override")
+  func localSaveEchoSuppressionPolicyResolves() throws {
+    guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+      return
+    }
+
+    let container = try makeContainer(testName: "ObservationRuntimeLocalSaveEchoPolicy")
+    _ = container.viewContext
+
+    let auto = CDEObservationDomain(container: container, localSaveEchoSuppression: .auto)
+    // Plain NSPersistentContainer is not a CloudKit container, so `.auto` resolves off.
+    #expect(auto.isLocalSaveEchoSuppressionActive == false)
+    auto.invalidate()
+
+    let forcedOn = CDEObservationDomain(container: container, localSaveEchoSuppression: .on)
+    #expect(forcedOn.isLocalSaveEchoSuppressionActive)
+    forcedOn.invalidate()
+
+    let forcedOff = CDEObservationDomain(container: container, localSaveEchoSuppression: .off)
+    #expect(forcedOff.isLocalSaveEchoSuppressionActive == false)
+    forcedOff.invalidate()
+  }
+
+  @MainActor
   @Test("background actor observed save failure rolls back staged token")
   func backgroundActorObservedSaveFailureRollsBackStagedToken() async throws {
     guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
@@ -1510,6 +1736,12 @@ struct ObservationRuntimeCoreTests {
       }
       try? await Task.sleep(nanoseconds: 20_000_000)
     }
+  }
+
+  /// Yields the main run loop long enough for several `kCFRunLoopBeforeWaiting` drains to fire,
+  /// modeling the run-loop sleep between a local `viewContext` save and its cross-cycle echo.
+  private func drainRunLoopForEchoWindow() async {
+    try? await Task.sleep(nanoseconds: 60_000_000)
   }
 
   private func waitSynchronously(
