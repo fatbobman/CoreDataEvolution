@@ -226,9 +226,11 @@ final class Store {
 }
 ```
 
-This activates Swift Observation for CDE-generated accessors on the container's `viewContext`. It is
-save-gated: views refresh after `viewContext` saves, producer-context merges, or lifecycle fallback
-routing, not on every unsaved setter call.
+This activates Swift Observation for CDE-generated accessors on the container's `viewContext`.
+Refreshes are field-precise (a view reading `title` is not woken by a `summary` change) and save-gated
+(after a `viewContext` save, a producer-context merge, or lifecycle fallback — not on every unsaved
+setter call), and that precision is preserved across history / CloudKit re-merges. See the guide for
+producer routes, fallback rules, and the `CDEPreciseRouteEchoSuppression` policy.
 
 ### 3. `cde-tool`
 

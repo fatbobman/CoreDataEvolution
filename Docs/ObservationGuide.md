@@ -238,11 +238,39 @@ lets views read the object graph directly, but sibling-property precision is not
 
 If there is no affected object ID, CDE does not promise an instance-level response.
 
+## Precision Across Store Re-merges
+
+Some stores re-merge a just-saved change back into the `viewContext` a run-loop turn later — most
+commonly `NSPersistentCloudKitContainer` (which always enables Persistent History Tracking, even
+without a configured CloudKit container), but also a parent/child context chain or a manual
+`mergeChanges`. That echo arrives after the precise change was already routed; left unhandled it would
+widen to all observable key paths and wake readers of unchanged sibling properties.
+
+`CDEObservationDomain` suppresses the echo so a precise save stays precise across the round trip,
+controlled by `CDEPreciseRouteEchoSuppression`:
+
+```swift
+// .auto (default): on for NSPersistentCloudKitContainer, off otherwise
+CDEObservationDomain(container: container)
+
+// .on: a non-CloudKit container that still re-merges (PHT, a parent/child chain)
+CDEObservationDomain(container: container, preciseRouteEchoSuppression: .on)
+
+// .off: the store never re-merges its own saves
+CDEObservationDomain(container: container, preciseRouteEchoSuppression: .off)
+```
+
+This is not CloudKit-specific: the suppression works from the `viewContext` merge notifications and
+never inspects the merge source; `.auto` is only a default-on heuristic for the container most likely
+to re-merge. It is separate from external-import precision below.
+
 ## Limits To Keep In Mind
 
 - This is not a universal Core Data observation system.
-- Persistent History Tracking is not part of the core route.
-- Property-level CloudKit precision is not public API in the current release.
+- CDE does not read Persistent History Tracking transactions; it routes from merge notifications.
+- Changes imported from *other* devices (CloudKit) carry no changed keys, so they fall back to all
+  observable key paths. A *local* save's precision is preserved across the store's own re-merge (see
+  Precision Across Store Re-merges).
 - Generated setters do not provide immediate unsaved refresh.
 - To-many relationship setters are still not generated; use the generated relationship helper methods.
 - Keep all UI reads and domain lifecycle operations on MainActor.

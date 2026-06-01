@@ -489,20 +489,24 @@ public final class CDEObservationProducerRegistration: @unchecked Sendable {
   }
 }
 
-/// Policy for suppressing the cross-cycle echo of a `viewContext` local save.
+/// Policy for suppressing the cross-cycle echo of a precise route.
 ///
-/// A local `viewContext.save()` is precise-dispatched immediately at `didSave`. With history tracking
-/// on (notably `NSPersistentCloudKitContainer`, even without a configured CloudKit container) the same
-/// save is re-merged back into the `viewContext` a run-loop turn later; without suppression that echo
-/// widens the precise change to all-key and wakes unchanged-sibling readers.
+/// A precise route is dispatched immediately; if the same change is then re-merged back into the
+/// `viewContext` a run-loop turn later, that echo finds the pending consumed and widens to all-key,
+/// waking unchanged-sibling readers. The runtime handles this generically from the `viewContext` merge
+/// notifications and never inspects what produced the merge — re-merging is just the common behavior of
+/// `NSPersistentCloudKitContainer` (which always enables Persistent History Tracking, even without a
+/// configured CloudKit container), parent/child contexts, or a manual `mergeChanges`.
 @available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
 public enum CDEPreciseRouteEchoSuppression: Sendable {
-  /// Enabled only when the container is an `NSPersistentCloudKitContainer` (the strong signal that a
-  /// local save echoes back). Plain containers stay off to avoid a stale marker eating a later merge.
+  /// Default heuristic: enabled for `NSPersistentCloudKitContainer` (the container that, in practice,
+  /// re-merges its own saves), off otherwise so a stale marker cannot eat a later merge on a container
+  /// that never echoes. Not CloudKit-specific routing — just the default-on signal.
   case auto
-  /// Always enabled. Use when the app is known to re-merge local saves (PHT / CloudKit).
+  /// Always enabled. Use for any setup that re-merges saves back into the `viewContext` (e.g. PHT on a
+  /// plain container, or a parent/child context chain) where `.auto` would leave it off.
   case on
-  /// Always disabled. Local saves consume their pending at `didSave`, as a plain container would.
+  /// Always disabled. Precise routes consume their pending immediately, as a non-re-merging container.
   case off
 }
 
@@ -546,10 +550,11 @@ public final class CDEObservationDomain {
   private var sameCyclePreciseMergeSuppressions: [NSManagedObjectID: Int] = [:]
 
   // Precise-route echo suppression. A precise route (a `viewContext` local save, or a background/merge
-  // route that consumes producer metadata) is precise-dispatched immediately; its history/CloudKit
-  // re-merge echo arrives a run-loop turn later (cross `beforeWaiting`, so the same-cycle guard above
-  // cannot reach it). This marker is armed at every precise route (when enabled) and makes the later
-  // echo *skip* (the dispatch already happened) instead of widening to all-key.
+  // route that consumes producer metadata) is precise-dispatched immediately; if the same change is
+  // re-merged back into the `viewContext` a run-loop turn later (any merge source — commonly CloudKit /
+  // PHT — handled generically, never source-inspected), that echo crosses `beforeWaiting`, so the
+  // same-cycle guard above cannot reach it. This marker is armed at every precise route (when enabled)
+  // and makes the later echo *skip* (the dispatch already happened) instead of widening to all-key.
   //
   // Deliberately NOT producer pending: producer pending means "re-route a field set when the merge
   // lands"; this marker means "the dispatch already happened, just swallow the echo" — so it carries
@@ -573,13 +578,23 @@ public final class CDEObservationDomain {
   /// The `routeMerge` source string for a `viewContext` local save (vs. a background/merge route).
   private static let viewContextSaveSource = "viewContextDidSave"
   private var isActive = true
-  /// Opt-in console tracing for diagnosing real SwiftUI/Core Data notification ordering.
+  /// Console tracing for diagnosing real SwiftUI / Core Data notification ordering.
   ///
-  /// Unit tests cover the runtime invariants, but SwiftUI `@FetchRequest` and `viewContext.save()`
-  /// can still produce app-only notification sequences. Keep this off by default and enable it only
-  /// while investigating those integration routes.
-  public var isDebugLoggingEnabled =
-    ProcessInfo.processInfo.environment["CDE_OBSERVATION_DEBUG"] == "1"
+  /// Off by default and safe to ship: all output is gated by this flag. Enable it per process by
+  /// setting the environment variable `CDE_OBSERVATION_DEBUG` to `1` / `true` / `yes` / `on` (e.g. in
+  /// the Xcode scheme's *Run → Arguments → Environment Variables*), or toggle this property directly
+  /// on a domain instance while investigating an app-only notification sequence.
+  public var isDebugLoggingEnabled = CDEObservationDomain.debugLoggingEnabledByEnvironment
+
+  private static let debugLoggingEnabledByEnvironment: Bool = {
+    guard
+      let value = ProcessInfo.processInfo.environment["CDE_OBSERVATION_DEBUG"]?
+        .lowercased()
+    else {
+      return false
+    }
+    return ["1", "true", "yes", "on"].contains(value)
+  }()
 
   // Debug-only timing anchors: when did the viewContext last save, and when was the previous logged
   // notification. Used to quantify how far (in wall-clock and run-loop turns) a CloudKit / history

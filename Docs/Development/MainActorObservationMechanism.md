@@ -298,46 +298,74 @@ sequenceDiagram
   end
 ```
 
-## Same-Cycle Precise-Merge Suppression
+## Echo Suppression: Same-Cycle Guard and Cross-Cycle Marker
 
 The merge / refresh fallback above ("no pending keys -> all observable key paths") is unconditional
-*only for a genuinely new change*. A precise merge can be followed, **within the same Core Data event
-cycle**, by an echo naming the same object again: a duplicate `didMergeChangesObjectIDs`, the refreshed
-half of one notification, or a duplicate `objectsDidChange` refresh. By the time that echo arrives the
-precise pending metadata is already consumed, so the naive fallback widens it to all observable key
-paths — which re-wakes readers of *unchanged* sibling properties and breaks the precision promise (a
-view reading only `memo.date` refreshes when a background save touched only `memo.content`).
+*only for a genuinely new change*. A precise route — a local `viewContext` save, or a background / merge
+route that consumed producer metadata — is dispatched precisely; the same change can then be
+re-delivered as an **echo** naming the same object again. By the time the echo arrives the precise
+pending is already consumed, so the naive fallback widens it to all observable key paths and wakes
+readers of *unchanged* sibling properties (a view reading only `memo.date` refreshes when a save touched
+only `memo.content`).
 
-The runtime therefore keeps a short-lived **same-cycle precise-merge guard**
-(`sameCyclePreciseMergeSuppressions`, keyed by `NSManagedObjectID`):
+Echoes come in two flavours, by *when* they land relative to the originating route:
 
-- When `routeMerge` routes a precise field set for object X, it arms the guard for X.
-- The three fallback sites — the duplicate-merge branch of `routeMerge`, the refreshed half in
-  `handleViewContextDidMergeObjectIDs`, and the refresh path in `handleViewContextObjectsDidChange` —
-  swallow an object that is still guarded instead of widening it to all-key.
-- A genuinely new save is told apart from an echo purely by the guard: **armed => echo (swallow);
-  unset => new change (all-key)**. At `objectID + empty-pending` granularity the two are otherwise
-  identical, so the only discriminator is *which event cycle the notification belongs to*.
+- **Same-cycle echo** — within the same Core Data event cycle: a duplicate `didMergeChangesObjectIDs`,
+  the refreshed half of one notification, or a duplicate merge-driven `objectsDidChange` refresh.
+- **Cross-cycle echo** — a *later* run-loop wakeup, across a `beforeWaiting` sleep, when **any** merge
+  re-delivers the change into the `viewContext`. The runtime only sees the `viewContext` merge
+  notifications and never inspects the source: re-merging is just the common behavior of
+  `NSPersistentCloudKitContainer` (which always enables Persistent History Tracking, even with no
+  CloudKit container configured), a parent / child context chain, or a manual `mergeChanges`. Observed
+  ~20–90ms later for both `viewContext` and background / `NSModelActor` saves.
 
-That makes the guard's **lifetime** the whole correctness contract: it must outlive every echo of the
-current cycle, yet be gone before the next user-initiated save. The cleanup is anchored to a
-`kCFRunLoopBeforeWaiting` observer — the run loop fires it only once all queued work for the current
-cycle (across however many turns, as long as none sleeps) has drained and it is about to sleep. The
-next save arrives on a later run-loop wakeup, so the guard is always clear by then.
+The mechanism is deliberately source-agnostic — there is no CloudKit- or PHT-specific code path; it is
+all "a merge into the `viewContext` re-delivered a change we already routed". At
+`objectID + empty-pending` granularity an echo and a genuinely new change are identical; the only
+discriminator is *which event cycle the notification belongs to*. Two cooperating, timing-based
+mechanisms supply that discriminator.
 
-Two boundaries that do **not** work, both of which regressed during development:
+### Same-cycle guard (`sameCyclePreciseMergeSuppressions`)
 
-- **Dropping the guard** (always all-key on empty pending) re-introduces the sibling-wake bug on
-  duplicate merges.
+The baseline, used when cross-cycle suppression is disabled (plain containers, which produce no
+cross-cycle echo). Arming a precise route guards object X; the three fallback sites (the empty-pending
+branch of `routeMerge`, the refreshed half in `handleViewContextDidMergeObjectIDs`, and the refresh path
+in `handleViewContextObjectsDidChange`) swallow a still-guarded object instead of widening it. It is
+cleared on the first `kCFRunLoopBeforeWaiting` — the run loop fires that only once all queued work of the
+current cycle has drained — so it covers same-cycle echoes but, by design, not echoes across a sleep.
+
+### Cross-cycle marker (`preciseRouteEchoMarkers`)
+
+The robust mechanism for cross-cycle echoes, gated by `CDEPreciseRouteEchoSuppression` — `.auto` is a
+default heuristic (on for `NSPersistentCloudKitContainer`, the container that in practice re-merges its
+own saves), with `.on` / `.off` to force it for any other re-merging setup (e.g. PHT on a plain
+container). When enabled, **every** precise route arms the marker — a local `viewContext` save *and* a
+background / merge route, since both echo back cross-cycle (confirmed on device under batch load). It
+then **consume + skip**s the later echo:
+
+- It carries only the `objectID`, never a field set, and never re-dispatches: the precise dispatch
+  already happened, so the echo is simply swallowed. (Deliberately *not* producer pending, whose job is
+  to *re-route* a field set when its merge lands — opposite intent.)
+- `honored` flips true on the first echo hit; the `beforeWaiting` cleanup then drops honored (and
+  TTL-expired) markers, while an *un-honored* marker **survives across drains** until its echo lands.
+  This is exactly why it is immune to run-loop timing where the guard is not: it clears one drain
+  *after* the echo, not on the first drain.
+- Hard lifetime bounds so a stale marker can never eat a later save: cleared at the next
+  `viewContextWillSave`, plus a TTL backstop (~2 s, well above the observed echo latency) for an
+  opted-in save whose echo never arrives.
+
+When enabled, the marker subsumes the guard's same-cycle coverage (a same-cycle echo simply honors the
+marker in the same turn); the guard remains the disabled / plain-container path. One repeating
+`kCFRunLoopBeforeWaiting` observer serves both tables and self-removes once both are empty.
+
+### What does **not** work (both regressed during development)
+
+- **Dropping the suppression** (always all-key on empty pending) re-introduces the sibling-wake bug.
 - **A timer-based clear** (`Task { await Task.yield() }`, a fixed number of hops, or a queued
-  `DispatchQueue.main.async`) is a *queued item*, not a *drain observer*: under MainActor load it can
-  be starved or reordered past the next save, so a stale guard swallows that save's legitimate all-key
-  fallback (a flaky concurrent-test failure of "a direct save right after an observed save").
-
-Scope limit: the guard covers echoes delivered inside the same run-loop wakeup. An echo that crosses a
-run-loop sleep (for example a separate CloudKit import / history merge in a later wakeup) is treated as
-a new cycle and falls back to all-key; recovering precision across that boundary would instead require
-keeping the producer-backed pending re-routable rather than consuming it on the first merge.
+  `DispatchQueue.main.async`) is a *queued item*, not a *drain observer*: under MainActor load it is
+  starved or reordered past the next save, so a stale guard swallows that save's legitimate all-key
+  fallback (a flaky "direct save right after an observed save"). The `beforeWaiting` observer is the
+  only boundary that is both un-starvable and tied to "the current event cycle has fully drained".
 
 ## Spike Results: Save Metadata, Local Keys, Merge Alignment, Batch Fallback
 
@@ -650,8 +678,9 @@ Observed results:
 Conclusion: lifecycle fallback is object-scoped and conservative. Refresh / invalidation / rollback
 may notify all observable key paths; delete / reset mainly clean routing state so the hub does not
 touch invalid or detached instances. One runtime refinement layers on top: a refresh that is the
-same-cycle echo of a precise merge for the same object is suppressed rather than widened — see
-[Same-Cycle Precise-Merge Suppression](#same-cycle-precise-merge-suppression).
+echo of a precise route (same-cycle, or cross-cycle from a CloudKit / PHT re-merge) is suppressed
+rather than widened — see
+[Echo Suppression](#echo-suppression-same-cycle-guard-and-cross-cycle-marker).
 
 ### T20 Performance And Cost Envelope
 
@@ -1322,8 +1351,11 @@ membership refresh becomes a supported mode.
   objects change object ID on save.
 - Verify the all-key-paths degradation stays per-object and does not fan out across the relationship
   graph.
-- Verify the same-cycle precise-merge guard: a duplicate merge / refresh echo for an object just routed
-  precisely is suppressed (the unchanged sibling does not wake), while the guard is cleared on the
-  next run-loop drain so a back-to-back later save still falls back to all-key.
+- Verify echo suppression on both axes: a *same-cycle* echo (duplicate merge / refreshed half) is
+  suppressed by the same-cycle guard, and — with `CDEPreciseRouteEchoSuppression` enabled — a
+  *cross-cycle* echo (a CloudKit / PHT re-merge a run-loop sleep later, of either a `viewContext` or a
+  background save) is suppressed by the precise-route marker, so the unchanged sibling never wakes;
+  while both clear before the next save (guard on the next drain; marker on honor-then-drain, the next
+  `willSave`, or TTL) so a back-to-back later save still falls back to all-key.
 - Verify merge routing cost remains O(incoming object IDs), with no scan over all registered
   objects, observed objects, pending history, or relationship graph nodes.

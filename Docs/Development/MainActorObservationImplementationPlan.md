@@ -558,7 +558,7 @@ guarantee), **T18** (fault / refresh / invalidation / rollback / delete / reset 
 - Runtime refinement (added during implementation): the `refresh → all-key` row holds for a *new*
   refresh, but the same-cycle echo of a precise merge for the same object is suppressed instead of
   widened, so a precise save is not re-broadened by a duplicate merge / refresh in its own cycle. See
-  [`MainActorObservationMechanism.md` → Same-Cycle Precise-Merge Suppression](MainActorObservationMechanism.md#same-cycle-precise-merge-suppression).
+  [`MainActorObservationMechanism.md` → Echo Suppression](MainActorObservationMechanism.md#echo-suppression-same-cycle-guard-and-cross-cycle-marker).
 
 **Tests & acceptance.** Runtime versions of T14 + T18 (refresh/rollback/delete/reset/fault) +
 temp-ID rekey on save-driven insert. All under the concurrency-debug flag.
