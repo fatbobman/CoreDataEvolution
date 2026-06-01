@@ -468,18 +468,18 @@ struct ObservationRuntimeCoreTests {
       return
     }
 
-    let container = try makeContainer(testName: "ObservationRuntimeLocalSaveEcho")
+    let container = try makeContainer(testName: "ObservationRuntimePreciseRouteEcho")
     let context = container.viewContext
     let item = try makeSavedItem(in: context, name: "initial")
     let itemID = item.objectID
     var routed: [(NSManagedObjectID, CDEObservationInvalidationDecision)] = []
     let domain = CDEObservationDomain(
       container: container,
-      localSaveEchoSuppression: .on
+      preciseRouteEchoSuppression: .on
     ) { object, decision in
       routed.append((object.objectID, decision))
     }
-    #expect(domain.isLocalSaveEchoSuppressionActive)
+    #expect(domain.isPreciseRouteEchoSuppressionActive)
 
     _ = item.name
     _ = item.note
@@ -489,12 +489,12 @@ struct ObservationRuntimeCoreTests {
     try context.save()
     #expect(routed.count == 1)
     #expect(paths(for: try #require(routed.first?.1)) == ["name"])
-    #expect(domain.localSaveEchoMarkerCount == 1)
+    #expect(domain.preciseRouteEchoMarkerCount == 1)
 
     // Cross-cycle: drain the run loop. The un-honored marker must SURVIVE (this is what the
     // `beforeWaiting` boundary could not do for the same-cycle guard).
     await drainRunLoopForEchoWindow()
-    #expect(domain.localSaveEchoMarkerCount == 1)
+    #expect(domain.preciseRouteEchoMarkerCount == 1)
 
     // The CloudKit/PHT echo merge (object listed as updated) must skip, not widen to all-key.
     let echoMerge = domain.routeMerge(affectedObjectIDs: [itemID], source: "didMergeObjectIDs")
@@ -502,8 +502,8 @@ struct ObservationRuntimeCoreTests {
     #expect(routed.count == 1)
 
     // Once honored, the next drain clears the marker.
-    await waitForCondition { domain.localSaveEchoMarkerCount == 0 }
-    #expect(domain.localSaveEchoMarkerCount == 0)
+    await waitForCondition { domain.preciseRouteEchoMarkerCount == 0 }
+    #expect(domain.preciseRouteEchoMarkerCount == 0)
 
     // A later, genuinely foreign merge of the same object now falls back to all-key.
     let foreignMerge = domain.routeMerge(affectedObjectIDs: [itemID], source: "didMergeObjectIDs")
@@ -513,23 +513,23 @@ struct ObservationRuntimeCoreTests {
 
   @MainActor
   @Test("local-save echo suppression off falls back to all-key on the echo")
-  func localSaveEchoSuppressionOffFallsBackToAllKey() async throws {
+  func preciseRouteEchoSuppressionOffFallsBackToAllKey() async throws {
     guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
       return
     }
 
-    let container = try makeContainer(testName: "ObservationRuntimeLocalSaveEchoOff")
+    let container = try makeContainer(testName: "ObservationRuntimePreciseRouteEchoOff")
     let context = container.viewContext
     let item = try makeSavedItem(in: context, name: "initial")
     let itemID = item.objectID
     var routed: [(NSManagedObjectID, CDEObservationInvalidationDecision)] = []
     let domain = CDEObservationDomain(
       container: container,
-      localSaveEchoSuppression: .off
+      preciseRouteEchoSuppression: .off
     ) { object, decision in
       routed.append((object.objectID, decision))
     }
-    #expect(domain.isLocalSaveEchoSuppressionActive == false)
+    #expect(domain.isPreciseRouteEchoSuppressionActive == false)
 
     _ = item.name
     _ = item.note
@@ -537,7 +537,7 @@ struct ObservationRuntimeCoreTests {
     try context.save()
 
     // No marker is armed when suppression is off; the same-cycle guard is used instead.
-    #expect(domain.localSaveEchoMarkerCount == 0)
+    #expect(domain.preciseRouteEchoMarkerCount == 0)
     await waitForCondition { domain.sameCyclePrecisionGuardCount == 0 }
 
     // A cross-cycle echo therefore widens to all-key (the legacy behavior, opt-out preserved).
@@ -558,7 +558,7 @@ struct ObservationRuntimeCoreTests {
     let itemID = item.objectID
     let token = CDEObservationSaveToken()
     let nameSet = fieldSet(for: ["display_name"])
-    let domain = CDEObservationDomain(container: container, localSaveEchoSuppression: .on)
+    let domain = CDEObservationDomain(container: container, preciseRouteEchoSuppression: .on)
 
     _ = item.name
     _ = item.note
@@ -569,7 +569,7 @@ struct ObservationRuntimeCoreTests {
     // run-loop sleep).
     let plan = domain.routeMerge(affectedObjectIDs: [itemID], source: "didMergeObjectIDs")
     #expect(plan.decisionsByObjectID[itemID] == .fieldSet(nameSet))
-    #expect(domain.localSaveEchoMarkerCount == 1)
+    #expect(domain.preciseRouteEchoMarkerCount == 1)
     #expect(domain.sameCyclePrecisionGuardCount == 0)
   }
 
@@ -591,7 +591,7 @@ struct ObservationRuntimeCoreTests {
     var routed: [(NSManagedObjectID, CDEObservationInvalidationDecision)] = []
     let domain = CDEObservationDomain(
       container: container,
-      localSaveEchoSuppression: .on
+      preciseRouteEchoSuppression: .on
     ) { object, decision in
       routed.append((object.objectID, decision))
     }
@@ -603,13 +603,13 @@ struct ObservationRuntimeCoreTests {
     // Primary merge: precise dispatch + arm the cross-cycle marker.
     let primary = domain.routeMerge(affectedObjectIDs: [itemID], source: "didMergeObjectIDs")
     #expect(primary.decisionsByObjectID[itemID] == .fieldSet(nameSet))
-    #expect(domain.localSaveEchoMarkerCount == 1)
+    #expect(domain.preciseRouteEchoMarkerCount == 1)
     #expect(domain.sameCyclePrecisionGuardCount == 0)
     #expect(routed.count == 1)
 
     // Cross-cycle: drain. The un-honored marker must survive (the same-cycle guard would not).
     await drainRunLoopForEchoWindow()
-    #expect(domain.localSaveEchoMarkerCount == 1)
+    #expect(domain.preciseRouteEchoMarkerCount == 1)
 
     // The later echo merge skips instead of widening to all-key.
     let echo = domain.routeMerge(affectedObjectIDs: [itemID], source: "didMergeObjectIDs")
@@ -617,7 +617,7 @@ struct ObservationRuntimeCoreTests {
     #expect(routed.count == 1)
 
     // Once honored and cleared, a genuinely foreign merge falls back to all-key.
-    await waitForCondition { domain.localSaveEchoMarkerCount == 0 }
+    await waitForCondition { domain.preciseRouteEchoMarkerCount == 0 }
     let foreign = domain.routeMerge(affectedObjectIDs: [itemID], source: "didMergeObjectIDs")
     #expect(foreign.decisionsByObjectID[itemID] == .allObservableKeyPaths)
     #expect(routed.last?.1 == .allObservableKeyPaths)
@@ -637,7 +637,7 @@ struct ObservationRuntimeCoreTests {
     var routed: [(NSManagedObjectID, CDEObservationInvalidationDecision)] = []
     let domain = CDEObservationDomain(
       container: container,
-      localSaveEchoSuppression: .on
+      preciseRouteEchoSuppression: .on
     ) { object, decision in
       routed.append((object.objectID, decision))
     }
@@ -647,13 +647,13 @@ struct ObservationRuntimeCoreTests {
 
     item.name = "first"
     try context.save()
-    #expect(domain.localSaveEchoMarkerCount == 1)
+    #expect(domain.preciseRouteEchoMarkerCount == 1)
 
     // Second save before the first echo: willSave clears the stale marker, didSave re-arms a fresh
     // one. Both saves dispatch precisely; neither is swallowed.
     item.name = "second"
     try context.save()
-    #expect(domain.localSaveEchoMarkerCount == 1)
+    #expect(domain.preciseRouteEchoMarkerCount == 1)
     #expect(routed.count == 2)
     #expect(paths(for: try #require(routed.last?.1)) == ["name"])
 
@@ -665,25 +665,25 @@ struct ObservationRuntimeCoreTests {
 
   @MainActor
   @Test("local-save echo suppression policy resolves from container and override")
-  func localSaveEchoSuppressionPolicyResolves() throws {
+  func preciseRouteEchoSuppressionPolicyResolves() throws {
     guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
       return
     }
 
-    let container = try makeContainer(testName: "ObservationRuntimeLocalSaveEchoPolicy")
+    let container = try makeContainer(testName: "ObservationRuntimePreciseRouteEchoPolicy")
     _ = container.viewContext
 
-    let auto = CDEObservationDomain(container: container, localSaveEchoSuppression: .auto)
+    let auto = CDEObservationDomain(container: container, preciseRouteEchoSuppression: .auto)
     // Plain NSPersistentContainer is not a CloudKit container, so `.auto` resolves off.
-    #expect(auto.isLocalSaveEchoSuppressionActive == false)
+    #expect(auto.isPreciseRouteEchoSuppressionActive == false)
     auto.invalidate()
 
-    let forcedOn = CDEObservationDomain(container: container, localSaveEchoSuppression: .on)
-    #expect(forcedOn.isLocalSaveEchoSuppressionActive)
+    let forcedOn = CDEObservationDomain(container: container, preciseRouteEchoSuppression: .on)
+    #expect(forcedOn.isPreciseRouteEchoSuppressionActive)
     forcedOn.invalidate()
 
-    let forcedOff = CDEObservationDomain(container: container, localSaveEchoSuppression: .off)
-    #expect(forcedOff.isLocalSaveEchoSuppressionActive == false)
+    let forcedOff = CDEObservationDomain(container: container, preciseRouteEchoSuppression: .off)
+    #expect(forcedOff.isPreciseRouteEchoSuppressionActive == false)
     forcedOff.invalidate()
   }
 

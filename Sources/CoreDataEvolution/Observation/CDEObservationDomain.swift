@@ -496,7 +496,7 @@ public final class CDEObservationProducerRegistration: @unchecked Sendable {
 /// save is re-merged back into the `viewContext` a run-loop turn later; without suppression that echo
 /// widens the precise change to all-key and wakes unchanged-sibling readers.
 @available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
-public enum CDELocalSaveEchoSuppression: Sendable {
+public enum CDEPreciseRouteEchoSuppression: Sendable {
   /// Enabled only when the container is an `NSPersistentCloudKitContainer` (the strong signal that a
   /// local save echoes back). Plain containers stay off to avoid a stale marker eating a later merge.
   case auto
@@ -545,34 +545,33 @@ public final class CDEObservationDomain {
   // same-cycle echo, gone before the next user-initiated save. See `ensureEchoGuardCleanupObserver`.
   private var sameCyclePreciseMergeSuppressions: [NSManagedObjectID: Int] = [:]
 
-  // Local-save echo suppression. A `viewContext` local save is precise-dispatched at `didSave`; its
-  // history/CloudKit re-merge echo arrives a run-loop turn later (cross `beforeWaiting`, so the
-  // same-cycle guard above cannot reach it). This marker is armed at the local-save precise route and
-  // makes the later echo *skip* (the UI already updated at `didSave`) instead of widening to all-key.
+  // Precise-route echo suppression. A precise route (a `viewContext` local save, or a background/merge
+  // route that consumes producer metadata) is precise-dispatched immediately; its history/CloudKit
+  // re-merge echo arrives a run-loop turn later (cross `beforeWaiting`, so the same-cycle guard above
+  // cannot reach it). This marker is armed at every precise route (when enabled) and makes the later
+  // echo *skip* (the dispatch already happened) instead of widening to all-key.
   //
   // Deliberately NOT producer pending: producer pending means "re-route a field set when the merge
   // lands"; this marker means "the dispatch already happened, just swallow the echo" — so it carries
   // only the objectID, never a field set, and never re-dispatches. `honored` flips true on the first
   // echo hit; the `beforeWaiting` cleanup then drops honored (and TTL-expired) markers, while an
-  // un-honored marker survives across drains waiting for its echo. When enabled it is armed on every
-  // precise route (local save and background/merge alike — both echo back cross-cycle) and consulted
-  // on merge/refresh echo routes; when disabled the same-cycle guard is used instead. See the
-  // cleanup observer.
-  private struct LocalSaveEchoMarker {
+  // un-honored marker survives across drains waiting for its echo. Consulted on merge/refresh echo
+  // routes; when disabled the same-cycle guard is used instead. See the cleanup observer.
+  private struct PreciseRouteEchoMarker {
     var honored: Bool
     let armedAt: CFAbsoluteTime
   }
-  private let isLocalSaveEchoSuppressionEnabled: Bool
-  private var localSaveEchoMarkers: [NSManagedObjectID: LocalSaveEchoMarker] = [:]
+  private let isPreciseRouteEchoSuppressionEnabled: Bool
+  private var preciseRouteEchoMarkers: [NSManagedObjectID: PreciseRouteEchoMarker] = [:]
   // Leak guard only (not a correctness primary): an un-honored marker is dropped after this long in
   // case an opted-in container produced a save that never echoed. Well above the observed ~23ms echo.
-  private let localSaveEchoMarkerTTL: CFAbsoluteTime = 2
+  private let preciseRouteEchoMarkerTTL: CFAbsoluteTime = 2
 
   // One repeating `kCFRunLoopBeforeWaiting` observer serves both the same-cycle guard and the
-  // local-save markers; it self-removes once both are empty (see `runEchoGuardCleanup`).
+  // precise-route echo markers; it self-removes once both are empty (see `runEchoGuardCleanup`).
   private var echoGuardCleanupObserver: CFRunLoopObserver?
   /// The `routeMerge` source string for a `viewContext` local save (vs. a background/merge route).
-  private static let localSaveSource = "viewContextDidSave"
+  private static let viewContextSaveSource = "viewContextDidSave"
   private var isActive = true
   /// Opt-in console tracing for diagnosing real SwiftUI/Core Data notification ordering.
   ///
@@ -590,36 +589,36 @@ public final class CDEObservationDomain {
 
   /// Creates the retained observation runtime for one container's `viewContext`.
   ///
-  /// - Parameter localSaveEchoSuppression: whether to swallow the cross-cycle re-merge echo of a
+  /// - Parameter preciseRouteEchoSuppression: whether to swallow the cross-cycle re-merge echo of a
   ///   local `viewContext.save()`. Defaults to `.auto` (on for `NSPersistentCloudKitContainer`).
   public convenience init(
     container: NSPersistentContainer,
-    localSaveEchoSuppression: CDELocalSaveEchoSuppression = .auto
+    preciseRouteEchoSuppression: CDEPreciseRouteEchoSuppression = .auto
   ) {
     self.init(
       container: container,
-      localSaveEchoSuppression: localSaveEchoSuppression,
+      preciseRouteEchoSuppression: preciseRouteEchoSuppression,
       invalidationHandler: nil
     )
   }
 
   internal init(
     container: NSPersistentContainer,
-    localSaveEchoSuppression: CDELocalSaveEchoSuppression = .auto,
+    preciseRouteEchoSuppression: CDEPreciseRouteEchoSuppression = .auto,
     invalidationHandler: CDEObservationInvalidationHandler?
   ) {
     self.container = container
     viewContext = container.viewContext
     self.invalidationHandler = invalidationHandler
-    switch localSaveEchoSuppression {
+    switch preciseRouteEchoSuppression {
     case .on:
-      isLocalSaveEchoSuppressionEnabled = true
+      isPreciseRouteEchoSuppressionEnabled = true
     case .off:
-      isLocalSaveEchoSuppressionEnabled = false
+      isPreciseRouteEchoSuppressionEnabled = false
     case .auto:
       // `NSPersistentCloudKitContainer` always enables history tracking and re-merges local saves,
       // so an echo is expected; plain containers stay off to avoid a stale marker on a no-echo save.
-      isLocalSaveEchoSuppressionEnabled = container is NSPersistentCloudKitContainer
+      isPreciseRouteEchoSuppressionEnabled = container is NSPersistentCloudKitContainer
     }
     CDEObservationDomainRegistry.activate(self, for: viewContext)
     installViewContextObservers()
@@ -650,7 +649,7 @@ public final class CDEObservationDomain {
     observedObjects.removeAll()
     pendingTemporaryObjectIDs.removeAll()
     sameCyclePreciseMergeSuppressions.removeAll()
-    localSaveEchoMarkers.removeAll()
+    preciseRouteEchoMarkers.removeAll()
     cancelEchoGuardCleanupObserver()
     CDEObservationDomainRegistry.deactivate(self, for: viewContext)
   }
@@ -723,12 +722,12 @@ public final class CDEObservationDomain {
     sameCyclePreciseMergeSuppressions.count
   }
 
-  internal var localSaveEchoMarkerCount: Int {
-    localSaveEchoMarkers.count
+  internal var preciseRouteEchoMarkerCount: Int {
+    preciseRouteEchoMarkers.count
   }
 
-  internal var isLocalSaveEchoSuppressionActive: Bool {
-    isLocalSaveEchoSuppressionEnabled
+  internal var isPreciseRouteEchoSuppressionActive: Bool {
+    isPreciseRouteEchoSuppressionEnabled
   }
 
   internal func containsObservedObject(_ objectID: NSManagedObjectID) -> Bool {
@@ -797,10 +796,10 @@ public final class CDEObservationDomain {
         // `didSave` (CloudKit/PHT re-merge). Swallow it instead of widening to all-key — the UI
         // updated at `didSave`. Consulted only on echo sources, never the local-save route itself;
         // the refreshed half of this same notification is suppressed via the returned set.
-        if source != Self.localSaveSource, fulfillLocalSaveEchoMarker(objectID) {
+        if source != Self.viewContextSaveSource, fulfillPreciseRouteEchoMarker(objectID) {
           sameCycleSuppressedObjectIDs.insert(objectID)
           debugLog(
-            "route source=\(source) objectID=\(debugObjectID(objectID)) skipped=local-save-echo"
+            "route source=\(source) objectID=\(debugObjectID(objectID)) skipped=precise-route-echo"
           )
           return nil
         }
@@ -830,8 +829,8 @@ public final class CDEObservationDomain {
         // survives that sleep; the same-cycle guard — cleared on the first `beforeWaiting` — catches a
         // cross-cycle echo only by luck (when the run loop happens not to idle in the gap). The guard
         // remains for the disabled / plain-container path, which has no cross-cycle echo to outlive.
-        if isLocalSaveEchoSuppressionEnabled {
-          armLocalSaveEchoMarker(objectID)
+        if isPreciseRouteEchoSuppressionEnabled {
+          armPreciseRouteEchoMarker(objectID)
         } else {
           markSameCyclePreciseMerge(objectID)
         }
@@ -963,10 +962,10 @@ public final class CDEObservationDomain {
       return
     }
 
-    // Hard boundary: a new local save opens a fresh cycle, so drop any prior local-save echo markers
+    // Hard boundary: a new local save opens a fresh cycle, so drop any prior precise-route echo markers
     // before re-arming. This bounds an un-honored marker (e.g. a save whose echo never came) so it
     // cannot survive into — and wrongly swallow — a later save's merge.
-    clearAllLocalSaveEchoMarkers()
+    clearAllPreciseRouteEchoMarkers()
     let token = CDEObservationSaveToken()
     let changes = collectChangedObservationFieldSets(from: viewContext.updatedObjects)
     debugLog(
@@ -1104,11 +1103,11 @@ public final class CDEObservationDomain {
         )
         return false
       }
-      // The refresh half of a local-save echo (CloudKit/PHT re-merge of a save already dispatched at
+      // The refresh half of a precise-route echo (CloudKit/PHT re-merge of a save already dispatched at
       // `didSave`). Swallow it; the marker outlives the run-loop sleep between save and echo.
-      if fulfillLocalSaveEchoMarker(objectID) {
+      if fulfillPreciseRouteEchoMarker(objectID) {
         debugLog(
-          "route source=objectsDidChange-refresh objectID=\(debugObjectID(objectID)) skipped=local-save-echo"
+          "route source=objectsDidChange-refresh objectID=\(debugObjectID(objectID)) skipped=precise-route-echo"
         )
         return false
       }
@@ -1193,32 +1192,32 @@ public final class CDEObservationDomain {
     ensureEchoGuardCleanupObserver()
   }
 
-  private func armLocalSaveEchoMarker(_ objectID: NSManagedObjectID) {
-    localSaveEchoMarkers[objectID] = LocalSaveEchoMarker(
+  private func armPreciseRouteEchoMarker(_ objectID: NSManagedObjectID) {
+    preciseRouteEchoMarkers[objectID] = PreciseRouteEchoMarker(
       honored: false,
       armedAt: CFAbsoluteTimeGetCurrent()
     )
-    debugLog("localSaveEcho arm objectID=\(debugObjectID(objectID))")
+    debugLog("preciseRouteEcho arm objectID=\(debugObjectID(objectID))")
     ensureEchoGuardCleanupObserver()
   }
 
-  // Returns true iff `objectID` is a pending local-save echo (caller must then skip it). Marks the
+  // Returns true iff `objectID` is a pending precise-route echo (caller must then skip it). Marks the
   // marker `honored` so the next `beforeWaiting` drops it; it does not remove the marker itself, so
   // every echo notification for the same object in this turn (objectsDidChange + didMerge) skips.
-  private func fulfillLocalSaveEchoMarker(_ objectID: NSManagedObjectID) -> Bool {
-    guard localSaveEchoMarkers[objectID] != nil else {
+  private func fulfillPreciseRouteEchoMarker(_ objectID: NSManagedObjectID) -> Bool {
+    guard preciseRouteEchoMarkers[objectID] != nil else {
       return false
     }
-    localSaveEchoMarkers[objectID]?.honored = true
+    preciseRouteEchoMarkers[objectID]?.honored = true
     return true
   }
 
-  private func clearAllLocalSaveEchoMarkers() {
-    guard localSaveEchoMarkers.isEmpty == false else {
+  private func clearAllPreciseRouteEchoMarkers() {
+    guard preciseRouteEchoMarkers.isEmpty == false else {
       return
     }
-    debugLog("localSaveEcho clearAll count=\(localSaveEchoMarkers.count)")
-    localSaveEchoMarkers.removeAll()
+    debugLog("preciseRouteEcho clearAll count=\(preciseRouteEchoMarkers.count)")
+    preciseRouteEchoMarkers.removeAll()
   }
 
   // Returns true iff X is currently guarded (caller must then swallow X instead of widening it).
@@ -1240,7 +1239,7 @@ public final class CDEObservationDomain {
     return true
   }
 
-  // Cleanup boundary for BOTH the same-cycle guard and the local-save echo markers. Do NOT swap this
+  // Cleanup boundary for BOTH the same-cycle guard and the precise-route echo markers. Do NOT swap this
   // for a plain `Task`, `Task.yield()`, `DispatchQueue.main.async`, or a synchronous clear — each
   // re-introduces one of the two regressions documented on `sameCyclePreciseMergeSuppressions`
   // (too-early clear ⇒ SwiftUI spurious wake; starvable/racy clear ⇒ stale guard eats the next save's
@@ -1251,7 +1250,7 @@ public final class CDEObservationDomain {
   // unlike a queued item it cannot be starved or reordered ahead of a still-pending merge, and unlike
   // a fixed number of hops it does not race a back-to-back save (the next save is a later wakeup).
   //
-  // It is `repeats: true` because a local-save echo marker must survive across multiple sleeps until
+  // It is `repeats: true` because a precise-route echo marker must survive across multiple sleeps until
   // its cross-cycle echo lands; the same-cycle guard still clears on the first fire. The observer
   // self-removes once both tables are empty (see `runEchoGuardCleanup`).
   private func ensureEchoGuardCleanupObserver() {
@@ -1262,7 +1261,7 @@ public final class CDEObservationDomain {
     let observer = CFRunLoopObserverCreateWithHandler(
       kCFAllocatorDefault,
       CFRunLoopActivity.beforeWaiting.rawValue,
-      true,  // repeating: local-save markers can wait several sleeps for their echo
+      true,  // repeating: precise-route echo markers can wait several sleeps for their echo
       0
     ) { [weak self] _, _ in
       MainActor.assumeIsolated {
@@ -1278,24 +1277,24 @@ public final class CDEObservationDomain {
     let sameCycleCleared = sameCyclePreciseMergeSuppressions.count
     sameCyclePreciseMergeSuppressions.removeAll()
 
-    // Local-save markers: drop the ones already honored by their echo, and TTL-expired ones (leak
+    // Precise-route echo markers: drop the ones already honored by their echo, and TTL-expired ones (leak
     // guard); keep un-honored, in-TTL markers across this drain — they are still awaiting their echo.
     let now = CFAbsoluteTimeGetCurrent()
-    let localBefore = localSaveEchoMarkers.count
-    localSaveEchoMarkers = localSaveEchoMarkers.filter { _, marker in
-      let expired = (now - marker.armedAt) > localSaveEchoMarkerTTL
+    let localBefore = preciseRouteEchoMarkers.count
+    preciseRouteEchoMarkers = preciseRouteEchoMarkers.filter { _, marker in
+      let expired = (now - marker.armedAt) > preciseRouteEchoMarkerTTL
       return marker.honored == false && expired == false
     }
-    let localCleared = localBefore - localSaveEchoMarkers.count
+    let localCleared = localBefore - preciseRouteEchoMarkers.count
 
     if sameCycleCleared > 0 || localCleared > 0 {
       debugLog(
-        "echoGuard cleanup sameCycle=\(sameCycleCleared) localSave=\(localCleared) remaining=\(localSaveEchoMarkers.count)"
+        "echoGuard cleanup sameCycle=\(sameCycleCleared) preciseRouteEcho=\(localCleared) remaining=\(preciseRouteEchoMarkers.count)"
       )
     }
 
     // Stop the repeating observer once there is nothing left to watch.
-    if sameCyclePreciseMergeSuppressions.isEmpty, localSaveEchoMarkers.isEmpty {
+    if sameCyclePreciseMergeSuppressions.isEmpty, preciseRouteEchoMarkers.isEmpty {
       cancelEchoGuardCleanupObserver()
     }
   }
