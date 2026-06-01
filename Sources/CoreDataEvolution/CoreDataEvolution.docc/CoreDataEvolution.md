@@ -141,6 +141,7 @@ Thanks to [@rnine](https://github.com/rnine) for sharing and validating the iOS 
 - ``PersistentModelObservationMode``
 - ``CDEObservationDomain``
 - ``CDEObservationProducerRegistration``
+- ``CDEPreciseRouteEchoSuppression``
 
 ### Executors
 
