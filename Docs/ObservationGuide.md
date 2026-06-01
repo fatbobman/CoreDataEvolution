@@ -264,6 +264,17 @@ This is not CloudKit-specific: the suppression works from the `viewContext` merg
 never inspects the merge source; `.auto` is only a default-on heuristic for the container most likely
 to re-merge. It is separate from external-import precision below.
 
+## Diagnostic Logging
+
+Observation diagnostic logging is off by default. Enable it per process with
+`CDE_OBSERVATION_DEBUG=1` (also accepts `true`, `yes`, and `on`) or toggle
+`domain.isDebugLoggingEnabled` while investigating a retained domain.
+
+Logs are emitted through unified logging with subsystem `CoreDataEvolution` and category
+`Observation`, not through standard output. The public contract is the opt-in Boolean switch and the
+environment variable; individual message text, timing fields, object summaries, and notification
+userInfo-key summaries are diagnostic details and may change between releases.
+
 ## Limits To Keep In Mind
 
 - This is not a universal Core Data observation system.

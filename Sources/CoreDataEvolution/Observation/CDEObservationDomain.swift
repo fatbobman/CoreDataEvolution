@@ -1,5 +1,6 @@
 @preconcurrency import CoreData
 import Foundation
+import OSLog
 
 @available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
 internal struct CDEObservationSaveToken: Hashable, Sendable {
@@ -514,6 +515,11 @@ public enum CDEPreciseRouteEchoSuppression: Sendable {
 @available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
 /// Container-bound MainActor observation runtime for one Core Data `viewContext`.
 public final class CDEObservationDomain {
+  private static let debugLogger = Logger(
+    subsystem: "CoreDataEvolution",
+    category: "Observation"
+  )
+
   private let container: NSPersistentContainer
   private let viewContext: NSManagedObjectContext
   private let observedObjects = CDEObservationObjectIDTable()
@@ -578,12 +584,14 @@ public final class CDEObservationDomain {
   /// The `routeMerge` source string for a `viewContext` local save (vs. a background/merge route).
   private static let viewContextSaveSource = "viewContextDidSave"
   private var isActive = true
-  /// Console tracing for diagnosing real SwiftUI / Core Data notification ordering.
+  /// Diagnostic tracing for real SwiftUI / Core Data notification ordering.
   ///
-  /// Off by default and safe to ship: all output is gated by this flag. Enable it per process by
-  /// setting the environment variable `CDE_OBSERVATION_DEBUG` to `1` / `true` / `yes` / `on` (e.g. in
-  /// the Xcode scheme's *Run → Arguments → Environment Variables*), or toggle this property directly
-  /// on a domain instance while investigating an app-only notification sequence.
+  /// Off by default and safe to ship: all output is gated by this flag and emitted through unified
+  /// logging with subsystem `CoreDataEvolution` and category `Observation`. Enable it per process by
+  /// setting the environment variable `CDE_OBSERVATION_DEBUG` to `1` / `true` / `yes` / `on`, or
+  /// toggle this property directly on a domain instance while investigating an app-only notification
+  /// sequence. The Boolean switch is public API; individual log message text is diagnostic and may
+  /// change between releases.
   public var isDebugLoggingEnabled = CDEObservationDomain.debugLoggingEnabledByEnvironment
 
   private static let debugLoggingEnabledByEnvironment: Bool = {
@@ -1360,7 +1368,8 @@ public final class CDEObservationDomain {
       return
     }
 
-    print("[CDEObservationDebug] \(message())")
+    let debugMessage = message()
+    Self.debugLogger.debug("\(debugMessage, privacy: .public)")
   }
 
   private func debugDecision(_ decision: CDEObservationInvalidationDecision) -> String {

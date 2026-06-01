@@ -688,6 +688,25 @@ struct ObservationRuntimeCoreTests {
   }
 
   @MainActor
+  @Test("observation debug logging remains opt-in and mutable")
+  func debugLoggingSwitchRemainsOptInAndMutable() throws {
+    guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+      return
+    }
+
+    let container = try makeContainer(testName: "ObservationRuntimeDebugLoggingSwitch")
+    let domain = CDEObservationDomain(container: container)
+
+    domain.isDebugLoggingEnabled = false
+    #expect(domain.isDebugLoggingEnabled == false)
+
+    domain.isDebugLoggingEnabled = true
+    #expect(domain.isDebugLoggingEnabled)
+
+    domain.invalidate()
+  }
+
+  @MainActor
   @Test("background actor observed save failure rolls back staged token")
   func backgroundActorObservedSaveFailureRollsBackStagedToken() async throws {
     guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
