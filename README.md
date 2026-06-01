@@ -81,7 +81,31 @@ often falls back to:
 
 CoreDataEvolution brings a SwiftData-style actor-isolated workflow to Core Data.
 
-### Pain Point 3: Naming flexibility, type safety, and schema stability pull against each other
+### Pain Point 3: SwiftUI often has to stop thinking in the Core Data object graph
+
+Many Core Data apps are still shaped around relationships: projects contain tasks, notes belong to
+folders, messages point to authors, and detail views naturally follow those chains.
+
+With the traditional `ObservableObject` path, immediate SwiftUI refresh is usually tied to a view
+boundary that owns the observed object. That works for simple rows, but relationship-chain screens
+quickly become awkward. A view that wants to read a path such as `item.itemData.memo` often has to be
+split into several smaller view structs so each related object can be carried by its own observed
+wrapper.
+
+That cost is not only boilerplate. It pushes UI structure toward observation mechanics instead of the
+shape the screen actually wants:
+
+- relationship-chain reads need extra view boundaries or forwarding glue
+- local view extraction becomes less flexible because observation ownership leaks into layout choices
+- the UI drifts away from the direct model-graph style that SwiftData encourages
+
+CoreDataEvolution's MainActor Observation support lets SwiftUI read generated Core Data accessors
+directly, including across relationship chains. The first goal is cognitive clarity: keep the view
+close to the persisted object graph and make a future SwiftData migration conceptually easier.
+Field-level precision helps, but it is an implementation benefit, not the primary reason for the
+feature.
+
+### Pain Point 4: Naming flexibility, type safety, and schema stability pull against each other
 
 Once a Core Data model ships, schema names often become hard to change safely.
 
@@ -97,7 +121,7 @@ The usual result is some combination of:
 CoreDataEvolution adds a typed mapping layer for sort and predicate construction so you can improve
 Swift naming and type safety without being forced to rename the underlying schema.
 
-### Pain Point 4: Experience and convention are not enough anymore
+### Pain Point 5: Experience and convention are not enough anymore
 
 Many teams already know how to work around these issues.
 
@@ -226,11 +250,10 @@ final class Store {
 }
 ```
 
-This activates Swift Observation for CDE-generated accessors on the container's `viewContext`.
-Refreshes are field-precise (a view reading `title` is not woken by a `summary` change) and save-gated
-(after a `viewContext` save, a producer-context merge, or lifecycle fallback — not on every unsaved
-setter call), and that precision is preserved across history / CloudKit re-merges. See the guide for
-producer routes, fallback rules, and the `CDEPreciseRouteEchoSuppression` policy.
+This activates MainActor Swift Observation for CDE-generated accessors on the container's
+`viewContext`, so SwiftUI can read managed objects directly without a separate projection model.
+Refresh is save-gated and can be field-precise when the save source provides enough metadata. See the
+guide for producer routes, fallback rules, and re-merge behavior.
 
 ### 3. `cde-tool`
 

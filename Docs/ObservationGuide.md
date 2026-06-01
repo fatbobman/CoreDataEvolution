@@ -9,10 +9,9 @@ Observation symbols.
 Use this guide when you want SwiftUI or `withObservationTracking` to read an `NSManagedObject`
 directly instead of maintaining a separate `@Observable` wrapper layer.
 
-For the internal mechanism and validation record, see
-[MainActorObservationMechanism.md](./Development/MainActorObservationMechanism.md). For the staged
-implementation plan, see
-[MainActorObservationImplementationPlan.md](./Development/MainActorObservationImplementationPlan.md).
+The public mental model has two axes: generated accessor reads create subscriptions, and save or merge
+producers decide whether CDE can route those subscriptions precisely or must fall back to object-level
+invalidation.
 
 ## Availability
 
