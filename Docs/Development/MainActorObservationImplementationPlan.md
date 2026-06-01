@@ -6,17 +6,16 @@
 >   (this document is its guide).
 > - **Research / validation source:** [#11](https://github.com/fatbobman/CoreDataEvolution/issues/11)
 >   and [`MainActorObservationMechanism.md`](MainActorObservationMechanism.md).
->   The runtime mechanism is validated by the `ObservationSpike` suite
->   ([`Tests/CoreDataEvolutionTests/Observation/ObservationSpikeTests.swift`](../../Tests/CoreDataEvolutionTests/Observation/ObservationSpikeTests.swift),
->   46 tests, all passing under `com.apple.CoreData.ConcurrencyDebug=1`).
+>   The T01-T22 spike evidence was historical research scaffolding from #11/#12; it was removed in
+>   #13 after the production runtime, integration, and field-map tests became the executable coverage.
 > - **This document** is the ordered, testable build plan. It is written so that several independent
 >   dev contexts can pick it up cold and execute steps **in order**, each acting as the implementing
 >   "dev".
 >
 > Conventions for every step below:
 > - **Touch points** name real files. Paths are relative to the repo root.
-> - **Validated reference** points to the spike prototype to lift from. The spike types are
->   `private` test helpers; treat them as *reference implementations*, not copy-paste runtime code.
+> - **Validated reference** points to the historical spike prototype from the #11/#12 commits. Treat
+>   those helpers as research notes, not current executable code.
 > - **Recommended direction** records what has already been tried and what looks better. The final
 >   shape is the implementing dev's call — deviate if you find something cleaner, but record why.
 > - **Tests & acceptance** must be runnable. Use `bash Scripts/run-tests.sh --filter <name>`
@@ -71,13 +70,9 @@ Required reading, in this order:
 
 1. [`MainActorObservationMechanism.md`](MainActorObservationMechanism.md) — the mechanism, all four
    change sources, the degradation rules, and the spike conclusions (T01–T22).
-2. The spike file itself. The reusable prototypes live above the `@Suite("Observation Spike")`
-   line and include: `CDEObservationDomainSkeleton`, `CDEObservationDomainRegistry`,
-   `CDEObservationGetterRuntime`, `ObservationObjectIDTable`, `ObservationChangeBuffer`,
-   `ObservationFieldMap` / `ObservationFieldSet` / `ObservationFieldID`,
-   `ObservationHubSelector`, `ObservationLifecycleHub`, `ObservationInvalidationPlanner`,
-   `ObservationRegisteredContextDomain`, `ObservationRegisteredContextProducer`,
-   `ObservationSaveToken`, `ObservationPendingChange`.
+2. For historical archaeology only, inspect the #11/#12 commits that contained the former spike
+   suite. Do not restore spike-only helpers unless a new issue explicitly asks for that research
+   scaffolding.
 3. The macro pipeline you will extend: [`PersistentModelMacro.swift`](../../Sources/CoreDataEvolutionMacros/PersistentModel/PersistentModelMacro.swift),
    [`PersistentModelModelParsing.swift`](../../Sources/CoreDataEvolutionMacros/PersistentModel/PersistentModelModelParsing.swift)
    (`autoAttachedAttribute`), [`AttributeMacro.swift`](../../Sources/CoreDataEvolutionMacros/AttributeMacro.swift),
@@ -106,11 +101,10 @@ work relative to the "Implementation Phases" list in the mechanism doc.
    become invisible to Observation — a correctness hole, not an ergonomics nit. Step 2 exists to close
    this before anything else is built.
 
-3. **No spike covers real macro codegen.** All 46 spike tests use *hand-written* `Observable`
-   conformances (e.g. `ObservationSpikeItem: NSManagedObject, Observable`). The runtime half is at
-   high confidence; the **macro-generation half is unproven**. `ObservationIsolationTests` only
-   asserts the *negative* (non-opt-in output stays Observation-free). Treat Steps 1–3 as the real
-   risk and de-risk them first.
+3. **The historical spike did not cover real macro codegen.** Its model types used hand-written
+   `Observable` conformances. The runtime half was at high confidence; the **macro-generation half was
+   unproven**. `ObservationIsolationTests` only asserted the *negative* (non-opt-in output stays
+   Observation-free). Treat Steps 1-3 as the real risk and de-risk them first.
 
 ### Positioning: the win is unconditional; precision is a bonus
 
@@ -249,11 +243,9 @@ Channels to evaluate:
    model and instructs the user to drop it, or the macro re-derives storage info and the accessor
    macro becomes a thin shim). Least desirable; record exactly why if you land here.
 
-**Validated reference.** The *runtime* shape of the getter wrapper is the spike's
-`CDEObservationGetterRuntime.registerObservedObjectIfNeeded(_:)` plus
-`CDEObservationDomainRegistry.domain(for:)`. The stored-registrar-on-`NSManagedObject` pattern is
-proven by `ObservationSpikeItem`/`ObservationDomainItem` and tests **T01, T04, T05** (registrar
-survives faulting, rekey, release). Lift the *contract*, not the test helper.
+**Validated reference.** The historical spike proved the getter-domain contract and the
+stored-registrar-on-`NSManagedObject` pattern in tests **T01, T04, T05** (registrar survives faulting,
+rekey, release). Lift the *contract*, not the test helper.
 
 **Recommended direction (dev decides).**
 - Generated getter for an observed scalar should expand to roughly:
@@ -498,10 +490,9 @@ extension.
 func saveObservedChanges(in context:) async throws                          // stricter-failure wrapper
 ```
 
-**Validated reference.** **T21** (registered ordinary context direct save stays precise before
-automatic *and* manual merge; unregistered falls back; producer/container scope isolation; failure /
-reset / invalidation cleanup) and `ObservationRegisteredContextProducer` /
-`ObservationRegisteredContextDomain`.
+**Validated reference.** Historical **T21** covered registered ordinary context direct save precision
+before automatic *and* manual merge, unregistered fallback, producer/container scope isolation, and
+failure / reset / invalidation cleanup.
 
 **Recommended direction (dev decides).**
 - Registration installs context-scoped observers for `willSave` (stage `objectID + changedValues()`),

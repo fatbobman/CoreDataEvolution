@@ -1,8 +1,8 @@
 # MainActor Observation Mechanism
 
 > Research and mechanism reference for [#11](https://github.com/fatbobman/CoreDataEvolution/issues/11).
-> This document describes the validated mechanism with diagrams; the spike evidence (T01–T22) lives in
-> the `ObservationSpike` suite. The ordered, testable build plan is
+> This document describes the validated mechanism with diagrams; the spike evidence (T01-T22) is a
+> historical research record from #11/#12. The ordered, testable build plan is
 > [`MainActorObservationImplementationPlan.md`](MainActorObservationImplementationPlan.md), tracked by
 > [#12](https://github.com/fatbobman/CoreDataEvolution/issues/12).
 > User-facing setup and API guidance lives in
@@ -370,8 +370,9 @@ marker in the same turn); the guard remains the disabled / plain-container path.
 ## Spike Results: Save Metadata, Local Keys, Merge Alignment, Batch Fallback
 
 The T03 / T06 / T07 / T08 / T09 / T10 / T12 / T13 / T14 / T15 / T16 / T17 /
-T18 / T20 / T21 / T22 spike uses a programmatic Core Data model and focused tests in
-`ObservationSpikeTests`. The tests run with Core Data concurrency debug enabled.
+T18 / T20 / T21 / T22 spike used a programmatic Core Data model and focused tests in the former
+`ObservationSpikeTests` research suite. #13 removed that scaffolding after production runtime,
+integration, and field-map tests became the current executable coverage.
 
 ### T03 Opt-In API Draft
 
@@ -842,10 +843,10 @@ Validation acceptance:
 
 ## Implementation Planning Snapshot
 
-Design mode: technical information architecture. The current spike evidence is sufficient to leave
-pure research mode and split implementation into scoped runtime, macro, API, and documentation
-issues. The implementation should keep the default `@PersistentModel` path Observation-free while
-allowing the opt-in path to share as much existing field metadata as possible.
+Design mode: technical information architecture. At planning time, the spike evidence was sufficient
+to leave pure research mode and split implementation into scoped runtime, macro, API, and
+documentation issues. The implementation should keep the default `@PersistentModel` path
+Observation-free while allowing the opt-in path to share as much existing field metadata as possible.
 
 ### Recommended MVP Shape
 
