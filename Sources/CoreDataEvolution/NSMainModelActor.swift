@@ -50,14 +50,16 @@ extension NSMainModelActor {
   }
 }
 
-@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
-extension NSMainModelActor {
-  /// Saves `viewContext` changes through the active observation domain.
-  ///
-  /// `CDEObservationDomain` instruments `viewContext` directly, so this wrapper is symmetry sugar for
-  /// the main-actor path rather than a separate correctness hook.
-  public func saveObservedChanges(in observation: CDEObservationDomain) throws {
-    _ = observation
-    try modelContext.save()
+#if compiler(>=6.2)
+  @available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
+  extension NSMainModelActor {
+    /// Saves `viewContext` changes through the active observation domain.
+    ///
+    /// `CDEObservationDomain` instruments `viewContext` directly, so this wrapper is symmetry sugar for
+    /// the main-actor path rather than a separate correctness hook.
+    public func saveObservedChanges(in observation: CDEObservationDomain) throws {
+      _ = observation
+      try modelContext.save()
+    }
   }
-}
+#endif

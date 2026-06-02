@@ -50,6 +50,10 @@ extension PersistentModelMacro: ExtensionMacro {
       return [ext]
     }
 
+    guard isCDEObservationCompilerSupported else {
+      return [ext]
+    }
+
     let observableDecl: DeclSyntax =
       """
       \(raw: cdeObservationAvailability)
@@ -116,7 +120,8 @@ extension PersistentModelMacro: MemberAttributeMacro {
     }
 
     if hasMarkerAttribute("NSManaged", in: variable) {
-      if arguments.observation == .mainActor,
+      if isCDEObservationCompilerSupported,
+        arguments.observation == .mainActor,
         let propertyName = variable.bindings.first?.pattern.as(IdentifierPatternSyntax.self)?
           .identifier.text
       {
@@ -132,7 +137,8 @@ extension PersistentModelMacro: MemberAttributeMacro {
     }
 
     var attributes: [AttributeSyntax] = []
-    if arguments.observation == .mainActor,
+    if isCDEObservationCompilerSupported,
+      arguments.observation == .mainActor,
       shouldAttachObservationMarker(to: variable)
     {
       attributes.append("@_CDObserved(.mainActor)")
@@ -212,7 +218,7 @@ extension PersistentModelMacro: MemberMacro {
     let initProperties = analyzePersistentModelInitProperties(in: classDecl)
 
     var members: [DeclSyntax] = []
-    if arguments.observation == .mainActor {
+    if isCDEObservationCompilerSupported, arguments.observation == .mainActor {
       members += makeObservationRegistrarDecls(modelTypeName: modelTypeName)
       members += makeObservationFieldMapDecls(
         accessModifier: accessModifier,

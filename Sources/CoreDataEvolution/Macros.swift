@@ -92,13 +92,20 @@ public enum RelationshipDeleteRule: String, Sendable, Codable {
 /// - stores an `NSPersistentContainer`
 /// - creates a background `NSManagedObjectContext`
 /// - exposes `modelExecutor`
-/// - optionally synthesizes `init(container:)`
+/// - optionally synthesizes `init(container:)` and the Observation-aware
+///   `init(observationDomain:)` on supported OS versions
+/// - when initializer generation is enabled, synthesizes `saveObservedChanges()` for actors bound
+///   to an observation domain
 ///
 /// Use this when Core Data work should run off the main actor.
 ///
 /// - Parameter disableGenerateInit: When `true`, the macro does not synthesize
-///   `init(container:)` and your type must initialize the generated stored properties itself.
-@attached(member, names: named(modelExecutor), named(modelContainer), named(init))
+///   generated initializers and your type must initialize the generated stored properties itself.
+@attached(
+  member,
+  names: named(modelExecutor), named(modelContainer), named(init), named(saveObservedChanges),
+  named(deinit), named(__cdeObservationDomain), named(__cdeObservationProducerRegistration)
+)
 @attached(extension, conformances: NSModelActor)
 public macro NSModelActor(disableGenerateInit: Bool = false) =
   #externalMacro(module: "CoreDataEvolutionMacros", type: "NSModelActorMacro")
@@ -230,18 +237,32 @@ public macro _CDObserved(
 ///   properties for every to-many relationship using the underlying Objective-C collection count.
 /// - Parameter observation: Optional Observation code generation mode. The default keeps existing
 ///   generated output unchanged.
-@attached(memberAttribute)
-@attached(member, names: arbitrary, named(__cdRuntimeEntitySchema))
-@attached(
-  extension,
-  conformances: PersistentEntity, CDRuntimeSchemaProviding, CDEObservable,
-  CDEObservationFieldMapProviding, CDEObservationInvalidationDispatching
-)
-public macro PersistentModel(
-  generateInit: Bool = false,
-  generateToManyCount: Bool = true,
-  observation: PersistentModelObservationMode = .none
-) = #externalMacro(module: "CoreDataEvolutionMacros", type: "PersistentModelMacro")
+#if compiler(>=6.2)
+  @attached(memberAttribute)
+  @attached(member, names: arbitrary, named(__cdRuntimeEntitySchema))
+  @attached(
+    extension,
+    conformances: PersistentEntity, CDRuntimeSchemaProviding, CDEObservable,
+    CDEObservationFieldMapProviding, CDEObservationInvalidationDispatching
+  )
+  public macro PersistentModel(
+    generateInit: Bool = false,
+    generateToManyCount: Bool = true,
+    observation: PersistentModelObservationMode = .none
+  ) = #externalMacro(module: "CoreDataEvolutionMacros", type: "PersistentModelMacro")
+#else
+  @attached(memberAttribute)
+  @attached(member, names: arbitrary, named(__cdRuntimeEntitySchema))
+  @attached(
+    extension,
+    conformances: PersistentEntity, CDRuntimeSchemaProviding
+  )
+  public macro PersistentModel(
+    generateInit: Bool = false,
+    generateToManyCount: Bool = true,
+    observation: PersistentModelObservationMode = .none
+  ) = #externalMacro(module: "CoreDataEvolutionMacros", type: "PersistentModelMacro")
+#endif
 
 /// Declares metadata for a persisted attribute.
 ///

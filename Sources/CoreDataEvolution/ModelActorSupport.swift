@@ -39,25 +39,57 @@ func withModelContext<T: Sendable>(
   try action(context, container)
 }
 
-@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
-func collectChangedObservationFieldSets(
-  from objects: Set<NSManagedObject>
-) -> [NSManagedObjectID: CDEObservationFieldSet] {
-  objects.reduce(into: [:]) { result, object in
-    guard object.objectID.isTemporaryID == false else {
-      return
-    }
-    guard let modelType = type(of: object) as? any CDEObservationFieldMapProviding.Type else {
-      return
-    }
+#if compiler(>=6.2)
+  @available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
+  func collectChangedObservationFieldSets(
+    from objects: Set<NSManagedObject>
+  ) -> [NSManagedObjectID: CDEObservationFieldSet] {
+    objects.reduce(into: [:]) { result, object in
+      guard object.objectID.isTemporaryID == false else {
+        return
+      }
+      guard let modelType = type(of: object) as? any CDEObservationFieldMapProviding.Type else {
+        return
+      }
 
-    let fieldSet = modelType.__cdObservationFieldSet(
-      forCoreDataKeys: object.changedValues().keys
-    )
-    guard fieldSet.isEmpty == false else {
-      return
-    }
+      let fieldSet = modelType.__cdObservationFieldSet(
+        forCoreDataKeys: object.changedValues().keys
+      )
+      guard fieldSet.isEmpty == false else {
+        return
+      }
 
-    result[object.objectID] = fieldSet
+      result[object.objectID] = fieldSet
+    }
   }
-}
+
+  private final class CDEModelActorObservationFallbackLogState: @unchecked Sendable {
+    private let lock = NSLock()
+    private var didLog = false
+
+    func shouldLog() -> Bool {
+      lock.withLock {
+        guard didLog == false else {
+          return false
+        }
+        didLog = true
+        return true
+      }
+    }
+  }
+
+  private let cdeModelActorObservationFallbackLogState =
+    CDEModelActorObservationFallbackLogState()
+
+  @available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
+  public func _cdeLogUnboundModelActorObservationSave() {
+    guard cdeModelActorObservationFallbackLogState.shouldLog() else {
+      return
+    }
+    NSLog(
+      "CoreDataEvolution Observation warning: saveObservedChanges() was called on an "
+        + "@NSModelActor instance that was not created with init(observationDomain:). "
+        + "Falling back to modelContext.save(); no CDE Observation metadata will be produced."
+    )
+  }
+#endif

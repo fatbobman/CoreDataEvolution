@@ -15,8 +15,10 @@ invalidation.
 
 ## Availability
 
-MainActor Observation requires Swift Observation platform support:
+MainActor Observation requires Swift compiler support for CDE's Observation runtime plus Swift
+Observation platform support:
 
+- Swift compiler 6.2+
 - iOS 17+
 - macOS 14+
 - tvOS 17+
@@ -93,7 +95,7 @@ saved change for `title`, Swift Observation invalidates that reader.
 Observation consumption is MainActor-bound and centered on `container.viewContext`.
 
 - Read observed model objects from MainActor UI code.
-- Keep `CDEObservationDomain` on MainActor.
+- Create and explicitly invalidate `CDEObservationDomain` on MainActor.
 - Treat background contexts as metadata producers only. They should not publish Observation changes
   directly.
 - If an opt-in model is used without a retained domain for its `viewContext`, reads can still compile,
@@ -126,7 +128,8 @@ Use the strongest producer route that matches the context you own.
 | Source | Public API | Precision | Notes |
 |---|---|---|---|
 | `viewContext` save | `try viewContext.save()` | property-level | A retained domain instruments its own `viewContext`; `NSMainModelActor.saveObservedChanges(in:)` is symmetry sugar. |
-| `@NSModelActor` background save | `try await saveObservedChanges(in: observation)` | property-level | Stages changed keys before save without suspending between staging and commit. |
+| Observation-aware `@NSModelActor` background save | create the actor with `init(observationDomain:)`, then call `try modelContext.save()` or `try await saveObservedChanges()` | property-level after successful save | The generated initializer retains the domain and registration for its actor context. |
+| Plain `@NSModelActor` background save | `try await saveObservedChanges(in: observation)` | property-level | Stages changed keys before save without suspending between staging and commit. |
 | Arbitrary context wrapper | `try await observation.saveObservedChanges(in: context)` | property-level | Preferred when thrown-save cleanup matters; the wrapper rolls back its staged token and the context on failure. |
 | Registered ordinary context | `observation.registerChangeProducer(context:)`, then plain `context.save()` | property-level after successful save | If a direct save throws, call `rollback()`, `reset()`, or invalidate the registration to clear staged notification state. |
 | Convenience background context | `observation.newObservedBackgroundContext()` | property-level after successful save | Equivalent to `container.newBackgroundContext()` plus producer registration. |
@@ -136,7 +139,31 @@ Use the strongest producer route that matches the context you own.
 
 ## Background Actor Save
 
-Prefer `NSModelActor.saveObservedChanges(in:)` for actor-owned background writes:
+When the actor can be created on MainActor from the retained observation domain, prefer the generated
+Observation-aware initializer:
+
+```swift
+@NSModelActor
+actor ItemWriter {
+  func rename(
+    id: NSManagedObjectID,
+    to title: String
+  ) throws {
+    guard let item = self[id, as: Item.self] else { return }
+    item.title = title
+    try modelContext.save()
+  }
+}
+
+let writer = ItemWriter(observationDomain: CDEObservationDomain(container: container))
+```
+
+The generated actor retains the domain and producer registration for its actor context. Inline
+construction is supported: releasing the actor releases its retained domain/registration, and teardown
+is safe even when the actor's final release happens off the MainActor.
+
+For an actor created with the plain `init(container:)`, use `NSModelActor.saveObservedChanges(in:)`
+for actor-owned background writes that need property-level metadata:
 
 ```swift
 @NSModelActor
@@ -153,9 +180,11 @@ actor ItemWriter {
 }
 ```
 
-Calling `modelContext.save()` still saves Core Data correctly, but it bypasses CDE's precise metadata
-staging. The domain can only fall back to object-level invalidation when a later merge supplies object
-IDs.
+Calling `modelContext.save()` from a plain, unregistered actor context still saves Core Data
+correctly, but it bypasses CDE's precise metadata staging. The domain can only fall back to
+object-level invalidation when a later merge supplies object IDs. If that actor uses the generated
+no-argument `saveObservedChanges()` from the plain `init(container:)` path, CDE logs a one-time
+warning and performs the same plain save.
 
 ## Registered Ordinary Contexts
 
@@ -283,7 +312,7 @@ userInfo-key summaries are diagnostic details and may change between releases.
   Precision Across Store Re-merges).
 - Generated setters do not provide immediate unsaved refresh.
 - To-many relationship setters are still not generated; use the generated relationship helper methods.
-- Keep all UI reads and domain lifecycle operations on MainActor.
+- Keep all UI reads and manual domain create/invalidate calls on MainActor.
 
 ## Related Guides
 

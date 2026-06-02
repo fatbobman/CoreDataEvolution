@@ -1,0 +1,12 @@
+import CoreDataEvolution
+
+@NSModelActor(disableGenerateInit: true)
+public actor SnapshotManualModelActor {
+  public init(
+    modelExecutor: CoreDataEvolution.NSModelObjectContextExecutor,
+    modelContainer: NSPersistentContainer
+  ) {
+    self.modelExecutor = modelExecutor
+    self.modelContainer = modelContainer
+  }
+}

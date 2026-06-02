@@ -15,6 +15,12 @@ import SwiftSyntaxMacros
 let cdeObservationAvailability =
   "@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)"
 
+#if compiler(>=6.2)
+  let isCDEObservationCompilerSupported = true
+#else
+  let isCDEObservationCompilerSupported = false
+#endif
+
 func observationMode(in variable: VariableDeclSyntax) -> ParsedPersistentModelObservationMode {
   guard let attribute = firstAttribute(named: "_CDObserved", in: variable) else {
     return .none
@@ -81,7 +87,7 @@ func makeObservationTrackedGetter(
   propertyName: String,
   observation: ParsedPersistentModelObservationMode
 ) -> AccessorDeclSyntax {
-  guard observation == .mainActor, var body = getter.body else {
+  guard isCDEObservationCompilerSupported, observation == .mainActor, var body = getter.body else {
     return getter
   }
 

@@ -1,0 +1,5 @@
+import CoreDataEvolution
+
+@NSModelActor
+public actor SnapshotModelActor {
+}

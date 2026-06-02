@@ -61,25 +61,27 @@ extension NSModelActor {
   }
 }
 
-@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
-extension NSModelActor {
-  /// Saves actor-isolated changes with property-level Observation metadata.
-  ///
-  /// Direct `modelContext.save()` calls still merge through Core Data, but they bypass CDE metadata
-  /// staging and therefore fall back to object-scoped invalidation in the observation domain.
-  public func saveObservedChanges(in observation: CDEObservationDomain) async throws {
-    let token = CDEObservationSaveToken()
-    let changes = collectChangedObservationFieldSets(from: modelContext.updatedObjects)
+#if compiler(>=6.2)
+  @available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
+  extension NSModelActor {
+    /// Saves actor-isolated changes with property-level Observation metadata.
+    ///
+    /// Direct `modelContext.save()` calls still merge through Core Data, but they bypass CDE metadata
+    /// staging and therefore fall back to object-scoped invalidation in the observation domain.
+    public func saveObservedChanges(in observation: CDEObservationDomain) async throws {
+      let token = CDEObservationSaveToken()
+      let changes = collectChangedObservationFieldSets(from: modelContext.updatedObjects)
 
-    // Keep snapshot, staging, and save in one actor job. Suspending here would let reentrant actor
-    // work change `modelContext` after the field snapshot but before the save commits.
-    observation.stagePendingChangesFromProducer(token: token, changesByObjectID: changes)
-    do {
-      try modelContext.save()
-    } catch {
-      observation.rollbackPendingChangesFromProducer(token: token)
-      modelContext.rollback()
-      throw error
+      // Keep snapshot, staging, and save in one actor job. Suspending here would let reentrant actor
+      // work change `modelContext` after the field snapshot but before the save commits.
+      observation.stagePendingChangesFromProducer(token: token, changesByObjectID: changes)
+      do {
+        try modelContext.save()
+      } catch {
+        observation.rollbackPendingChangesFromProducer(token: token)
+        modelContext.rollback()
+        throw error
+      }
     }
   }
-}
+#endif

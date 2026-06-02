@@ -74,4 +74,14 @@ struct MacroExpansionSnapshotTests {
       fixtureName: "PersistentModelRelationshipPersistentName"
     )
   }
+
+  @Test("NSModelActor generated initializers snapshot")
+  func nsModelActorGeneratedInitializersSnapshot() throws {
+    try MacroTestSupport.assertExpansionSnapshot(fixtureName: "NSModelActorGeneratedInitializers")
+  }
+
+  @Test("NSModelActor disabled initializer snapshot")
+  func nsModelActorDisabledInitializerSnapshot() throws {
+    try MacroTestSupport.assertExpansionSnapshot(fixtureName: "NSModelActorDisabledInitializer")
+  }
 }

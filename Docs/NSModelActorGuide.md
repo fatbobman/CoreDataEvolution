@@ -74,6 +74,8 @@ the macro adds:
 - `nonisolated let modelExecutor: NSModelObjectContextExecutor`
 - `nonisolated let modelContainer: NSPersistentContainer`
 - `init(container: NSPersistentContainer)` unless disabled
+- `init(observationDomain: CDEObservationDomain)` with Swift compiler 6.2+ on iOS 17+ /
+  macOS 14+ platform families, unless disabled
 - `NSModelActor` conformance
 
 The generated initializer always uses:
@@ -83,6 +85,38 @@ let context = container.newBackgroundContext()
 ```
 
 That is an intentional behavior contract in this package.
+
+The Observation-aware initializer is available when CDE's MainActor Observation runtime is available
+(Swift compiler 6.2+ plus the platform availability below):
+
+```swift
+@MainActor
+@available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
+init(observationDomain: CDEObservationDomain)
+```
+
+It creates and registers the actor's background context through the domain:
+
+```swift
+let container = observationDomain.modelContainer
+let context = container.newBackgroundContext()
+observationDomain.registerChangeProducer(context: context)
+modelExecutor = NSModelObjectContextExecutor(context: context)
+modelContainer = container
+```
+
+Use this initializer when the actor owns background writes and you want direct
+`modelContext.save()` calls to produce property-level Observation metadata. The generated actor keeps
+the domain and producer registration alive for its own context. Inline construction is valid:
+
+```swift
+let writer = ItemStore(observationDomain: CDEObservationDomain(container: container))
+```
+
+Releasing the actor releases its retained domain/registration, and that teardown is safe even if the
+actor's final release happens off the MainActor. If the retained domain is explicitly invalidated
+while the actor lives, the actor remains a valid Core Data actor; its context is no longer a
+registered Observation producer, so normal unregistered-context fallback rules apply.
 
 ## What `@NSMainModelActor` Generates
 
@@ -156,6 +190,23 @@ create a new scheduling layer.
 For production writes, prefer dedicated mutation methods on the actor or class instead of exposing
 raw context access everywhere.
 
+### `saveObservedChanges()`
+
+For actors created with `init(observationDomain:)`, the generated no-argument
+`saveObservedChanges()` saves the actor context through the retained Observation setup:
+
+```swift
+try await saveObservedChanges()
+```
+
+When the actor is not bound to an observation domain, this method falls back to a plain
+`modelContext.save()` and logs a one-time runtime warning that no CDE Observation metadata will be
+produced.
+
+This no-argument overload is generated with the initializer set. When using
+`@NSModelActor(disableGenerateInit: true)`, define your own save wrapper if you need stored-domain
+fallback behavior.
+
 ## Custom Initializers
 
 If you need extra stored properties or a custom context setup, disable initializer generation:
@@ -202,6 +253,36 @@ For `@NSModelActor`, that means:
 For `@NSMainModelActor`, that means:
 
 - `modelContainer`
+
+### Custom Observation-aware initializers
+
+When a custom `@NSModelActor` initializer should keep the same Observation producer behavior as the
+generated overload, retain the domain and producer registration alongside the context:
+
+```swift
+@NSModelActor(disableGenerateInit: true)
+actor ItemStore {
+  private let observationDomain: CDEObservationDomain?
+  private let observationProducerRegistration: CDEObservationProducerRegistration?
+
+  init(observationDomain: CDEObservationDomain) {
+    let container = observationDomain.modelContainer
+    let context = container.newBackgroundContext()
+    self.observationDomain = observationDomain
+    observationProducerRegistration = observationDomain.registerChangeProducer(context: context)
+    modelExecutor = NSModelObjectContextExecutor(context: context)
+    modelContainer = container
+  }
+
+  deinit {
+    observationProducerRegistration?.invalidate()
+  }
+}
+```
+
+For custom actors, keep your own save wrapper if you need optional fallback behavior. The existing
+`saveObservedChanges(in:)` remains useful for plain actor contexts that do not retain a producer
+registration.
 
 ## Testing Patterns
 

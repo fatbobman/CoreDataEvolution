@@ -220,18 +220,79 @@ func makeModelActorMemberDecls(
       """,
     ]
 
-    let initializer: DeclSyntax? =
-      generateInitializer
-      ? """
+    guard generateInitializer else {
+      return decl
+    }
+
+    let observationLifecycleDecls: [DeclSyntax] = [
+      """
+      #if compiler(>=6.2)
+      private nonisolated(unsafe) let __cdeObservationDomain: AnyObject?
+
+      private nonisolated(unsafe) let __cdeObservationProducerRegistration: AnyObject?
+
+      deinit {
+        let registration =
+          __cdeObservationProducerRegistration as? CoreDataEvolution.CDEObservationProducerRegistration
+        registration?.invalidate()
+      }
+      #endif
+      """
+    ]
+
+    let initializers: [DeclSyntax] = [
+      """
       \(raw: accessModifier)init(container: CoreData.NSPersistentContainer) {
         let context: NSManagedObjectContext
         context = container.newBackgroundContext()
+        #if compiler(>=6.2)
+        __cdeObservationDomain = nil
+        __cdeObservationProducerRegistration = nil
+        #endif
         modelExecutor = CoreDataEvolution.NSModelObjectContextExecutor(context: context)
         modelContainer = container
       }
-      """ : nil
+      """,
+      """
+      #if compiler(>=6.2)
+      @MainActor
+      @available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
+      \(raw: accessModifier)init(observationDomain: CoreDataEvolution.CDEObservationDomain) {
+        let container: CoreData.NSPersistentContainer
+        container = observationDomain.modelContainer
+        let context: NSManagedObjectContext
+        context = container.newBackgroundContext()
+        __cdeObservationDomain = observationDomain
+        __cdeObservationProducerRegistration =
+          observationDomain.registerChangeProducer(context: context)
+        modelExecutor = CoreDataEvolution.NSModelObjectContextExecutor(context: context)
+        modelContainer = container
+      }
+      #endif
+      """,
+    ]
 
-    return decl + (initializer.map { [$0] } ?? [])
+    let observedSave: DeclSyntax =
+      """
+      #if compiler(>=6.2)
+      @available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
+      \(raw: accessModifier)func saveObservedChanges() async throws {
+        guard __cdeObservationDomain != nil else {
+          CoreDataEvolution._cdeLogUnboundModelActorObservationSave()
+          try modelContext.save()
+          return
+        }
+        do {
+          try modelContext.save()
+        } catch {
+          modelContext.rollback()
+          throw error
+        }
+      }
+      #endif
+      """
+
+    return decl + observationLifecycleDecls + initializers + [observedSave]
 
   case .mainActorClass:
     let decl: [DeclSyntax] = [
