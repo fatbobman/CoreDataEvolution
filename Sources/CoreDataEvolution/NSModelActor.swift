@@ -66,6 +66,11 @@ extension NSModelActor {
   extension NSModelActor {
     /// Saves actor-isolated changes with property-level Observation metadata.
     ///
+    /// Use this specialized path for update operations that need sibling-property precision. Insert
+    /// and delete operations do not need property-level metadata; ordinary Core Data saves are enough.
+    /// On save failure, CDE clears its staged Observation metadata and leaves business rollback
+    /// policy to the caller.
+    ///
     /// Direct `modelContext.save()` calls still merge through Core Data, but they bypass CDE metadata
     /// staging and therefore fall back to object-scoped invalidation in the observation domain.
     public func saveObservedChanges(in observation: CDEObservationDomain) async throws {
@@ -79,7 +84,9 @@ extension NSModelActor {
         try modelContext.save()
       } catch {
         observation.rollbackPendingChangesFromProducer(token: token)
-        modelContext.rollback()
+        // Symmetry with the domain wrapper and generated save: if this actor context is also a
+        // registered producer, clear its `willSave`-staged metadata too. A no-op otherwise.
+        CDEObservationProducerRegistration.discardStagedSave(for: modelContext)
         throw error
       }
     }

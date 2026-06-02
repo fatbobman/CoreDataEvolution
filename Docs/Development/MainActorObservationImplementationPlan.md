@@ -487,7 +487,7 @@ extension.
 ```swift
 @MainActor func registerChangeProducer(context:) -> CDEObservationProducerRegistration
 @MainActor func newObservedBackgroundContext() -> NSManagedObjectContext   // convenience
-func saveObservedChanges(in context:) async throws                          // stricter-failure wrapper
+func saveObservedChanges(in context:) async throws                          // property-level save wrapper
 ```
 
 **Validated reference.** Historical **T21** covered registered ordinary context direct save precision
@@ -501,14 +501,14 @@ failure / reset / invalidation cleanup.
   `save()` (no `didSave` fires). Pick and document one:
   1. registered direct-save is "best effort precise; on throw you must `rollback()`/reset" (caller
      contract), **or**
-  2. steer failure-sensitive callers to `saveObservedChanges(in:)`, which catches the throw and rolls
-     back its own token.
+  2. steer property-level update callers to `saveObservedChanges(in:)`, which catches the throw,
+     clears its own staged token, and rethrows without rolling back the context.
   T21 passed rollback-after-failure at the spike-helper level; the runtime must make the choice explicit.
 - **Chosen Step 7 contract.** Registered direct `context.save()` stages metadata locally at `willSave`
   and publishes it only at `didSave`; after a thrown direct save, callers must `rollback()`, `reset()`,
-  or invalidate the registration to clear staged notification state. Failure-sensitive callers should
-  use `CDEObservationDomain.saveObservedChanges(in:)`, which rolls back its own staged token and the
-  context on throw.
+  or invalidate the registration to clear staged notification state. Property-level update callers can
+  use `CDEObservationDomain.saveObservedChanges(in:)`, which clears its own staged token and rethrows
+  without rolling back the context.
 
 **Tests & acceptance.** Port the five T21 tests to runtime:
 - registered direct save precise before automatic merge,

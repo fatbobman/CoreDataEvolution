@@ -91,6 +91,17 @@
       try await saveObservedChanges(in: domain)
     }
 
+    func invalidNameState(
+      id: NSManagedObjectID
+    ) throws -> (hasChanges: Bool, isUpdated: Bool, hasInvalidName: Bool) {
+      let item = try requireItem(id: id)
+      return (
+        hasChanges: modelContext.hasChanges,
+        isUpdated: modelContext.updatedObjects.contains(item),
+        hasInvalidName: item.value(forKey: "display_name") == nil
+      )
+    }
+
     func insertChildAttachedToParent(
       parentID: NSManagedObjectID,
       childName: String,
@@ -708,8 +719,8 @@
     }
 
     @MainActor
-    @Test("background actor observed save failure rolls back staged token")
-    func backgroundActorObservedSaveFailureRollsBackStagedToken() async throws {
+    @Test("background actor observed save failure clears token without rolling back context")
+    func backgroundActorObservedSaveFailureClearsTokenWithoutRollingBackContext() async throws {
       guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
         return
       }
@@ -727,6 +738,10 @@
       } catch {
         #expect(domain.pendingObjectCount == 0)
         #expect(domain.pendingTokenCount == 0)
+        let actorContextState = try await actor.invalidNameState(id: item.objectID)
+        #expect(actorContextState.hasChanges)
+        #expect(actorContextState.isUpdated)
+        #expect(actorContextState.hasInvalidName)
       }
     }
 
@@ -1059,8 +1074,8 @@
     }
 
     @MainActor
-    @Test("context save wrapper keeps precision and rolls back token on throw")
-    func contextSaveWrapperKeepsPrecisionAndRollsBackTokenOnThrow() async throws {
+    @Test("context save wrapper keeps precision and clears token on throw")
+    func contextSaveWrapperKeepsPrecisionAndClearsTokenOnThrow() async throws {
       guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
         return
       }
@@ -1106,6 +1121,19 @@
       } catch {
         #expect(domain.pendingObjectCount == 0)
         #expect(domain.pendingTokenCount == 0)
+        let backgroundState = try await background.perform {
+          let backgroundItem = try #require(
+            try background.existingObject(with: itemID) as? ObservationRuntimeItem
+          )
+          return (
+            hasChanges: background.hasChanges,
+            isUpdated: background.updatedObjects.contains(backgroundItem),
+            hasInvalidName: backgroundItem.value(forKey: "display_name") == nil
+          )
+        }
+        #expect(backgroundState.hasChanges)
+        #expect(backgroundState.isUpdated)
+        #expect(backgroundState.hasInvalidName)
       }
     }
 

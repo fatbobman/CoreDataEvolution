@@ -177,6 +177,37 @@
       try await saveObservedChanges()
     }
 
+    func failRootTitleWithStoredObservedSave(
+      id: NSManagedObjectID
+    ) async throws {
+      let root = try requireRoot(id: id)
+      root.setValue(nil, forKey: "title")
+      try await saveObservedChanges()
+    }
+
+    // Drives the inherited `saveObservedChanges(in:)` on a bound generated actor, whose context is a
+    // registered producer. A failed save here stages a registration token in `willSave` that only the
+    // wrapper's `discardStagedSave(for:)` cleanup can clear.
+    func failRootTitleWithInDomainObservedSave(
+      id: NSManagedObjectID,
+      in observation: CDEObservationDomain
+    ) async throws {
+      let root = try requireRoot(id: id)
+      root.setValue(nil, forKey: "title")
+      try await saveObservedChanges(in: observation)
+    }
+
+    func invalidTitleState(
+      id: NSManagedObjectID
+    ) throws -> (hasChanges: Bool, isUpdated: Bool, hasInvalidTitle: Bool) {
+      let root = try requireRoot(id: id)
+      return (
+        hasChanges: modelContext.hasChanges,
+        isUpdated: modelContext.updatedObjects.contains(root),
+        hasInvalidTitle: root.value(forKey: "title") == nil
+      )
+    }
+
     private func requireRoot(id: NSManagedObjectID) throws -> ObservationIntegrationRoot {
       try #require(
         try modelContext.existingObject(with: id) as? ObservationIntegrationRoot
@@ -394,6 +425,63 @@
       #expect(titleCounter.value == 1)
       #expect(domain.pendingObjectCount == 0)
       #expect(domain.producerRegistrationCount == 0)
+    }
+
+    @MainActor
+    @Test("generated observed save failure clears staged token without rolling back context")
+    func generatedObservedSaveFailureClearsStagedTokenWithoutRollingBackContext() async throws {
+      guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+        return
+      }
+
+      let container = try makeContainer(testName: "ObservationGeneratedActorFailingSave")
+      let context = container.viewContext
+      let graph = try makeSavedGraph(in: context)
+      let domain = CDEObservationDomain(container: container)
+      let writer = ObservationGeneratedWriter(observationDomain: domain)
+
+      _ = graph.root.title
+      do {
+        try await writer.failRootTitleWithStoredObservedSave(id: graph.root.objectID)
+        Issue.record("Expected save failure for nil non-optional title.")
+      } catch {
+        #expect(domain.pendingObjectCount == 0)
+        #expect(domain.pendingTokenCount == 0)
+        let actorContextState = try await writer.invalidTitleState(id: graph.root.objectID)
+        #expect(actorContextState.hasChanges)
+        #expect(actorContextState.isUpdated)
+        #expect(actorContextState.hasInvalidTitle)
+      }
+    }
+
+    @MainActor
+    @Test("bound generated actor in-domain save failure also clears the registered producer token")
+    func boundGeneratedActorInDomainSaveFailureClearsRegisteredProducerToken() async throws {
+      guard #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) else {
+        return
+      }
+
+      let container = try makeContainer(testName: "ObservationGeneratedActorInDomainFailingSave")
+      let context = container.viewContext
+      let graph = try makeSavedGraph(in: context)
+      let domain = CDEObservationDomain(container: container)
+      let writer = ObservationGeneratedWriter(observationDomain: domain)
+
+      _ = graph.root.title
+      do {
+        try await writer.failRootTitleWithInDomainObservedSave(id: graph.root.objectID, in: domain)
+        Issue.record("Expected save failure for nil non-optional title.")
+      } catch {
+        // Two tokens target this save: the wrapper's manual stage and the registration's `willSave`
+        // stage. Without the `(in:)` path's `discardStagedSave(for:)` cleanup, the registration token
+        // would survive the thrown save, so this guards the three-path symmetry.
+        #expect(domain.pendingObjectCount == 0)
+        #expect(domain.pendingTokenCount == 0)
+        let actorContextState = try await writer.invalidTitleState(id: graph.root.objectID)
+        #expect(actorContextState.hasChanges)
+        #expect(actorContextState.isUpdated)
+        #expect(actorContextState.hasInvalidTitle)
+      }
     }
 
     // P0 regression guard (issue #16): inline construction makes the generated actor the sole strong

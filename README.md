@@ -238,22 +238,48 @@ Observation opt-in:
 @PersistentModel(observation: .mainActor)
 final class Item: NSManagedObject {
   var title: String = ""
+  var summary: String = ""
+}
+
+@NSModelActor
+actor ItemWriter {
+  func rename(
+    id: NSManagedObjectID,
+    to title: String
+  ) async throws {
+    guard let item = self[id, as: Item.self] else { return }
+    item.title = title
+    try await saveObservedChanges()
+  }
 }
 
 @MainActor
 final class Store {
+  let container: NSPersistentContainer
   let observation: CDEObservationDomain
+  let writer: ItemWriter
 
   init(container: NSPersistentContainer) {
-    observation = CDEObservationDomain(container: container)
+    self.container = container
+    let observation = CDEObservationDomain(container: container)
+    self.observation = observation
+    writer = ItemWriter(observationDomain: observation)
   }
 }
 ```
 
 This activates MainActor Swift Observation for CDE-generated accessors on the container's
 `viewContext`, so SwiftUI can read managed objects directly without a separate projection model.
-Refresh is save-gated and can be field-precise when the save source provides enough metadata. See the
-guide for producer routes, fallback rules, and re-merge behavior.
+`ItemWriter` is a background actor; creating it with `init(observationDomain:)` registers its actor
+context as an Observation producer and keeps the domain setup alive. Successful
+`saveObservedChanges()` calls from that actor provide property-level Observation response for updated
+objects. Direct `modelContext.save()` calls from the same registered context can also carry metadata,
+but `saveObservedChanges()` is the actor-facing API that makes the property-level Observation
+contract explicit. If save fails, CDE clears its own staged Observation metadata and rethrows without
+rolling back your context. Insert and delete operations do not need a property-level save wrapper; use
+ordinary Core Data saves for those. Refresh is save-gated and can be field-precise when the save
+source provides enough metadata. See the guide for producer routes, fallback rules, and re-merge
+behavior.
 
 ### 3. `cde-tool`
 

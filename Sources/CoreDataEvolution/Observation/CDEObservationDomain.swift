@@ -194,7 +194,12 @@
       return context
     }
 
-    /// Saves an arbitrary context with wrapper-owned rollback of staged observation metadata.
+    /// Saves update changes in an arbitrary context with wrapper-owned cleanup of staged metadata.
+    ///
+    /// Use this specialized path for update operations that need sibling-property precision. Insert
+    /// and delete operations do not need property-level metadata; ordinary Core Data saves are enough.
+    /// On save failure, CDE clears its staged Observation metadata and leaves business rollback
+    /// policy to the caller.
     public nonisolated func saveObservedChanges(in context: NSManagedObjectContext) async throws {
       try await withCheckedThrowingContinuation { continuation in
         context.perform {
@@ -207,7 +212,7 @@
             continuation.resume()
           } catch {
             self.rollbackPendingChangesFromProducer(token: token)
-            context.rollback()
+            CDEObservationProducerRegistration.discardStagedSave(for: context)
             continuation.resume(throwing: error)
           }
         }

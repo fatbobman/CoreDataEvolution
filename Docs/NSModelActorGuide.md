@@ -95,7 +95,8 @@ The Observation-aware initializer is available when CDE's MainActor Observation 
 init(observationDomain: CDEObservationDomain)
 ```
 
-It creates and registers the actor's background context through the domain:
+It creates a background context from the domain's container and registers that context with the
+domain:
 
 ```swift
 let container = observationDomain.modelContainer
@@ -105,9 +106,12 @@ modelExecutor = NSModelObjectContextExecutor(context: context)
 modelContainer = container
 ```
 
-Use this initializer when the actor owns background writes and you want direct
-`modelContext.save()` calls to produce property-level Observation metadata. The generated actor keeps
-the domain and producer registration alive for its own context. Inline construction is valid:
+Use this initializer when the actor owns background writes and you want saves from that actor context
+to produce property-level Observation metadata. The generated actor keeps the domain and producer
+registration alive for its own context. Prefer the generated `saveObservedChanges()` wrapper for
+observed update paths; successful direct `modelContext.save()` calls from the same registered context
+can also participate in precise routing, but `saveObservedChanges()` is the documented actor-facing
+Observation save API. Inline construction is valid:
 
 ```swift
 let writer = ItemStore(observationDomain: CDEObservationDomain(container: container))
@@ -199,13 +203,19 @@ For actors created with `init(observationDomain:)`, the generated no-argument
 try await saveObservedChanges()
 ```
 
+This method is the actor-facing API for property-level Observation invalidation of updated objects.
+In a bound actor, the retained producer registration snapshots updated fields during save and the
+domain routes only the affected observable key paths after a successful save. If save throws, CDE
+clears its staged Observation metadata and rethrows without rolling back the actor context. Insert and
+delete operations do not need property-level metadata; use normal Core Data saves for those paths.
+
 When the actor is not bound to an observation domain, this method falls back to a plain
 `modelContext.save()` and logs a one-time runtime warning that no CDE Observation metadata will be
 produced.
 
 This no-argument overload is generated with the initializer set. When using
-`@NSModelActor(disableGenerateInit: true)`, define your own save wrapper if you need stored-domain
-fallback behavior.
+`@NSModelActor(disableGenerateInit: true)`, define your own save wrapper if you need a no-argument
+domain-bound Observation save API.
 
 ## Custom Initializers
 
@@ -280,9 +290,9 @@ actor ItemStore {
 }
 ```
 
-For custom actors, keep your own save wrapper if you need optional fallback behavior. The existing
-`saveObservedChanges(in:)` remains useful for plain actor contexts that do not retain a producer
-registration.
+For custom actors, keep your own save wrapper if you need a no-argument domain-bound Observation save
+API. The existing `saveObservedChanges(in:)` remains useful for plain actor contexts that do not
+retain a producer registration.
 
 ## Testing Patterns
 

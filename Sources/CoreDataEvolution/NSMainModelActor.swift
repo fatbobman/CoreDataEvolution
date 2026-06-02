@@ -55,6 +55,9 @@ extension NSMainModelActor {
   extension NSMainModelActor {
     /// Saves `viewContext` changes through the active observation domain.
     ///
+    /// Use this only for update paths where you want to make the Observation intent explicit. Insert
+    /// and delete operations do not need property-level metadata; ordinary Core Data saves are enough.
+    ///
     /// `CDEObservationDomain` instruments `viewContext` directly, so this wrapper is symmetry sugar for
     /// the main-actor path rather than a separate correctness hook.
     public func saveObservedChanges(in observation: CDEObservationDomain) throws {

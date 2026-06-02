@@ -92,4 +92,10 @@ func withModelContext<T: Sendable>(
         + "Falling back to modelContext.save(); no CDE Observation metadata will be produced."
     )
   }
+
+  @available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
+  public func _cdeDiscardStagedObservationProducerSave(_ registration: AnyObject?) {
+    let registration = registration as? CDEObservationProducerRegistration
+    registration?.discardStagedSave()
+  }
 #endif

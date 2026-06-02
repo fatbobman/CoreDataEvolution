@@ -9,6 +9,73 @@
   }
 
   @available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
+  private final class CDEObservationProducerRegistrationWeakBox: @unchecked Sendable {
+    weak var registration: CDEObservationProducerRegistration?
+
+    init(_ registration: CDEObservationProducerRegistration) {
+      self.registration = registration
+    }
+  }
+
+  // Lookup table for failure cleanup paths that know only the context. It lets CDE clear its own
+  // staged producer metadata after a thrown save without rolling back the caller's context.
+  @available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
+  private final class CDEObservationProducerRegistrationRegistry: @unchecked Sendable {
+    private let lock = NSLock()
+    private var registrationsByContext:
+      [ObjectIdentifier: [CDEObservationProducerRegistrationWeakBox]] =
+        [:]
+
+    func insert(
+      _ registration: CDEObservationProducerRegistration,
+      for context: NSManagedObjectContext
+    ) {
+      lock.withLock {
+        let key = ObjectIdentifier(context)
+        var boxes = registrationsByContext[key] ?? []
+        boxes.removeAll { $0.registration == nil }
+        boxes.append(.init(registration))
+        registrationsByContext[key] = boxes
+      }
+    }
+
+    func remove(
+      _ registration: CDEObservationProducerRegistration,
+      for context: NSManagedObjectContext
+    ) {
+      lock.withLock {
+        let key = ObjectIdentifier(context)
+        guard var boxes = registrationsByContext[key] else {
+          return
+        }
+        boxes.removeAll { $0.registration == nil || $0.registration === registration }
+        registrationsByContext[key] = boxes.isEmpty ? nil : boxes
+      }
+    }
+
+    func discardStagedSave(for context: NSManagedObjectContext) {
+      let registrations = lock.withLock {
+        let key = ObjectIdentifier(context)
+        guard var boxes = registrationsByContext[key] else {
+          return [CDEObservationProducerRegistration]()
+        }
+        let registrations = boxes.compactMap(\.registration)
+        boxes.removeAll { $0.registration == nil }
+        registrationsByContext[key] = boxes.isEmpty ? nil : boxes
+        return registrations
+      }
+
+      for registration in registrations {
+        registration.discardStagedSave()
+      }
+    }
+  }
+
+  @available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
+  private let cdeObservationProducerRegistrationRegistry =
+    CDEObservationProducerRegistrationRegistry()
+
+  @available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
   /// Removable registration for an ordinary Core Data context that produces observation metadata.
   public final class CDEObservationProducerRegistration: @unchecked Sendable {
     private weak var domain: CDEObservationDomain?
@@ -30,6 +97,7 @@
     internal init(context: NSManagedObjectContext, domain: CDEObservationDomain) {
       self.context = context
       self.domain = domain
+      cdeObservationProducerRegistrationRegistry.insert(self, for: context)
       installObservers()
     }
 
@@ -67,6 +135,7 @@
       for token in state.observerTokens {
         NotificationCenter.default.removeObserver(token)
       }
+      cdeObservationProducerRegistrationRegistry.remove(self, for: context)
       if let stagedSave = state.stagedSave {
         domain?.rollbackPendingChangesFromProducer(token: stagedSave.token)
       }
@@ -184,7 +253,11 @@
       }
     }
 
-    private func discardStagedSave() {
+    internal static func discardStagedSave(for context: NSManagedObjectContext) {
+      cdeObservationProducerRegistrationRegistry.discardStagedSave(for: context)
+    }
+
+    internal func discardStagedSave() {
       let staged = lock.withLock {
         let staged = stagedSave
         stagedSave = nil

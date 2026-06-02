@@ -276,6 +276,12 @@ func makeModelActorMemberDecls(
       """
       #if compiler(>=6.2)
       @available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
+      /// Saves actor-isolated updates with property-level Observation metadata.
+      ///
+      /// Use this specialized path for update operations that need sibling-property precision. Insert
+      /// and delete operations do not need property-level metadata; ordinary Core Data saves are enough.
+      /// On save failure, CDE clears its staged Observation metadata and leaves business rollback
+      /// policy to the caller.
       \(raw: accessModifier)func saveObservedChanges() async throws {
         guard __cdeObservationDomain != nil else {
           CoreDataEvolution._cdeLogUnboundModelActorObservationSave()
@@ -285,7 +291,9 @@ func makeModelActorMemberDecls(
         do {
           try modelContext.save()
         } catch {
-          modelContext.rollback()
+          CoreDataEvolution._cdeDiscardStagedObservationProducerSave(
+            __cdeObservationProducerRegistration
+          )
           throw error
         }
       }

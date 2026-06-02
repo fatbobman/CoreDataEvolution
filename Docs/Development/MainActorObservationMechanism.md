@@ -1001,8 +1001,8 @@ Use these API shapes as complementary tools:
 2. Explicit save wrapper for any caller-owned context.
    - API shape: `observation.saveObservedChanges(in: context)`.
    - This is mechanically closest to `NSModelActor.saveObservedChanges(in:)`.
-   - Keep this path for stricter failure cleanup, because it can catch thrown `save()` directly and
-     roll back its staged token without waiting for rollback / reset / token invalidation.
+   - Keep this path for property-level update saves, because it can catch thrown `save()` directly,
+     clear its staged Observation token, and rethrow without rolling back the context.
 
 3. Factory helper for registered contexts.
    - API shape: `observation.newObservedBackgroundContext()`.
@@ -1014,9 +1014,9 @@ Use these API shapes as complementary tools:
 T21 result: registration with direct `save()` passed as a spike. A registered ordinary context can
 observe its own direct `save()` path closely enough to stage keys during `willSave`, promote them
 after `didSave`, and make them available before automatic or manual merge consumption. The explicit
-wrapper remains useful as the stricter failure-contract path, because direct notification
-registration still needs rollback, reset, or registration invalidation to clean staged metadata
-after a thrown save. The factory helper remains convenience only.
+wrapper remains useful as the explicit property-level update path, because direct notification
+registration still needs retry, rollback, reset, or registration invalidation to replace or clean
+staged metadata after a thrown save. The factory helper remains convenience only.
 
 Avoid these for the first implementation pass:
 
@@ -1172,7 +1172,7 @@ for the core `@PersistentModel(observation: .mainActor)` path.
 
 - `CDEObservationDomain` runtime owner, MainActor hub, and pending buffer integration for
   `viewContext`.
-- `NSModelActor.saveObservedChanges(in:)` metadata producer and rollback token handling.
+- `NSModelActor.saveObservedChanges(in:)` metadata producer and staged-token cleanup.
 - Ordinary context registration runtime API and cleanup contract.
 - Selective notification hook spike for CloudKit and framework-owned contexts.
 - Macro opt-in parsing, generated field IDs, fan-out maps, and registrar dispatch.
@@ -1311,8 +1311,8 @@ membership refresh becomes a supported mode.
 - Verify registered ordinary background contexts keep direct `context.save()` precise without
   swizzling and without default context extensions.
 - Verify unregistered ordinary background contexts remain objectID-only fallback.
-- Verify registered ordinary context cleanup covers save failure rollback, reset, deallocation /
-  invalidation, multiple producers, and multiple container domains.
+- Verify registered ordinary context cleanup covers save failure retry / rollback / reset,
+  deallocation / invalidation, multiple producers, and multiple container domains.
 - Verify `CDEObservationDomain` owns all observer tokens and pending metadata for one container, and
   `invalidate()` / deallocation removes hooks without touching unrelated containers.
 - Verify a selectively installed context save hook can observe framework-owned save/change paths

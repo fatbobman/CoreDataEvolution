@@ -128,9 +128,9 @@ Use the strongest producer route that matches the context you own.
 | Source | Public API | Precision | Notes |
 |---|---|---|---|
 | `viewContext` save | `try viewContext.save()` | property-level | A retained domain instruments its own `viewContext`; `NSMainModelActor.saveObservedChanges(in:)` is symmetry sugar. |
-| Observation-aware `@NSModelActor` background save | create the actor with `init(observationDomain:)`, then call `try modelContext.save()` or `try await saveObservedChanges()` | property-level after successful save | The generated initializer retains the domain and registration for its actor context. |
+| Observation-aware `@NSModelActor` background save | create the actor with `init(observationDomain:)`, then call `try await saveObservedChanges()` | property-level after successful save | `saveObservedChanges()` is the actor-facing API for property-level Observation response. Direct saves from the same registered context can also be precise, but this is the documented update path. |
 | Plain `@NSModelActor` background save | `try await saveObservedChanges(in: observation)` | property-level | Stages changed keys before save without suspending between staging and commit. |
-| Arbitrary context wrapper | `try await observation.saveObservedChanges(in: context)` | property-level | Preferred when thrown-save cleanup matters; the wrapper rolls back its staged token and the context on failure. |
+| Arbitrary context wrapper | `try await observation.saveObservedChanges(in: context)` | property-level | Clears CDE's staged Observation metadata on failure, then rethrows. It does not roll back the Core Data context. |
 | Registered ordinary context | `observation.registerChangeProducer(context:)`, then plain `context.save()` | property-level after successful save | If a direct save throws, call `rollback()`, `reset()`, or invalidate the registration to clear staged notification state. |
 | Convenience background context | `observation.newObservedBackgroundContext()` | property-level after successful save | Equivalent to `container.newBackgroundContext()` plus producer registration. |
 | Unregistered context | plain `context.save()` | objectID all-key fallback when merge provides object IDs | Sibling-property precision is not promised. |
@@ -148,19 +148,26 @@ actor ItemWriter {
   func rename(
     id: NSManagedObjectID,
     to title: String
-  ) throws {
+  ) async throws {
     guard let item = self[id, as: Item.self] else { return }
     item.title = title
-    try modelContext.save()
+    try await saveObservedChanges()
   }
 }
 
 let writer = ItemWriter(observationDomain: CDEObservationDomain(container: container))
 ```
 
-The generated actor retains the domain and producer registration for its actor context. Inline
-construction is supported: releasing the actor releases its retained domain/registration, and teardown
-is safe even when the actor's final release happens off the MainActor.
+The generated actor retains the domain and producer registration for its actor context.
+`saveObservedChanges()` is the actor-facing save API for update operations where property-level
+Observation response matters. The registered context snapshots updated objects during save, and the
+domain routes only the affected observable key paths after a successful save.
+
+A successful direct `modelContext.save()` from the same registered actor context can also participate
+in property-level routing, but prefer `saveObservedChanges()` for observed update paths because it
+states the Observation contract at the call site and clears CDE's staged metadata if save fails.
+Insert and delete operations do not need this wrapper; use normal Core Data saves and let merge
+notifications or lifecycle fallbacks refresh affected object identities.
 
 For an actor created with the plain `init(container:)`, use `NSModelActor.saveObservedChanges(in:)`
 for actor-owned background writes that need property-level metadata:
@@ -198,20 +205,22 @@ context.perform {
     // mutate observed model objects
     try context.save()
   } catch {
-    context.rollback()
+    // Decide whether to rollback, reset, retry, or keep editing.
   }
 }
 ```
 
-For failure-sensitive code, prefer the wrapper:
+For observed update code that should clear CDE's staged metadata on throw, use the wrapper:
 
 ```swift
 try await observation.saveObservedChanges(in: context)
 ```
 
-The wrapper can catch a thrown save and roll back its staged observation token. A registered direct
-save cannot observe a thrown `save()` by notification alone; after a failure, the caller must
-`rollback()`, `reset()`, or invalidate the returned registration.
+The wrapper can catch a thrown save and clear CDE's staged observation token before rethrowing. It
+does not call `context.rollback()`; rollback, reset, retry, or continued editing remain application
+policy. A registered direct save cannot observe a thrown `save()` by notification alone; after a
+failure, clear or replace the staged registration state by choosing the recovery action that matches
+your workflow, such as retrying the save, rolling back, resetting, or invalidating the registration.
 
 ## View Context Rollback
 
