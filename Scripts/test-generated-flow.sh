@@ -65,6 +65,7 @@ Environment overrides:
 
 Notes:
   - path mode validates the current workspace source via the checked-in fixture package.
+    The fixture pins the package identity so renamed checkouts still resolve CoreDataEvolution.
   - tag/branch/revision modes copy the fixture to a temp directory and rewrite only the
     fixture's Package.swift dependency, leaving the tracked fixture files untouched.
 EOF2
@@ -100,7 +101,7 @@ rewrite_fixture_dependency() {
   esac
 
   perl -0pi -e \
-    's/\.package\(path: "\.\.\/\.\."\)/$ENV{CDE_FIXTURE_DEPENDENCY_REPLACEMENT}/g' \
+    's/\.package\(\s*(?:name:\s*"CoreDataEvolution",\s*)?path:\s*"\.\.\/\.\."\s*\)/$ENV{CDE_FIXTURE_DEPENDENCY_REPLACEMENT}/g' \
     "$package_file"
 }
 
