@@ -224,7 +224,8 @@ It gives you:
 - generated to-many relationship helper APIs
 - typed key/path metadata for sort and predicate construction
 - runtime schema metadata for tests and debug workflows
-- optional MainActor Observation for generated accessors on iOS 17+ / macOS 14+
+- optional MainActor Observation for generated accessors with a Swift 6.2+ compiler on iOS 17+ /
+  macOS 14+ platform families
 
 Guide:
 
@@ -585,9 +586,12 @@ closer to modern Swift, that is the space this library is designed for.
 ## System Requirements
 
 - iOS 13.0+ / macOS 10.15+ / watchOS 6.0+ / visionOS 1.0+ / tvOS 13.0+
-- Swift 6.0
+- Swift 6.0 for the package baseline
+- Swift 6.2+ compiler for MainActor Observation opt-in
 
-Note: The custom executor uses a compatible `UnownedJob` serial-executor path to support the minimum deployment targets.
+Note: The custom executor uses a compatible `UnownedJob` serial-executor path to support the
+minimum deployment targets. MainActor Observation additionally requires iOS 17+ / macOS 14+ /
+tvOS 17+ / watchOS 10+ / visionOS 1+ platform support.
 
 ## Contributing
 

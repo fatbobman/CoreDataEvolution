@@ -4,7 +4,11 @@ Revolutionizing Core Data with SwiftData-inspired Concurrent Operations
 
 ## Overview
 
-CoreDataEvolution is a library aimed at modernizing Core Data by incorporating the elegance and safety of SwiftData-style concurrency. This library is designed to simplify and enhance Core Data's handling of multithreading, drawing inspiration from SwiftData's `@ModelActor` feature, enabling efficient, safe, and scalable operations.
+CoreDataEvolution modernizes Core Data at the Swift source layer while keeping Core Data as the
+runtime persistence engine. It brings SwiftData-style actor isolation, macro-based
+`NSManagedObject` declarations, typed path metadata for sort and predicate code, runtime schema
+metadata for test/debug workflows, and optional tooling for keeping source declarations aligned
+with `.xcdatamodeld` models.
 
 ## Motivation
 
@@ -22,7 +26,31 @@ The `@NSModelActor` macro simplifies Core Data concurrency, mirroring SwiftData'
 
 ### NSMainModelActor Macro
 
-`NSMainModelActor` is the main-thread companion macro for classes. It binds `modelContext` to `viewContext` and is intended for `@MainActor` types.
+`@NSMainModelActor` is the main-thread companion macro for classes. It binds `modelContext` to
+`viewContext` and is intended for MainActor-isolated types.
+
+### @PersistentModel And Related Macros
+
+`@PersistentModel` is a Swift-facing representation layer for existing Core Data entities. It
+generates Core Data accessors, typed key/path metadata, runtime schema metadata, optional
+memberwise initialization, relationship helper APIs, and optional MainActor Observation support.
+
+Related macros describe storage, relationships, ignored properties, composition-backed values, and
+composition field names while keeping the real schema anchored in Core Data.
+
+### Typed Paths For Sort And Predicate Code
+
+Generated `Keys` and `path` members use `__cdFieldTable` metadata to map Swift-facing property
+paths back to persistent Core Data keys. This lets sort descriptors and `%K`-based `NSPredicate`
+builders survive renamed fields, custom storage strategies, composition paths, and relationship
+paths without falling back to string literals at call sites.
+
+### Storage Strategy And Runtime Schema
+
+`@Attribute(storageMethod:)` makes source-level storage choices explicit for default primitive
+fields, raw-representable values, Codable payloads, registered value transformers, and Core Data
+composite attributes. `@PersistentModel` also emits runtime schema metadata that can build
+test/debug `NSManagedObjectModel` instances without replacing production `.xcdatamodeld` workflows.
 
 ### Elegant Actor-based Concurrency
 
@@ -114,7 +142,7 @@ Add CoreDataEvolution to your project using Swift Package Manager:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/fatbobman/CoreDataEvolution.git", .upToNextMajor(from: "0.7.7"))
+    .package(url: "https://github.com/fatbobman/CoreDataEvolution.git", .upToNextMajor(from: "0.9.2"))
 ]
 ```
 
@@ -127,10 +155,12 @@ import CoreDataEvolution
 ## System Requirements
 
 - iOS 13.0+ / macOS 10.15+ / watchOS 6.0+ / visionOS 1.0+ / tvOS 13.0+
-- Swift 6.0
+- Swift 6.0 for the package baseline
+- Swift 6.2+ compiler for MainActor Observation opt-in
 
-> Important: The custom executor uses a compatible `UnownedJob` serial-executor path to support the minimum deployment targets.
-> MainActor Observation additionally requires a Swift 6.2+ compiler and iOS 17+ / macOS 14+ platform families.
+> Important: The custom executor uses a compatible `UnownedJob` serial-executor path to support the
+> minimum deployment targets. MainActor Observation additionally requires iOS 17+ / macOS 14+ /
+> tvOS 17+ / watchOS 10+ / visionOS 1+ platform support.
 
 ## Acknowledgments
 
@@ -138,10 +168,41 @@ Thanks to [@rnine](https://github.com/rnine) for sharing and validating the iOS 
 
 ## Topics
 
-### Actors
+### Actor Isolation
 
 - ``NSModelActor``
 - ``NSMainModelActor``
+- ``NSModelObjectContextExecutor``
+
+### Model Declaration Macros
+
+- ``PersistentModel``
+- ``Attribute``
+- ``Relationship``
+- ``Ignore``
+- ``Composition``
+- ``CompositionField``
+
+### Storage And Runtime Schema
+
+- ``AttributeStorageMethod``
+- ``AttributeDecodeFailurePolicy``
+- ``AttributeTrait``
+- ``CDRegisteredValueTransformer``
+- ``CDRuntimeModelBuilder``
+- ``CDRuntimeSchemaProviding``
+
+### Typed Paths
+
+- ``CoreDataKeys``
+- ``CoreDataPathDSLProviding``
+- ``CDPath``
+- ``CDFilterField``
+- ``CDCollectionQuantifier``
+- ``SortOrder``
+- ``SortCollation``
+- ``SortExecutionMode``
+- ``CDSortDescriptorError``
 
 ### Observation
 
@@ -149,13 +210,3 @@ Thanks to [@rnine](https://github.com/rnine) for sharing and validating the iOS 
 - ``CDEObservationDomain``
 - ``CDEObservationProducerRegistration``
 - ``CDEPreciseRouteEchoSuppression``
-
-### Executors
-
-- Custom executors for Core Data contexts
-- Thread-safe operations
-
-### Migration
-
-- Migrating from traditional Core Data patterns
-- SwiftData compatibility considerations

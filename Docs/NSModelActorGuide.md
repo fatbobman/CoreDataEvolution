@@ -382,16 +382,20 @@ That is required so the synthesized conformance extension can still see the witn
 ### `@NSMainModelActor`
 
 - attach it to a `class`
-- mark the type `@MainActor`
+- make the type MainActor-isolated; in ordinary source this means marking it `@MainActor`
 - if you disable init generation, assign `modelContainer` yourself
 - the type always uses `viewContext`
 
-`@MainActor` remains a source-level requirement. The macro does not silently rewrite the attached
-type's isolation attributes for you.
+MainActor isolation remains a source-level requirement. The macro does not silently rewrite the
+attached type's isolation attributes for you.
+
+The macro intentionally does not require an explicit `@MainActor` diagnostic. Swift 6.2 modules can
+use `defaultIsolation(MainActor.self)`, which makes the class MainActor-isolated without an
+attribute the macro can safely inspect.
 
 ## Common Mistakes
 
-### Forgetting `@MainActor` on `@NSMainModelActor`
+### Forgetting MainActor isolation on `@NSMainModelActor`
 
 Bad:
 
@@ -408,8 +412,8 @@ Good:
 final class ItemViewModel {}
 ```
 
-The macro does not currently enforce `@MainActor` itself. This is still a source-level rule you
-should follow rather than something the macro silently rewrites on your behalf.
+If your module does not use default MainActor isolation, write `@MainActor` explicitly. The macro
+does not enforce the spelling because doing so would reject valid Swift 6.2 default-isolation code.
 
 ### Disabling init generation without assigning generated members
 
