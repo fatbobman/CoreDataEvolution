@@ -21,10 +21,6 @@ let package = Package(
       targets: ["CoreDataEvolution"],
     ),
     .executable(
-      name: "CoreDataEvolutionClient",
-      targets: ["CoreDataEvolutionClient"],
-    ),
-    .executable(
       name: "cde-tool",
       targets: ["CDETool"],
     ),
@@ -103,6 +99,7 @@ let package = Package(
         "__Snapshots__",
       ]
     ),
+    // Root-package smoke target only; keep it out of products until it becomes a real example.
     .executableTarget(name: "CoreDataEvolutionClient", dependencies: ["CoreDataEvolution"]),
     .executableTarget(
       name: "CDETool",
