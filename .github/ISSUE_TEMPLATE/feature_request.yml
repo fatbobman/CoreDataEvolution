@@ -1,0 +1,49 @@
+name: Feature request
+description: Propose an improvement to CoreDataEvolution
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Actor isolation / NSModelActor
+        - MainActor Observation
+        - PersistentModel or model macros
+        - TypedPath / sort / predicate
+        - cde-tool / generated source
+        - Documentation
+        - Project workflow
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What user problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed shape
+      description: Describe the API, tooling behavior, guide, or workflow you are proposing.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Mention existing workarounds or narrower approaches.
+    validations:
+      required: false
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility notes
+      description: Call out platform, Swift version, Core Data model, migration, or source compatibility concerns.
+    validations:
+      required: false

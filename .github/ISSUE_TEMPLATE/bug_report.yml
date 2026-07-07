@@ -1,0 +1,71 @@
+name: Bug report
+description: Report a reproducible CoreDataEvolution problem
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please include enough environment and package-area detail for a focused reproduction.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Actor isolation / NSModelActor
+        - MainActor Observation
+        - PersistentModel or model macros
+        - TypedPath / sort / predicate
+        - cde-tool / generated source
+        - Swift Package build
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Problem summary
+      description: What happened, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      description: Include a minimal model, macro use, command, or code snippet when possible.
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include versions and platform details.
+      value: |
+        - CoreDataEvolution version or commit:
+        - Swift version:
+        - Xcode version:
+        - macOS version:
+        - Target platform and deployment target:
+    validations:
+      required: true
+  - type: textarea
+    id: core-data
+    attributes:
+      label: Core Data / model details
+      description: Mention relevant entity, relationship, transformable, composition, or model-generation details.
+    validations:
+      required: false
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Logs, diagnostics, or generated output
+      description: Paste only non-sensitive output. For macro issues, include the relevant diagnostic or generated source if possible.
+      render: text
+    validations:
+      required: false

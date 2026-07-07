@@ -1,0 +1,26 @@
+name: Documentation issue
+description: Report unclear, missing, or outdated documentation
+title: "[Docs]: "
+labels:
+  - documentation
+body:
+  - type: textarea
+    id: location
+    attributes:
+      label: Documentation location
+      description: Link or name the README, DocC page, guide, or development document.
+    validations:
+      required: true
+  - type: textarea
+    id: issue
+    attributes:
+      label: What is unclear or outdated?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Suggested correction
+      description: Optional, but helpful if you already know the intended wording or behavior.
+    validations:
+      required: false

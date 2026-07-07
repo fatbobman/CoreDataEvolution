@@ -591,7 +591,11 @@ Note: The custom executor uses a compatible `UnownedJob` serial-executor path to
 
 ## Contributing
 
-We welcome contributions! Whether you want to report issues, propose new features, or contribute to the code, feel free to open issues or pull requests on the GitHub repository.
+We welcome contributions. Before opening an issue or pull request, please read
+[CONTRIBUTING.md](./CONTRIBUTING.md) for setup, validation, and formatting guidance.
+
+If you need to report a security concern, please follow [SECURITY.md](./SECURITY.md) instead of
+posting sensitive details in a public issue.
 
 ## License
 
