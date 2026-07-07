@@ -12,6 +12,10 @@
 import CoreData
 import Foundation
 
+#if compiler(>=6.2)
+  import OSLog
+#endif
+
 /// Shared helpers used by both actor-flavored Core Data facades.
 ///
 /// Both public protocols intentionally expose the same lookup and `withContext` behavior. The only
@@ -86,10 +90,12 @@ func withModelContext<T: Sendable>(
     guard cdeModelActorObservationFallbackLogState.shouldLog() else {
       return
     }
-    NSLog(
-      "CoreDataEvolution Observation warning: saveObservedChanges() was called on an "
-        + "@NSModelActor instance that was not created with init(observationDomain:). "
-        + "Falling back to modelContext.save(); no CDE Observation metadata will be produced."
+    cdeObservationLogger.warning(
+      """
+      CoreDataEvolution Observation warning: saveObservedChanges() was called on an \
+      @NSModelActor instance that was not created with init(observationDomain:). \
+      Falling back to modelContext.save(); no CDE Observation metadata will be produced.
+      """
     )
   }
 

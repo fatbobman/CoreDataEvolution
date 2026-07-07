@@ -3,14 +3,19 @@
   import Foundation
   import OSLog
 
+  // Keep the Observation logger outside `CDEObservationDomain` so nonisolated fallback hooks can log
+  // without touching MainActor-isolated domain state.
+  @available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
+  internal let cdeObservationLogger = Logger(
+    subsystem: "CoreDataEvolution",
+    category: "Observation"
+  )
+
   @MainActor
   @available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *)
   /// Container-bound MainActor observation runtime for one Core Data `viewContext`.
   public final class CDEObservationDomain {
-    internal static let debugLogger = Logger(
-      subsystem: "CoreDataEvolution",
-      category: "Observation"
-    )
+    internal static let debugLogger = cdeObservationLogger
 
     private let container: NSPersistentContainer
     internal let viewContext: NSManagedObjectContext
