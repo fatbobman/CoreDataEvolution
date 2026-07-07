@@ -823,6 +823,24 @@ It also does not remove the need to understand the model rules from
 
 The CLI works because those rules are intentionally strict and tooling-friendly.
 
+## Known Limitations
+
+The current v1 boundaries are documented in
+[CDEToolKnownLimitations.md](./CDEToolKnownLimitations.md).
+
+Read that page before making `cde-tool` part of CI. The highest-impact boundaries are:
+
+- the tool accepts source models, not compiled `.mom` / `.momd` artifacts
+- `bootstrap-config` does not infer higher-level semantic rules such as enum/raw mappings,
+  composition candidates, or domain-specific renames
+- `validate` checks source declarations and config rules; it does not inspect macro-expanded
+  members such as `Keys`, `path`, or `__cdFieldTable` directly
+- `exact` is a text-level generated-output drift check, so formatters and hand edits can produce
+  drift even when Swift semantics are unchanged
+- `validate --fix` only applies deterministic edits and leaves higher-risk changes as diagnostics
+
+These are current tool boundaries, not roadmap promises.
+
 ## Recommended Team Workflow
 
 For a team project, the most stable approach is:
@@ -843,6 +861,7 @@ That gives you:
 
 ## Related Guides
 
+- [CDEToolKnownLimitations.md](./CDEToolKnownLimitations.md)
 - [PersistentModelGuide.md](./PersistentModelGuide.md)
 - [StorageMethodGuide.md](./StorageMethodGuide.md)
 - [TypedPathGuide.md](./TypedPathGuide.md)
