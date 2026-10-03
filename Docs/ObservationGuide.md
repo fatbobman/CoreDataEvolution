@@ -28,6 +28,11 @@ Observation platform support:
 The package still supports lower deployment targets for its other features. Keep Observation-specific
 code behind matching availability when your app targets older OS versions.
 
+The ordinary `@NSModelActor` initializer, `init(container:)`, supports the package's minimum
+deployment targets. Its generated cleanup checks platform availability before accessing Observation
+registration types. Only `init(observationDomain:)` and `saveObservedChanges()` require the
+Observation platform versions listed above.
+
 ## Minimal Model
 
 ```swift

@@ -20,6 +20,7 @@ Related reading: [Why I'm Still Thinking About Core Data in 2026](https://fatbob
 - Declare Core Data entities in Swift with `@PersistentModel`, plus explicit attribute, relationship, composition, and storage metadata.
 - Generate typed keys and paths for sort descriptors and `%K`-based predicates, including renamed fields and relationship paths.
 - Opt generated accessors into MainActor Observation on supported Swift and OS versions.
+- Mirror built-in numeric, string-length, ICU-pattern, and fixed-date validation rules in `@Attribute`, with model alignment checks and pure-code test coverage.
 - Build runtime schemas and isolated SQLite containers for test and debug workflows without replacing production `.xcdatamodeld` files.
 - Use `cde-tool` to generate declarations, validate model/source alignment, inspect models, and bootstrap configuration.
 
@@ -85,6 +86,7 @@ struct Example {
 - Want Swift-first model declarations and generated members? Read the [PersistentModel Guide](Docs/PersistentModelGuide.md).
 - Want SwiftUI to observe generated Core Data accessors? Read the [Observation Guide](Docs/ObservationGuide.md).
 - Want type-safe sort and predicate paths? Read the [TypedPath Guide](Docs/TypedPathGuide.md).
+- Want attribute constraints, regex mapping, and test coverage details? Read the [Attribute Validation Guide](Docs/AttributeValidationGuide.md).
 - Want to choose attribute storage strategies? Read the [Storage Method Guide](Docs/StorageMethodGuide.md).
 - Want to generate or validate declarations with the CLI? Read the [cde-tool Guide](Docs/CDEToolGuide.md).
 - Want to understand the CLI's current boundaries? Read [cde-tool Known Limitations](Docs/CDEToolKnownLimitations.md).

@@ -274,11 +274,28 @@ public macro _CDObserved(
 ///   - persistentName: The Core Data attribute name when it differs from the Swift property name.
 ///   - storageMethod: The storage strategy used by the generated accessors.
 ///   - decodeFailurePolicy: Decode failure handling for storage methods that decode values.
+///   - min: Inclusive numeric model bound, written as a finite decimal literal.
+///   - max: Inclusive numeric model bound, written as a finite decimal literal.
+///   - minLength: Inclusive Core Data string length bound, written as a non-negative integer literal.
+///   - maxLength: Inclusive Core Data string length bound, written as a non-negative integer literal.
+///   - regex: Non-interpolated ICU pattern string; tooling compares decoded pattern values exactly.
+///   - minDate: Inclusive fixed date bound; dynamic expressions such as `Date()` are rejected.
+///   - maxDate: Inclusive fixed date bound; dynamic expressions such as `Date()` are rejected.
+///
+/// Validation rules require `.default` storage. They mirror production `.xcdatamodeld` constraints
+/// and are installed in pure-code test models, without adding validation to generated setters.
 @attached(accessor)
 @attached(peer, names: arbitrary)
 public macro Attribute(
   _ traits: AttributeTrait...,
   persistentName: String? = nil,
   storageMethod: AttributeStorageMethod? = nil,
-  decodeFailurePolicy: AttributeDecodeFailurePolicy? = nil
+  decodeFailurePolicy: AttributeDecodeFailurePolicy? = nil,
+  min: Decimal? = nil,
+  max: Decimal? = nil,
+  minLength: Int? = nil,
+  maxLength: Int? = nil,
+  regex: String? = nil,
+  minDate: Date? = nil,
+  maxDate: Date? = nil
 ) = #externalMacro(module: "CoreDataEvolutionMacros", type: "AttributeMacro")

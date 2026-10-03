@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="AttributeValidationSample" representedClassName="AttributeValidationSample" syncable="YES">
+        <attribute name="unrestricted" optional="YES" attributeType="String"/>
+        <attribute name="name" optional="YES" attributeType="String" minValueString="1" maxValueString="8" regularExpressionString=".*\S.*"/>
+        <attribute name="count" optional="YES" attributeType="Integer 64" minValueString="0" maxValueString="255" usesScalarValueType="YES"/>
+        <attribute name="timestamp" optional="YES" attributeType="Date" minDateTimeInterval="0" maxDateTimeInterval="120" usesScalarValueType="NO"/>
+        <attribute name="precise" optional="YES" attributeType="Integer 64" minValueString="9007199254740993" maxValueString="9223372036854775807" usesScalarValueType="YES"/>
+        <attribute name="amount" optional="YES" attributeType="Decimal" minValueString="0" maxValueString="1"/>
+    </entity>
+</model>

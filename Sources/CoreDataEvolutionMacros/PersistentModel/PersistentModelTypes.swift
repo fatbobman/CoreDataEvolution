@@ -9,6 +9,7 @@
 //  ------------------------------------------------
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
+import CoreDataEvolutionSchemaSupport
 import SwiftSyntax
 
 let persistentModelMacroDomain = "CoreDataEvolution.PersistentModelMacro"
@@ -57,6 +58,7 @@ struct PersistentAttributeProperty {
   let defaultValueExpression: String?
   let isUnique: Bool
   let isTransient: Bool
+  let validation: CDAttributeValidationRules
   let isObservationTracked: Bool
 }
 

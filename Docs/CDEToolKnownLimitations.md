@@ -50,6 +50,12 @@ or raw-value types.
 
 ## Validate Boundaries
 
+Built-in numeric, string-length, ICU-pattern, and fixed-date constraints are supported only for
+`.default` storage. Regex comparison checks decoded pattern equality, not matching-language
+equivalence. Dynamic rule expressions, custom model predicates/warnings, and constraints on custom
+storage are not silently approximated. See [AttributeValidationGuide.md](./AttributeValidationGuide.md)
+for diagnostics and real-model test requirements.
+
 `validate` checks source declarations against the model and config rules.
 
 It assumes the package macros expand correctly. It does not directly validate macro-generated

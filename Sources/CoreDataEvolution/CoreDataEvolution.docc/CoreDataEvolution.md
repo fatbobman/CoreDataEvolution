@@ -24,6 +24,10 @@ CoreDataEvolution provides custom executors that ensure all operations on manage
 
 The `@NSModelActor` macro simplifies Core Data concurrency, mirroring SwiftData's `@ModelActor` macro. It generates the necessary boilerplate code to manage a Core Data stack within an actor, ensuring safe and efficient access to managed objects.
 
+The generated `init(container:)` supports the package's minimum deployment targets. Observation
+initialization and saving require iOS 17+ / macOS 14+ platform families; actor cleanup checks that
+availability before accessing Observation registration types.
+
 ### NSMainModelActor Macro
 
 `@NSMainModelActor` is the main-thread companion macro for classes. It binds `modelContext` to
@@ -70,6 +74,23 @@ publish property-level Observation metadata. Inline domain construction is suppo
 actor releases its retained domain setup safely.
 
 ## Basic Usage
+
+### Attribute Validation
+
+``Attribute`` can declare `min` / `max`, `minLength` / `maxLength` / `regex`, and fixed
+`minDate` / `maxDate` constraints for default primitive storage. Production constraints still come
+from `.xcdatamodeld`; `cde-tool` generates and checks the corresponding Swift declarations.
+
+```swift
+@Attribute(persistentName: "name", minLength: 1, regex: #".*\S.*"#)
+var title: String?
+```
+
+Regex uses ICU strings. Tooling compares decoded pattern values exactly, so escaped and raw
+spellings can pass conformance validation against the same pattern. It does not infer equivalence
+between different patterns. Pure-code test models install supported save-time rules; dynamic
+expressions and custom-storage constraints are rejected rather than silently omitted.
+
 
 Here's how you can use CoreDataEvolution to manage concurrent Core Data operations with an actor:
 

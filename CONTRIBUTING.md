@@ -6,7 +6,7 @@ that scope clear and preserve the package's broad platform compatibility.
 
 ## Before You Start
 
-- Check existing issues or task records before opening overlapping work.
+- Check existing issues before opening overlapping work.
 - Keep changes focused on one concern: runtime behavior, macros, tooling, generated output, tests,
   or documentation.
 - Do not add APIs that require iOS 17+ or macOS 14+ unless they are guarded by explicit availability
@@ -52,10 +52,9 @@ bash Scripts/test-integration-model.sh
 bash Scripts/test-generated-flow.sh
 ```
 
-For docs-only or task-record-only changes:
+For docs-only changes:
 
 ```bash
-node Scripts/task-index.mjs validate
 git diff --check
 git diff --name-only -- '*.swift'
 ```
@@ -88,7 +87,7 @@ Please include:
 - release notes impact, if users need to take action
 
 Macro, tooling, and Core Data concurrency changes should include focused tests whenever practical.
-Documentation-only changes should still pass whitespace and task-record validation where relevant.
+Documentation-only changes should still pass whitespace checks.
 
 ## Security Reports
 

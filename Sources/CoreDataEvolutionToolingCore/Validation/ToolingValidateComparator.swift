@@ -9,6 +9,7 @@
 //  ------------------------------------------------
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
+import CoreDataEvolutionSchemaSupport
 import Foundation
 
 /// Compares model/config expectations against parsed developer source.
@@ -291,6 +292,30 @@ public enum ToolingValidateComparator {
     }
 
     let actualStorageMethod = sourceProperty.attribute?.storageMethod ?? .default
+    let actualValidation = sourceProperty.attribute?.validation ?? .init()
+    do {
+      if let issue = sourceProperty.attribute?.validationIssue {
+        throw CDAttributeValidationError.invalid(issue)
+      }
+      if !actualValidation.isEmpty && actualStorageMethod != .default {
+        throw CDAttributeValidationError.invalid(
+          "Validation rules only support `.default` storage; custom storage cannot be tested faithfully."
+        )
+      }
+      let primitiveType = normalizeTypeName(sourceProperty.nonOptionalTypeName) ?? "<missing>"
+      try actualValidation.validate(primitiveType: primitiveType)
+      if actualValidation != attribute.validation {
+        diagnostics.append(
+          error(
+            "validate found attribute validation mismatch for '\(entityName).\(expectedPropertyName)' (persistent field '\(attribute.persistentName)'). Expected [\(attribute.validation.swiftArguments.joined(separator: ", "))], found [\(actualValidation.swiftArguments.joined(separator: ", "))]. Regex patterns are compared exactly after Swift string decoding, not by matching-language equivalence."
+          ))
+      }
+    } catch {
+      diagnostics.append(
+        Self.error(
+          "Invalid attribute validation for '\(entityName).\(expectedPropertyName)': \(error.localizedDescription)"
+        ))
+    }
     if actualStorageMethod != attribute.storage.method {
       diagnostics.append(
         error(
@@ -739,6 +764,11 @@ public enum ToolingValidateComparator {
     attribute: ToolingAttributeIR,
     sourceProperty: ToolingSourcePropertyIR
   ) -> ToolingFixSuggestion? {
+    // Rewriting another annotation field must not silently change a developer's validation rules.
+    guard sourceProperty.attribute?.validationIssue == nil,
+      (sourceProperty.attribute?.validation ?? .init()) == attribute.validation,
+      attribute.validationIssue == nil
+    else { return nil }
     guard
       let annotationText = renderExpectedAttributeAnnotation(
         expectedPropertyName: propertyName,
@@ -909,6 +939,8 @@ public enum ToolingValidateComparator {
     if let decodeFailurePolicy = attribute.storage.decodeFailurePolicy {
       arguments.append("decodeFailurePolicy: .\(decodeFailurePolicy.rawValue)")
     }
+
+    arguments.append(contentsOf: attribute.validation.swiftArguments)
 
     guard arguments.isEmpty == false else {
       return nil

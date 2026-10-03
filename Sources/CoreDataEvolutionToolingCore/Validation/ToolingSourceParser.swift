@@ -400,6 +400,8 @@ private func parseAttributeAnnotation(
   var transformerTypeName: String?
   var decodeFailurePolicy: ToolingDecodeFailurePolicy?
 
+  let validation = toolingAttributeValidation(attribute)
+
   for argument in list {
     guard let label = argument.label?.text else {
       let raw = normalizedExpression(argument.expression)
@@ -441,7 +443,9 @@ private func parseAttributeAnnotation(
     storageMethod: storageMethod,
     transformerName: transformerName,
     transformerTypeName: transformerTypeName,
-    decodeFailurePolicy: decodeFailurePolicy
+    decodeFailurePolicy: decodeFailurePolicy,
+    validation: validation.rules,
+    validationIssue: validation.issue
   )
 }
 

@@ -10,6 +10,7 @@
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
 import CoreData
+import CoreDataEvolutionSchemaSupport
 import Foundation
 
 /// Errors raised while assembling a test/debug Core Data model from macro-emitted runtime schema.
@@ -258,6 +259,15 @@ public enum CDRuntimeModelBuilder {
         NSValueTransformerName.secureUnarchiveFromDataTransformerName.rawValue
     }
 
+    if !attribute.validation.isEmpty {
+      // Do not silently drop a declared rule when constructing a pure-code test model.
+      guard case .primitive = attribute.storage else {
+        throw CDAttributeValidationError.invalid(
+          "Validation for '\(entityName).\(attribute.persistentName)' requires primitive storage; this rule cannot be tested faithfully."
+        )
+      }
+      try attribute.validation.apply(to: description)
+    }
     return description
   }
 

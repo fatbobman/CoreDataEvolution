@@ -6,6 +6,8 @@ CoreDataEvolution 为 Core Data 带来 Actor 隔离、Swift 优先的 `NSManaged
 
 [English](README.md) | 中文
 
+属性约束支持数值范围、字符串长度、ICU 正则和固定日期范围；`cde-tool` 检查真实模型与源码的一致性，纯代码测试模型复现受支持的保存时验证。详见[属性验证指南](Docs/AttributeValidationGuide.md)。
+
 ## 动机
 
 对于依赖成熟对象图、迁移能力与存储行为的应用，Core Data 仍是务实的基础设施，但其默认源码形态与并发模式和现代 Swift 之间已有距离。项目往往因此积累手写访问器、字符串查询键、上下文传递约定，以及模型与源码之间的偏移。

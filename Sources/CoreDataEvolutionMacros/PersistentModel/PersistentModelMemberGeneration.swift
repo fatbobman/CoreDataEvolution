@@ -645,6 +645,9 @@ func makeRuntimeEntitySchemaDecl(
 ) -> DeclSyntax {
   let attributeRows = model.attributes.map { attribute in
     let transientArgument = attribute.isTransient ? ",\n      isTransient: true" : ""
+    let validationArgument =
+      attribute.validation.isEmpty
+      ? "" : ",\n      validation: \(attribute.validation.schemaExpression)"
     return """
       CoreDataEvolution.CDRuntimeAttributeSchema(
         swiftName: "\(attribute.propertyName)",
@@ -653,7 +656,7 @@ func makeRuntimeEntitySchemaDecl(
         isOptional: \(attribute.isOptional),
         defaultValueExpression: \(runtimeDefaultValueExpression(attribute.defaultValueExpression)),
         storage: \(runtimeStorageExpression(attribute)),
-        isUnique: \(attribute.isUnique)\(transientArgument)
+        isUnique: \(attribute.isUnique)\(transientArgument)\(validationArgument)
       )
       """
   }.joined(separator: ",\n")

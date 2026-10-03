@@ -9,6 +9,7 @@
 //  ------------------------------------------------
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
+import CoreDataEvolutionSchemaSupport
 import Foundation
 
 /// Top-level inspectable model graph shared by `inspect` and future generate/validate engines.
@@ -121,6 +122,8 @@ public struct ToolingEntityIR: Codable, Sendable, Equatable {
 /// Model defaults are preserved as pre-rendered Swift literals so generate can use the exact model
 /// value without re-deriving it from the resolved Swift type.
 public struct ToolingAttributeIR: Codable, Sendable, Equatable {
+  public let validation: CDAttributeValidationRules
+  public let validationIssue: String?
   public let persistentName: String
   public let swiftName: String
   public let coreDataAttributeType: String
@@ -142,7 +145,9 @@ public struct ToolingAttributeIR: Codable, Sendable, Equatable {
     isOptional: Bool,
     hasModelDefaultValue: Bool,
     modelDefaultValueLiteral: String?,
-    storage: ToolingStorageIR
+    storage: ToolingStorageIR,
+    validation: CDAttributeValidationRules = .init(),
+    validationIssue: String? = nil
   ) {
     self.persistentName = persistentName
     self.swiftName = swiftName
@@ -154,6 +159,8 @@ public struct ToolingAttributeIR: Codable, Sendable, Equatable {
     self.hasModelDefaultValue = hasModelDefaultValue
     self.modelDefaultValueLiteral = modelDefaultValueLiteral
     self.storage = storage
+    self.validation = validation
+    self.validationIssue = validationIssue
   }
 }
 

@@ -1,11 +1,48 @@
+# macOS
 .DS_Store
-/.build
-**/.build/
-/Packages
-xcuserdata/
-DerivedData/
+.AppleDouble
+.LSOverride
+._*
+
+# Swift Package Manager
+.build/
+Packages/
 .swiftpm/
-.netrc
+Package.resolved
+
+# Xcode
+build/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.xcresult
+*.xcarchive
+*.dSYM
+*.dSYM.zip
+
+# Editors
 .vscode/
-*.resolved
+.idea/
+*.swp
+*.swo
+*~
+
+# Local environment and temporary output
+.netrc
+.env
+.env.*
+!.env.example
+*.log
+logs/
+.tmp/
 .cache/
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+
+# Coverage and profiling
+.coverage/
+*.profraw
+*.profdata

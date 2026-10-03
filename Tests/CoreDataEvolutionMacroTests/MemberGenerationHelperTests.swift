@@ -33,6 +33,7 @@ struct MemberGenerationHelperTests {
             defaultValueExpression: "\"\"",
             isUnique: false,
             isTransient: false,
+            validation: .init(),
             isObservationTracked: false
           )
         ),
@@ -47,6 +48,7 @@ struct MemberGenerationHelperTests {
             defaultValueExpression: "nil",
             isUnique: false,
             isTransient: false,
+            validation: .init(),
             isObservationTracked: false
           )
         ),
@@ -112,6 +114,7 @@ struct MemberGenerationHelperTests {
             defaultValueExpression: "\"\"",
             isUnique: false,
             isTransient: false,
+            validation: .init(),
             isObservationTracked: false
           )
         ),
@@ -126,6 +129,7 @@ struct MemberGenerationHelperTests {
             defaultValueExpression: "nil",
             isUnique: false,
             isTransient: false,
+            validation: .init(),
             isObservationTracked: false
           )
         ),

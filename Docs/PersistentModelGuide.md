@@ -862,6 +862,12 @@ Disable this when you do not want the extra generated members:
 
 ## Runtime Schema for Tests and Debugging
 
+Built-in attribute validation can be declared with `@Attribute(min:max:)`, string
+`minLength` / `maxLength` / `regex`, and `minDate` / `maxDate`. Supported rules are installed in
+pure-code test models and checked against production models by `cde-tool`. See
+[AttributeValidationGuide.md](./AttributeValidationGuide.md) for literal syntax and coverage limits.
+
+
 `@PersistentModel` also emits runtime schema metadata.
 
 This supports pure Swift model construction for:

@@ -9,6 +9,7 @@
 //  ------------------------------------------------
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
+import CoreDataEvolutionSchemaSupport
 import Foundation
 import SwiftSyntax
 import SwiftSyntaxMacros
@@ -89,6 +90,28 @@ func buildAttributeInfo(
   let isUnique = arguments.traits.contains(.unique)
   let isTransient = arguments.traits.contains(.transient)
   let observation = observationMode(in: variable, context: context)
+
+  let validation: CDAttributeValidationRules
+  do {
+    validation = try parseAttributeValidationRules(attribute)
+    if !validation.isEmpty && storageMethod != .default {
+      throw CDAttributeValidationError.invalid(
+        "Attribute validation rules only support `.default` storage; custom storage cannot be tested faithfully."
+      )
+    }
+    try validation.validate(primitiveType: baseTypeName)
+  } catch {
+    if emitDiagnostics {
+      MacroDiagnosticReporter.error(
+        error.localizedDescription,
+        domain: attributeMacroDomain,
+        id: "invalid-validation-rule",
+        in: context,
+        node: attribute
+      )
+    }
+    return nil
+  }
 
   if defaultValueExpression == nil && storageMethod != .default && storageMethod != .raw {
     if emitDiagnostics {
@@ -243,6 +266,7 @@ func buildAttributeInfo(
     decodeFailurePolicy: decodeFailurePolicy,
     isUnique: isUnique,
     isTransient: isTransient,
+    validation: validation,
     observation: observation
   )
 }
@@ -352,6 +376,9 @@ private func parseAttributeArguments(
         return nil
       }
       decodeFailurePolicy = parsedPolicy
+    case "min", "max", "minLength", "maxLength", "regex", "minDate", "maxDate":
+      // Parsed together above so range and type checks use the shared validation contract.
+      continue
     default:
       if emitDiagnostics {
         MacroDiagnosticReporter.error(

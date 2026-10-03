@@ -1,0 +1,21 @@
+import CoreDataEvolution
+import Foundation
+
+@objc(ValidatedItem)
+@PersistentModel
+final class ValidatedItem: NSManagedObject {
+  @Attribute(persistentName: "name", minLength: 1, maxLength: 8, regex: #".*\S.*"#)
+  var title: String?
+
+  @Attribute(min: 0, max: 255)
+  var count: Int?
+
+  @Attribute(min: 9007199254740993, max: 9223372036854775807)
+  var precise: Int64?
+
+  @Attribute(min: 0.125, max: 1.25)
+  var amount: Decimal?
+
+  @Attribute(minDate: Date(timeIntervalSinceReferenceDate: 0), maxDate: Date(timeIntervalSinceReferenceDate: 120))
+  var timestamp: Date?
+}

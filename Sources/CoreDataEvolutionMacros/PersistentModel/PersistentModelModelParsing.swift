@@ -85,6 +85,7 @@ func analyzePersistentModelProperties(in classDecl: ClassDeclSyntax)
               ?? optionalFallbackDefault(type: typeAnnotation.type),
             isUnique: parsed.traits.contains(.unique),
             isTransient: parsed.traits.contains(.transient),
+            validation: (try? parseAttributeValidationRules(attribute)) ?? .init(),
             isObservationTracked: isObservationTracked
           )
         )
@@ -119,6 +120,7 @@ func analyzePersistentModelProperties(in classDecl: ClassDeclSyntax)
             ?? optionalFallbackDefault(type: typeAnnotation.type),
           isUnique: false,
           isTransient: false,
+          validation: .init(),
           isObservationTracked: isObservationTracked
         )
       )

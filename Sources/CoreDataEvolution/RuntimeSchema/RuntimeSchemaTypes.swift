@@ -9,6 +9,7 @@
 //  ------------------------------------------------
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
+import CoreDataEvolutionSchemaSupport
 import Foundation
 
 /// Core Data primitive value kinds that can be expressed without custom transformation logic.
@@ -80,6 +81,7 @@ public struct CDRuntimeAttributeSchema: Sendable, Equatable {
   public let storage: CDRuntimeAttributeStorage
   public let isUnique: Bool
   public let isTransient: Bool
+  public let validation: CDAttributeValidationRules
 
   public init(
     swiftName: String,
@@ -89,7 +91,8 @@ public struct CDRuntimeAttributeSchema: Sendable, Equatable {
     defaultValueExpression: String?,
     storage: CDRuntimeAttributeStorage,
     isUnique: Bool = false,
-    isTransient: Bool = false
+    isTransient: Bool = false,
+    validation: CDAttributeValidationRules = .init()
   ) {
     self.swiftName = swiftName
     self.persistentName = persistentName
@@ -99,6 +102,7 @@ public struct CDRuntimeAttributeSchema: Sendable, Equatable {
     self.storage = storage
     self.isUnique = isUnique
     self.isTransient = isTransient
+    self.validation = validation
   }
 }
 

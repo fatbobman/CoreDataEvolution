@@ -9,6 +9,7 @@
 //  ------------------------------------------------
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
+import CoreDataEvolutionSchemaSupport
 import Foundation
 
 /// Parsed source-side view consumed by `validate`.
@@ -151,6 +152,8 @@ public struct ToolingSourcePropertyIR: Codable, Sendable, Equatable {
 
 /// Parsed `@Attribute(...)` arguments from source.
 public struct ToolingSourceAttributeAnnotationIR: Codable, Sendable, Equatable {
+  public let validation: CDAttributeValidationRules
+  public let validationIssue: String?
   public let range: ToolingTextRange
   public let isUnique: Bool
   public let isTransient: Bool
@@ -168,7 +171,9 @@ public struct ToolingSourceAttributeAnnotationIR: Codable, Sendable, Equatable {
     storageMethod: ToolingAttributeStorageRule?,
     transformerName: String?,
     transformerTypeName: String?,
-    decodeFailurePolicy: ToolingDecodeFailurePolicy?
+    decodeFailurePolicy: ToolingDecodeFailurePolicy?,
+    validation: CDAttributeValidationRules = .init(),
+    validationIssue: String? = nil
   ) {
     self.range = range
     self.isUnique = isUnique
@@ -178,6 +183,8 @@ public struct ToolingSourceAttributeAnnotationIR: Codable, Sendable, Equatable {
     self.transformerName = transformerName
     self.transformerTypeName = transformerTypeName
     self.decodeFailurePolicy = decodeFailurePolicy
+    self.validation = validation
+    self.validationIssue = validationIssue
   }
 }
 

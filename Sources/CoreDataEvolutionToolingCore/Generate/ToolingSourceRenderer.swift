@@ -9,6 +9,7 @@
 //  ------------------------------------------------
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
+import CoreDataEvolutionSchemaSupport
 import Foundation
 
 /// Renders macro-style Swift source from generation IR.
@@ -152,6 +153,10 @@ public enum ToolingSourceRenderer {
       }
     )
     for attribute in entity.attributes {
+      if let issue = attribute.validationIssue {
+        throw ToolingFailure.user(
+          .validationFailed, "'\(entity.name).\(attribute.persistentName)': \(issue)")
+      }
       if attribute.storage.method == .composition {
         if let composition = compositionAttributesByPersistentName[attribute.persistentName] {
           lines.append(
@@ -422,7 +427,8 @@ public enum ToolingSourceRenderer {
       persistentName: persistentName,
       storageMethod: attribute.storage.method,
       transformerName: attribute.storage.transformerName,
-      decodeFailurePolicy: attribute.storage.decodeFailurePolicy
+      decodeFailurePolicy: attribute.storage.decodeFailurePolicy,
+      validation: attribute.validation
     )
   }
 
@@ -432,7 +438,8 @@ public enum ToolingSourceRenderer {
     persistentName: String?,
     storageMethod: ToolingAttributeStorageRule,
     transformerName: String?,
-    decodeFailurePolicy: ToolingDecodeFailurePolicy?
+    decodeFailurePolicy: ToolingDecodeFailurePolicy?,
+    validation: CDAttributeValidationRules = .init()
   ) -> String? {
     assert(
       isTransient == false || storageMethod == .default,
@@ -473,6 +480,8 @@ public enum ToolingSourceRenderer {
     if let decodeFailurePolicy {
       arguments.append("decodeFailurePolicy: .\(decodeFailurePolicy.rawValue)")
     }
+
+    arguments.append(contentsOf: validation.swiftArguments)
 
     guard arguments.isEmpty == false else {
       return nil

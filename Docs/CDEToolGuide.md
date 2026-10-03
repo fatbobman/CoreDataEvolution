@@ -69,6 +69,11 @@ That means the layering is deliberate:
 
 ## When You Need the Tool
 
+For save-time attribute constraints, `generate` emits supported model validation rules and
+`validate` compares them against decoded Swift declarations. ICU patterns are compared exactly
+after Swift string decoding; `conformance` accepts equivalent escaped/raw spellings while `exact`
+also enforces canonical generated text. See [AttributeValidationGuide.md](./AttributeValidationGuide.md).
+
 You should use `cde-tool` when:
 
 - you want to generate `@PersistentModel` source from an existing Core Data model

@@ -9,6 +9,7 @@
 //  ------------------------------------------------
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
+import CoreDataEvolutionSchemaSupport
 import SwiftSyntax
 
 let attributeMacroDomain = "CoreDataEvolution.AttributeMacro"
@@ -25,6 +26,7 @@ struct AttributeInfo {
   let decodeFailurePolicy: ParsedAttributeDecodeFailurePolicy?
   let isUnique: Bool
   let isTransient: Bool
+  let validation: CDAttributeValidationRules
   let observation: ParsedPersistentModelObservationMode
 }
 

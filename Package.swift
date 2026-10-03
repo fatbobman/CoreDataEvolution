@@ -39,6 +39,7 @@ let package = Package(
     .macro(
       name: "CoreDataEvolutionMacros",
       dependencies: [
+        "CoreDataEvolutionSchemaSupport",
         .product(name: "SwiftSyntax", package: "swift-syntax"),
         .product(name: "SwiftParser", package: "swift-syntax"),
         .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
@@ -49,15 +50,19 @@ let package = Package(
     .target(
       name: "CoreDataEvolution",
       dependencies: [
-        "CoreDataEvolutionMacros"
+        "CoreDataEvolutionMacros",
+        "CoreDataEvolutionSchemaSupport",
       ],
       swiftSettings: [
         .enableUpcomingFeature("InternalImportsByDefault")
       ],
     ),
+    // Shared validation semantics; SwiftSyntax stays in the macro/tooling targets.
+    .target(name: "CoreDataEvolutionSchemaSupport"),
     .target(
       name: "CoreDataEvolutionToolingCore",
       dependencies: [
+        "CoreDataEvolutionSchemaSupport",
         .product(name: "SwiftParser", package: "swift-syntax"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
       ]

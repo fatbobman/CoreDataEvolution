@@ -11,9 +11,11 @@ public actor SnapshotModelActor {
   private nonisolated(unsafe) let __cdeObservationProducerRegistration: AnyObject?
 
   deinit {
-    let registration =
-      __cdeObservationProducerRegistration as? CoreDataEvolution.CDEObservationProducerRegistration
-    registration?.invalidate()
+    if #available(iOS 17.0, macOS 14.0, tvOS 17.0, watchOS 10.0, visionOS 1.0, *) {
+      let registration =
+        __cdeObservationProducerRegistration as? CoreDataEvolution.CDEObservationProducerRegistration
+      registration?.invalidate()
+    }
   }
   #endif
 

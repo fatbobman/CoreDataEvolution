@@ -10,3 +10,4 @@
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
 @_exported import CoreData
+@_exported import CoreDataEvolutionSchemaSupport

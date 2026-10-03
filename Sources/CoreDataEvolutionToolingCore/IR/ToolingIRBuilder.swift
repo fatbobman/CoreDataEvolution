@@ -10,6 +10,7 @@
 //  Copyright © 2024-present Fatbobman. All rights reserved.
 
 @preconcurrency import CoreData
+import CoreDataEvolutionSchemaSupport
 import Foundation
 
 /// Builds serializable IR from a loaded Core Data model plus resolved tooling rules.
@@ -151,6 +152,24 @@ public enum ToolingIRBuilder {
       in: attribute.entity
     )
 
+    var validation = CDAttributeValidationRules()
+    var validationIssue: String?
+    do {
+      validation = try .read(from: attribute)
+      if !validation.isEmpty && storageMethod != .default {
+        throw CDAttributeValidationError.invalid(
+          "Model validation rules on custom storage cannot be represented faithfully in pure-code tests; use the real model for integration tests."
+        )
+      }
+    } catch {
+      validationIssue = error.localizedDescription
+      diagnostics.append(
+        .init(
+          severity: .error, code: .validationFailed,
+          message: "'\(entityName).\(persistentName)': \(error.localizedDescription)"
+        ))
+    }
+
     return .init(
       persistentName: persistentName,
       swiftName: swiftName,
@@ -171,7 +190,9 @@ public enum ToolingIRBuilder {
         transformerName: rule.transformerName,
         decodeFailurePolicy: decodeFailurePolicy,
         isResolved: resolvedType != nil
-      )
+      ),
+      validation: validation,
+      validationIssue: validationIssue
     )
   }
 
