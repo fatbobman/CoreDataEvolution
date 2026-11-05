@@ -27,7 +27,8 @@ struct InitConfigServiceTests {
     #expect(text.contains("\"attributeRules\""))
     #expect(text.contains("\"relationshipRules\""))
     #expect(text.contains("\"compositionRules\""))
-    #expect(text.contains("\"Integer 64\""))
+    #expect(text.contains("\"integer64SwiftType\""))
+    #expect(!text.contains("\"Integer 64\""))
     #expect(text.contains("\"generateInit\""))
     #expect(text.contains("\"conformance\""))
   }

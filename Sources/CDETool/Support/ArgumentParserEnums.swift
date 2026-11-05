@@ -31,3 +31,5 @@ extension ToolingDecodeFailurePolicy: ExpressibleByArgument {}
 extension ToolingValidationLevel: ExpressibleByArgument {}
 extension ToolingReportFormat: ExpressibleByArgument {}
 extension ToolingBootstrapConfigStyle: ExpressibleByArgument {}
+
+extension ToolingInteger64SwiftType: ExpressibleByArgument {}

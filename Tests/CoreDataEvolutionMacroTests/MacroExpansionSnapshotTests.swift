@@ -18,6 +18,17 @@ struct MacroExpansionSnapshotTests {
     try MacroTestSupport.assertExpansionSnapshot(fixtureName: "AttributeDefaultAndOriginal")
   }
 
+  @Test("Int accessors distinguish absent values from unrepresentable numbers")
+  func integerAccessorsUseExactConversion() throws {
+    let expanded = try MacroTestSupport.expandFixture(named: "AttributeDefaultAndOriginal")
+      .expandedSource
+    #expect(expanded.components(separatedBy: "Int(exactly: number)").count == 3)
+    #expect(expanded.contains("cannot be represented as Int on this platform"))
+    #expect(expanded.contains("Missing required value for `requiredCount` (required_count)"))
+    #expect(expanded.contains("return nil"))
+    #expect(!expanded.contains("number.intValue"))
+  }
+
   @Test("Attribute raw snapshot")
   func attributeRawSnapshot() throws {
     try MacroTestSupport.assertExpansionSnapshot(fixtureName: "AttributeRaw")

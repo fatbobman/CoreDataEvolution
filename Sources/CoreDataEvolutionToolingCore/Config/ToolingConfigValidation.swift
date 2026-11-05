@@ -89,6 +89,8 @@ private func validateResolvedToolingSchemaConfig(
   context: String,
   entitiesByName: [String: NSEntityDescription]
 ) throws {
+  try validateInteger64SwiftType(
+    config.integer64SwiftType, mappings: config.typeMappings, context: context)
   try validateToolingModelConstraints(
     entitiesByName: entitiesByName,
     attributeRules: config.attributeRules,
@@ -219,6 +221,8 @@ public func validateSupportedToolingModelSurface(_ model: NSManagedObjectModel) 
 
 /// Validates the `generate` section's self-contained rules and required fields.
 private func validateGenerateTemplate(_ template: GenerateTemplate) throws {
+  try validateInteger64SwiftType(
+    template.integer64SwiftType, mappings: template.typeMappings, context: "integer64SwiftType")
   guard template.modelPath.isEmpty == false else {
     throw configValidationFailure("generate.modelPath must not be empty.")
   }
@@ -258,6 +262,8 @@ private func validateGenerateTemplate(_ template: GenerateTemplate) throws {
 
 /// Validates the `validate` section's self-contained rules and required fields.
 private func validateValidateTemplate(_ template: ValidateTemplate) throws {
+  try validateInteger64SwiftType(
+    template.integer64SwiftType, mappings: template.typeMappings, context: "integer64SwiftType")
   guard template.modelPath.isEmpty == false else {
     throw configValidationFailure("validate.modelPath must not be empty.")
   }
@@ -301,6 +307,8 @@ func validateResolvedToolingSchemaConfigStatically(
   _ config: ToolingResolvedSchemaConfig,
   context: String
 ) throws {
+  try validateInteger64SwiftType(
+    config.integer64SwiftType, mappings: config.typeMappings, context: context)
   try validateTypeMappings(config.typeMappings, context: "\(context).typeMappings")
   try validateAttributeRulesStatic(
     config.attributeRules,
@@ -631,4 +639,18 @@ private func configValidationFailure(_ message: String) -> ToolingFailure {
 
 private func isDerivedAttribute(_ attribute: NSAttributeDescription) -> Bool {
   attribute is NSDerivedAttributeDescription
+}
+
+/// Rejects contradictory declarations instead of silently overriding a legacy mapping.
+func validateInteger64SwiftType(
+  _ policy: ToolingInteger64SwiftType?,
+  mappings: ToolingTypeMappings?,
+  context: String
+) throws {
+  guard let policy, let legacy = mappings?[coreDataType: "Integer 64"] else { return }
+  guard legacy.swiftType == policy.rawValue else {
+    throw configValidationFailure(
+      "\(context): integer64SwiftType '\(policy.rawValue)' conflicts with typeMappings['Integer 64'].swiftType '\(legacy.swiftType)'. Remove the legacy mapping or make both values agree."
+    )
+  }
 }

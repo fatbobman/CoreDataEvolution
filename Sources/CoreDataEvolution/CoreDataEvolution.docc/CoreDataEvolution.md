@@ -56,6 +56,16 @@ fields, raw-representable values, Codable payloads, registered value transformer
 composite attributes. `@PersistentModel` also emits runtime schema metadata that can build
 test/debug `NSManagedObjectModel` instances without replacing production `.xcdatamodeld` workflows.
 
+Ordinary `Int` properties map to Core Data Integer 64, just like `Int64`. Their generated getters
+use `Int(exactly:)` and terminate with `preconditionFailure` if a stored number cannot be represented
+on the current target. Optional properties return `nil` for absence, not overflow. This matters on
+targets with 32-bit `Int`, including some watchOS targets. On these targets, `@PersistentModel`
+emits one compile-time warning per model listing its ordinary `Int`/`Int?` attributes. Width is
+checked in the consuming target, so 64-bit targets do not warn. Ignored/computed members and
+custom storage are excluded. Keep `Int64` when the full stored range is required. The tooling's `integer64SwiftType` setting selects `Int64` (default) or `Int` project-wide;
+`Int` mode permits existing `Int64` declarations in conformance validation while exact validation
+expects `Int` and unchanged generated files.
+
 ### Elegant Actor-based Concurrency
 
 CoreDataEvolution allows you to create actors with custom executors tied to Core Data contexts, ensuring that all operations within the actor are executed serially on the context's thread.

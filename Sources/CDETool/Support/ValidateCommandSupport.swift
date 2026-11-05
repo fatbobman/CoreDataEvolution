@@ -31,6 +31,7 @@ enum ValidateCommandSupport {
       overrides.momcBin = command.momcBin
       overrides.sourceDir = command.sourceDir
       overrides.moduleName = command.moduleName
+      overrides.integer64SwiftType = command.integer64SwiftType
       overrides.accessLevel = command.accessLevel
       overrides.singleFile = command.singleFile
       overrides.splitByEntity = command.splitByEntity
@@ -79,6 +80,7 @@ enum ValidateCommandSupport {
       momcBin: command.momcBin.map { makeAbsoluteURL(fromCLIPath: $0).path },
       sourceDir: makeAbsoluteURL(fromCLIPath: sourceDir).path,
       moduleName: moduleName,
+      integer64SwiftType: command.integer64SwiftType,
       typeMappings: nil,
       attributeRules: nil,
       accessLevel: command.accessLevel,

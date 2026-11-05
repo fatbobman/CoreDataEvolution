@@ -52,6 +52,8 @@ public struct GenerateTemplate: Codable, Sendable, Equatable {
   public let momcBin: String?
   public let outputDir: String
   public let moduleName: String
+  /// Explicit project policy; nil preserves legacy typeMappings behavior.
+  public let integer64SwiftType: ToolingInteger64SwiftType?
   public let typeMappings: ToolingTypeMappings?
   public let attributeRules: ToolingAttributeRules?
   public let relationshipRules: ToolingRelationshipRules?
@@ -75,6 +77,7 @@ public struct GenerateTemplate: Codable, Sendable, Equatable {
     momcBin: String?,
     outputDir: String,
     moduleName: String,
+    integer64SwiftType: ToolingInteger64SwiftType? = nil,
     typeMappings: ToolingTypeMappings?,
     attributeRules: ToolingAttributeRules?,
     relationshipRules: ToolingRelationshipRules? = nil,
@@ -97,6 +100,7 @@ public struct GenerateTemplate: Codable, Sendable, Equatable {
     self.momcBin = momcBin
     self.outputDir = outputDir
     self.moduleName = moduleName
+    self.integer64SwiftType = integer64SwiftType
     self.typeMappings = typeMappings
     self.attributeRules = attributeRules
     self.relationshipRules = relationshipRules
@@ -123,6 +127,8 @@ public struct ValidateTemplate: Codable, Sendable, Equatable {
   public let momcBin: String?
   public let sourceDir: String
   public let moduleName: String
+  /// Explicit project policy; nil preserves legacy typeMappings behavior.
+  public let integer64SwiftType: ToolingInteger64SwiftType?
   public let typeMappings: ToolingTypeMappings?
   public let attributeRules: ToolingAttributeRules?
   public let relationshipRules: ToolingRelationshipRules?
@@ -147,6 +153,7 @@ public struct ValidateTemplate: Codable, Sendable, Equatable {
     momcBin: String?,
     sourceDir: String,
     moduleName: String,
+    integer64SwiftType: ToolingInteger64SwiftType? = nil,
     typeMappings: ToolingTypeMappings?,
     attributeRules: ToolingAttributeRules?,
     relationshipRules: ToolingRelationshipRules? = nil,
@@ -170,6 +177,7 @@ public struct ValidateTemplate: Codable, Sendable, Equatable {
     self.momcBin = momcBin
     self.sourceDir = sourceDir
     self.moduleName = moduleName
+    self.integer64SwiftType = integer64SwiftType
     self.typeMappings = typeMappings
     self.attributeRules = attributeRules
     self.relationshipRules = relationshipRules
@@ -257,7 +265,8 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         momcBin: nil,
         outputDir: "Generated/CoreDataEvolution",
         moduleName: "AppModels",
-        typeMappings: makeDefaultToolingTypeMappings(),
+        integer64SwiftType: .int64,
+        typeMappings: makeScaffoldToolingTypeMappings(),
         attributeRules: .init(),
         relationshipRules: .init(),
         compositionRules: .init(),
@@ -280,7 +289,8 @@ public func makeDefaultConfigTemplate(preset: ToolingConfigTemplatePreset) -> To
         momcBin: nil,
         sourceDir: "Sources/AppModels",
         moduleName: "AppModels",
-        typeMappings: makeDefaultToolingTypeMappings(),
+        integer64SwiftType: .int64,
+        typeMappings: makeScaffoldToolingTypeMappings(),
         attributeRules: .init(),
         relationshipRules: .init(),
         compositionRules: .init(),
@@ -408,7 +418,8 @@ extension InspectRequest {
         momcBinOverride ?? config.momcBin,
         relativeTo: configDirectory
       ),
-      typeMappings: mergeToolingTypeMappings(config.typeMappings),
+      typeMappings: mergeToolingTypeMappings(
+        config.typeMappings, integer64SwiftType: config.integer64SwiftType),
       attributeRules: config.attributeRules ?? .init(),
       relationshipRules: config.relationshipRules ?? .init(),
       compositionRules: config.compositionRules ?? .init(),

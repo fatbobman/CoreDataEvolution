@@ -37,6 +37,9 @@ struct GenerateCommand: ParsableCommand {
   @Option(name: .long, help: "Swift module name for generated code.")
   var moduleName: String?
 
+  @Option(name: .long, help: "Swift type for Integer 64: Int64 (default) or Int.")
+  var integer64SwiftType: ToolingInteger64SwiftType?
+
   @Option(name: .long, help: "Access level: internal/public.")
   var accessLevel: ToolingAccessLevel?
 

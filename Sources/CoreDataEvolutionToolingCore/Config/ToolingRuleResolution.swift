@@ -43,15 +43,15 @@ public func resolveToolingRelationshipSwiftName(
 /// Config files are allowed to provide partial overrides. Missing primitive keys inherit the
 /// built-in defaults instead of erasing them.
 public func mergeToolingTypeMappings(
-  _ overrides: ToolingTypeMappings?
+  _ overrides: ToolingTypeMappings?,
+  integer64SwiftType: ToolingInteger64SwiftType? = nil
 ) -> ToolingTypeMappings {
-  guard let overrides else {
-    return makeDefaultToolingTypeMappings()
-  }
-
   var merged = makeDefaultToolingTypeMappings().coreDataTypes
-  for (key, rule) in overrides.coreDataTypes {
+  for (key, rule) in overrides?.coreDataTypes ?? [:] {
     merged[key] = rule
+  }
+  if let integer64SwiftType {
+    merged["Integer 64"] = .init(swiftType: integer64SwiftType.rawValue)
   }
   return .init(coreDataTypes: merged)
 }

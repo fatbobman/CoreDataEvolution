@@ -52,6 +52,26 @@ struct DefaultAttributeAccessorBuilder: AttributeAccessorBuilder {
     let type = info.typeName
     let wrappedType = info.nonOptionalTypeName
 
+    // Int has platform-dependent width. Never truncate persisted Integer 64 values.
+    if info.baseTypeName == "Int" {
+      let missing: String =
+        info.isOptional
+        ? "return nil"
+        : "preconditionFailure(\"Missing required value for `\(property)` (\(key)).\")"
+      return
+        """
+        get {
+          guard let number = value(forKey: "\(raw: key)") as? NSNumber else {
+            \(raw: missing)
+          }
+          guard let result = Int(exactly: number) else {
+            preconditionFailure("Stored value for `\(raw: property)` (\(raw: key)) cannot be represented as Int on this platform.")
+          }
+          return result
+        }
+        """
+    }
+
     if let bridge = numberBridgeAccessor(forBaseType: info.baseTypeName) {
       if info.isOptional {
         return

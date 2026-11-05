@@ -18,8 +18,8 @@ import Foundation
 /// - `compact`: keep placeholders concise and omit same-name mappings
 /// - `explicit`: emit a fully populated manifest with resolved default mappings
 ///
-/// Both styles emit the full default `typeMappings` and add diagnostics for fields that still
-/// require human decisions.
+/// Both styles emit `integer64SwiftType` and the remaining default `typeMappings`, adding
+/// diagnostics for fields that still require human decisions.
 public enum BootstrapConfigService {
   public static func run(_ request: BootstrapConfigRequest) throws -> BootstrapConfigResult {
     let loadedModel = try ToolingModelLoader.loadValidatedSourceModel(
@@ -30,7 +30,7 @@ public enum BootstrapConfigService {
 
     try validateSupportedToolingModelSurface(loadedModel.model)
 
-    let typeMappings = makeDefaultToolingTypeMappings()
+    let typeMappings = makeScaffoldToolingTypeMappings()
     let attributeRules = makeAttributeRules(
       from: loadedModel.model,
       style: request.style
@@ -52,6 +52,7 @@ public enum BootstrapConfigService {
         momcBin: request.momcBin,
         outputDir: request.outputDir,
         moduleName: request.moduleName,
+        integer64SwiftType: .int64,
         typeMappings: typeMappings,
         attributeRules: attributeRules,
         relationshipRules: relationshipRules,
@@ -75,6 +76,7 @@ public enum BootstrapConfigService {
         momcBin: request.momcBin,
         sourceDir: request.sourceDir,
         moduleName: request.moduleName,
+        integer64SwiftType: .int64,
         typeMappings: typeMappings,
         attributeRules: attributeRules,
         relationshipRules: relationshipRules,

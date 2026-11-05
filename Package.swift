@@ -30,7 +30,7 @@ let package = Package(
     ),
   ],
   dependencies: [
-    .package(url: "https://github.com/swiftlang/swift-syntax", "600.0.0"..<"604.0.0"),
+    .package(url: "https://github.com/swiftlang/swift-syntax", "600.0.0"..<"605.0.0"),
     .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
   ],
   targets: [

@@ -1,0 +1,25 @@
+import CoreDataEvolution
+import Foundation
+
+@objc(IntegerWidthItem)
+@PersistentModel
+final class IntegerWidthItem: NSManagedObject {
+  var count: Int = 0
+
+  @Attribute(persistentName: "stored_sequence")
+  var sequence: Int?
+
+  @Attribute
+  var qualified: Swift.Int?
+
+  var wide: Int64?
+  var narrow: Int32?
+
+  @Ignore
+  var scratch: Int = 0
+
+  @Attribute(storageMethod: .codable)
+  var payload: Int?
+
+  var calculated: Int { 0 }
+}

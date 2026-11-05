@@ -58,6 +58,8 @@ public struct GenerateRequest: Sendable, Equatable {
   public let momcBin: String?
   public let outputDir: String
   public let moduleName: String
+  /// Explicit project policy; nil preserves legacy typeMappings behavior.
+  public let integer64SwiftType: ToolingInteger64SwiftType?
   public let typeMappings: ToolingTypeMappings
   public let attributeRules: ToolingAttributeRules
   public let relationshipRules: ToolingRelationshipRules
@@ -81,6 +83,7 @@ public struct GenerateRequest: Sendable, Equatable {
     momcBin: String?,
     outputDir: String,
     moduleName: String,
+    integer64SwiftType: ToolingInteger64SwiftType? = nil,
     typeMappings: ToolingTypeMappings,
     attributeRules: ToolingAttributeRules,
     relationshipRules: ToolingRelationshipRules = .init(),
@@ -103,6 +106,7 @@ public struct GenerateRequest: Sendable, Equatable {
     self.momcBin = momcBin
     self.outputDir = outputDir
     self.moduleName = moduleName
+    self.integer64SwiftType = integer64SwiftType
     self.typeMappings = typeMappings
     self.attributeRules = attributeRules
     self.relationshipRules = relationshipRules
@@ -129,6 +133,8 @@ public struct ValidateRequest: Sendable, Equatable {
   public let momcBin: String?
   public let sourceDir: String
   public let moduleName: String
+  /// Explicit project policy; nil preserves legacy typeMappings behavior.
+  public let integer64SwiftType: ToolingInteger64SwiftType?
   public let typeMappings: ToolingTypeMappings
   public let attributeRules: ToolingAttributeRules
   public let relationshipRules: ToolingRelationshipRules
@@ -153,6 +159,7 @@ public struct ValidateRequest: Sendable, Equatable {
     momcBin: String?,
     sourceDir: String,
     moduleName: String,
+    integer64SwiftType: ToolingInteger64SwiftType? = nil,
     typeMappings: ToolingTypeMappings,
     attributeRules: ToolingAttributeRules,
     relationshipRules: ToolingRelationshipRules = .init(),
@@ -176,6 +183,7 @@ public struct ValidateRequest: Sendable, Equatable {
     self.momcBin = momcBin
     self.sourceDir = sourceDir
     self.moduleName = moduleName
+    self.integer64SwiftType = integer64SwiftType
     self.typeMappings = typeMappings
     self.attributeRules = attributeRules
     self.relationshipRules = relationshipRules
@@ -250,7 +258,8 @@ extension InspectRequest {
       modelPath: generateRequest.modelPath,
       modelVersion: generateRequest.modelVersion,
       momcBin: generateRequest.momcBin,
-      typeMappings: generateRequest.typeMappings,
+      typeMappings: mergeToolingTypeMappings(
+        generateRequest.typeMappings, integer64SwiftType: generateRequest.integer64SwiftType),
       attributeRules: generateRequest.attributeRules,
       relationshipRules: generateRequest.relationshipRules,
       compositionRules: generateRequest.compositionRules,
@@ -269,7 +278,8 @@ extension InspectRequest {
       modelPath: validateRequest.modelPath,
       modelVersion: validateRequest.modelVersion,
       momcBin: validateRequest.momcBin,
-      typeMappings: validateRequest.typeMappings,
+      typeMappings: mergeToolingTypeMappings(
+        validateRequest.typeMappings, integer64SwiftType: validateRequest.integer64SwiftType),
       attributeRules: validateRequest.attributeRules,
       relationshipRules: validateRequest.relationshipRules,
       compositionRules: validateRequest.compositionRules,
@@ -290,6 +300,7 @@ public struct GenerateRequestOverrides: Sendable, Equatable {
   public var momcBin: String?
   public var outputDir: String?
   public var moduleName: String?
+  public var integer64SwiftType: ToolingInteger64SwiftType?
   public var accessLevel: ToolingAccessLevel?
   public var singleFile: Bool?
   public var splitByEntity: Bool?
@@ -313,6 +324,7 @@ public struct ValidateRequestOverrides: Sendable, Equatable {
   public var momcBin: String?
   public var sourceDir: String?
   public var moduleName: String?
+  public var integer64SwiftType: ToolingInteger64SwiftType?
   public var accessLevel: ToolingAccessLevel?
   public var singleFile: Bool?
   public var splitByEntity: Bool?

@@ -70,9 +70,21 @@ func repositoryRoot(filePath: String = #filePath) throws -> URL {
   )
 }
 
+private final class CDEToolTestBundleLocator: NSObject {}
+
 func toolExecutableURL(filePath: String = #filePath) throws -> URL {
   let buildDirectory = try repositoryRoot(filePath: filePath)
     .appendingPathComponent(".build", isDirectory: true)
+  // XCTest may run through a system runner, so locate the test bundle rather than argv[0].
+  // Debug/release and multiple SwiftPM build systems can coexist under .build.
+  var testDirectory = Bundle(for: CDEToolTestBundleLocator.self).bundleURL
+    .resolvingSymlinksInPath()
+  let resolvedBuildPath = buildDirectory.resolvingSymlinksInPath().path
+  while testDirectory.path.hasPrefix(resolvedBuildPath + "/") {
+    let sibling = testDirectory.appendingPathComponent("cde-tool")
+    if FileManager.default.isExecutableFile(atPath: sibling.path) { return sibling }
+    testDirectory.deleteLastPathComponent()
+  }
   guard
     let enumerator = FileManager.default.enumerator(
       at: buildDirectory,

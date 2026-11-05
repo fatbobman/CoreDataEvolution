@@ -37,6 +37,9 @@ struct ValidateCommand: ParsableCommand {
   @Option(name: .long, help: "Swift module name.")
   var moduleName: String?
 
+  @Option(name: .long, help: "Swift type for Integer 64: Int64 (default) or Int.")
+  var integer64SwiftType: ToolingInteger64SwiftType?
+
   @Option(name: .long, help: "Expected access level: internal/public.")
   var accessLevel: ToolingAccessLevel?
 

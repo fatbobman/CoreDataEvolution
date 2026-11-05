@@ -99,3 +99,10 @@ public func makeDefaultToolingTypeMappings() -> ToolingTypeMappings {
     ]
   )
 }
+
+/// Config scaffolds use integer64SwiftType as the single editable Integer 64 setting.
+func makeScaffoldToolingTypeMappings() -> ToolingTypeMappings {
+  var mappings = makeDefaultToolingTypeMappings()
+  mappings.coreDataTypes.removeValue(forKey: "Integer 64")
+  return mappings
+}

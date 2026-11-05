@@ -23,6 +23,12 @@ Related reading: [Why I'm Still Thinking About Core Data in 2026](https://fatbob
 - Mirror built-in numeric, string-length, ICU-pattern, and fixed-date validation rules in `@Attribute`, with model alignment checks and pure-code test coverage.
 - Build runtime schemas and isolated SQLite containers for test and debug workflows without replacing production `.xcdatamodeld` files.
 - Use `cde-tool` to generate declarations, validate model/source alignment, inspect models, and bootstrap configuration.
+  Its project-wide `integer64SwiftType` setting (or `--integer64-swift-type`) selects `Int64`
+  (default) or `Int` for Integer 64 fields. In `Int` mode, conformance validation also accepts
+  existing `Int64` declarations; exact validation expects `Int`. Ordinary macro-generated `Int`
+  accessors fail explicitly if a stored value cannot fit the target platform's `Int`, including
+  targets with 32-bit `Int`. On those targets, `@PersistentModel` also emits one compile-time
+  warning per model listing its ordinary `Int` attributes. See the [cde-tool Guide](Docs/CDEToolGuide.md).
 
 ## Quick Start
 

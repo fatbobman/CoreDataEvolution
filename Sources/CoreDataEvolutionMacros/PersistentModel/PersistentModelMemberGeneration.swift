@@ -11,6 +11,26 @@
 
 import SwiftSyntax
 
+/// Defer width detection to the consumer's compiler; the macro plugin runs on the build host.
+func makeIntegerWidthWarningDecl(
+  modelTypeName: String,
+  model: PersistentModelAnalysis
+) -> DeclSyntax? {
+  let names = model.attributes.filter {
+    $0.storageMethod == .default && ["Int", "Swift.Int"].contains($0.nonOptionalTypeName)
+  }.map(\.propertyName)
+  guard names.isEmpty == false else { return nil }
+
+  let message =
+    "Model '\(modelTypeName)' uses Int for Integer 64 attributes: \(names.joined(separator: ", ")). Int is 32-bit on this target. Reading stored values outside the Int range terminates execution. Use Int64 if these attributes require the full stored range."
+  return
+    """
+    #if _pointerBitWidth(_32)
+    #warning(\(literal: message))
+    #endif
+    """
+}
+
 struct PersistentModelPathEntry: Equatable {
   enum Kind: Equatable {
     case attribute

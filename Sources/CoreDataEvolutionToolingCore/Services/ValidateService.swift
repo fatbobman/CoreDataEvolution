@@ -46,6 +46,7 @@ public enum ValidateService {
         expected: buildResult.modelIR,
         actual: sourceIR,
         level: request.level,
+        integer64SwiftType: request.integer64SwiftType,
         attributeRules: request.attributeRules
       )
 

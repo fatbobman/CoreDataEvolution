@@ -58,3 +58,9 @@ public enum ToolingBootstrapConfigStyle: String, Codable, Sendable, Equatable {
   case compact
   case explicit
 }
+
+/// Selects the project-wide Swift representation of Core Data Integer 64 attributes.
+public enum ToolingInteger64SwiftType: String, Codable, Sendable, Equatable {
+  case int64 = "Int64"
+  case int = "Int"
+}

@@ -20,6 +20,11 @@ public func makeValidateRequest(
   overrides: ValidateRequestOverrides = .init(),
   configDirectory: URL? = nil
 ) throws -> ValidateRequest {
+  try validateInteger64SwiftType(
+    overrides.integer64SwiftType ?? config.integer64SwiftType,
+    mappings: config.typeMappings,
+    context: "integer64SwiftType"
+  )
   let headerTemplatePath = overrides.headerTemplate ?? config.headerTemplate
   let headerTemplate = try loadGenerateHeaderTemplate(
     at: headerTemplatePath,
@@ -41,7 +46,10 @@ public func makeValidateRequest(
       relativeTo: configDirectory
     ),
     moduleName: overrides.moduleName ?? config.moduleName,
-    typeMappings: mergeToolingTypeMappings(config.typeMappings),
+    integer64SwiftType: overrides.integer64SwiftType ?? config.integer64SwiftType,
+    typeMappings: mergeToolingTypeMappings(
+      config.typeMappings,
+      integer64SwiftType: overrides.integer64SwiftType ?? config.integer64SwiftType),
     attributeRules: config.attributeRules ?? .init(),
     relationshipRules: config.relationshipRules ?? .init(),
     compositionRules: config.compositionRules ?? .init(),

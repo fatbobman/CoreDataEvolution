@@ -42,7 +42,10 @@ struct ConfigTemplateTests {
   @Test("full preset includes documented defaults")
   func fullPresetIncludesDocumentedDefaults() throws {
     let template = makeDefaultConfigTemplate(preset: .full)
-    let defaultTypeMappings = makeDefaultToolingTypeMappings()
+    var defaultTypeMappings = makeDefaultToolingTypeMappings()
+    defaultTypeMappings.coreDataTypes.removeValue(forKey: "Integer 64")
+    #expect(template.generate?.integer64SwiftType == .int64)
+    #expect(template.validate?.integer64SwiftType == .int64)
 
     #expect(template.schemaVersion == 1)
     #expect(template.generate?.typeMappings == defaultTypeMappings)

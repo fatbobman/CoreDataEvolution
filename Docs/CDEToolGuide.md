@@ -490,29 +490,62 @@ This rule is intentionally narrow:
 - it only relaxes optionality mismatch checking
 - it does not ignore name, type, default value, storage method, transformer, or other drift
 
-### Change the default Swift type for one Core Data primitive kind
+### Choose the Swift representation of Integer 64
 
-Use `typeMappings` when you want to change the default Swift type chosen for a Core Data primitive
-kind across the config section.
-
-Example:
+Set `integer64SwiftType` in both sections to use `Int` for ordinary Core Data Integer 64
+attributes throughout the project:
 
 ```json
 {
-  "generate": {
-    "typeMappings": {
-      "Integer 64": {
-        "swiftType": "Int"
-      }
-    }
-  }
+  "generate": { "integer64SwiftType": "Int" },
+  "validate": { "integer64SwiftType": "Int" }
 }
 ```
 
-This changes the default mapping for all `Integer 64` fields in that section unless a more
-specific per-field `attributeRules` override is present.
+These fragments belong in a complete config alongside the required model/module/output paths.
+The corresponding option on both commands is `--integer64-swift-type Int`. Accepted values are
+`Int64` (the default) and `Int`; CLI values override the corresponding config setting.
 
-Use `typeMappings` for broad defaults, and `attributeRules` for one-off exceptions.
+| Setting | generate | validate conformance | validate exact |
+| --- | --- | --- | --- |
+| `Int64` (default) | `Int64` | Accepts only `Int64` | Accepts only `Int64` |
+| `Int` | `Int` | Accepts `Int` and existing `Int64` declarations | Accepts only `Int` |
+
+Conformance permits gradual migration; it does not provide a per-field representation setting.
+Optionality continues to follow the existing validation rules. Integer 16 and Integer 32 retain
+strict type matching, and custom raw/Codable/transformed storage is not broadened. Exact mode also
+retains its byte-for-byte comparison of tool-managed files with current generator output.
+
+The persistent model remains Integer 64. Changing the Swift representation does not itself require
+a store migration. The tool runs on the development host and does not infer the app's target
+architecture. On targets where `Int` is 32 bits, including some watchOS targets, stored values
+outside `Int.min...Int.max` cannot be represented. This also matters for data shared with 64-bit
+devices. Generated ordinary `Int` accessors use `Int(exactly:)` and call `preconditionFailure` with
+the property and persistent key when conversion fails. This terminates execution; it is not a
+recoverable thrown error. Optional accessors return `nil` for absence, but still fail for an
+unrepresentable value. They never silently truncate, clamp, or substitute a default. Model defaults
+rendered as Swift `Int` literals may instead be rejected at compile time on a narrower target.
+Projects needing the complete Integer 64 range across targets should retain `Int64`.
+
+`@PersistentModel` also emits one compile-time warning per model when ordinary `Int`/`Int?`
+attributes are compiled for a target with 32-bit `Int`. The warning lists the Swift property names
+and explains the range limitation. It is evaluated in the consuming target, so 64-bit watchOS
+builds and 64-bit simulators do not warn. Hand-written declarations and legacy mappings receive
+the same warning; the macro does not read `cde-tool` config. `Int64`, ignored/computed members,
+and custom-storage properties are excluded.
+
+### Legacy primitive mappings
+
+`typeMappings` still changes the Swift type chosen for a Core Data primitive kind. Existing
+configs such as `"Integer 64": { "swiftType": "Int" }` retain their previous behavior when
+`integer64SwiftType` is absent: both validation levels expect the mapped type, without the new
+migration allowance. Use the explicit `integer64SwiftType` setting for the policy above.
+
+If both settings are supplied, their Integer 64 types must agree; contradictory values are a
+configuration error. Remove the old Integer 64 entry when adopting the new setting. Full
+`init-config` and both `bootstrap-config` styles emit `integer64SwiftType: "Int64"` and omit the
+duplicate Integer 64 entry from `typeMappings`, so there is one editable representation setting
+per section. Other primitive mappings and custom-storage `attributeRules` remain available.
 
 ### Practical advice
 

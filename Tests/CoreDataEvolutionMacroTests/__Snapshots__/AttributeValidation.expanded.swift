@@ -18,7 +18,10 @@ final class ValidatedItem: NSManagedObject {
       guard let number = value(forKey: "count") as? NSNumber else {
         return nil
       }
-      return number.intValue
+      guard let result = Int(exactly: number) else {
+        preconditionFailure("Stored value for `count` (count) cannot be represented as Int on this platform.")
+      }
+      return result
     }
     set {
       if let newValue {
@@ -74,6 +77,10 @@ final class ValidatedItem: NSManagedObject {
   }
 
   private static let __cd_attribute_validate_timestamp_nonrelationship: Void = CoreDataEvolution._CDAttributeMacroValidation.requireNonRelationship(Date?.self)
+
+  #if _pointerBitWidth(_32)
+  #warning("Model 'ValidatedItem' uses Int for Integer 64 attributes: count. Int is 32-bit on this target. Reading stored values outside the Int range terminates execution. Use Int64 if these attributes require the full stored range.")
+  #endif
 
   enum Keys: String {
     case title = "name"

@@ -17,6 +17,7 @@ import Foundation
 /// validation and IR-building paths aligned without reconstructing config templates inside
 /// services.
 struct ToolingResolvedSchemaConfig: Sendable, Equatable {
+  let integer64SwiftType: ToolingInteger64SwiftType?
   let typeMappings: ToolingTypeMappings
   let attributeRules: ToolingAttributeRules
   let relationshipRules: ToolingRelationshipRules
@@ -33,7 +34,9 @@ struct ToolingResolvedSchemaConfig: Sendable, Equatable {
 extension ToolingResolvedSchemaConfig {
   init(generateTemplate: GenerateTemplate) {
     self.init(
-      typeMappings: mergeToolingTypeMappings(generateTemplate.typeMappings),
+      integer64SwiftType: generateTemplate.integer64SwiftType,
+      typeMappings: mergeToolingTypeMappings(
+        generateTemplate.typeMappings, integer64SwiftType: generateTemplate.integer64SwiftType),
       attributeRules: generateTemplate.attributeRules ?? .init(),
       relationshipRules: generateTemplate.relationshipRules ?? .init(),
       compositionRules: generateTemplate.compositionRules ?? .init(),
@@ -50,7 +53,9 @@ extension ToolingResolvedSchemaConfig {
 
   init(validateTemplate: ValidateTemplate) {
     self.init(
-      typeMappings: mergeToolingTypeMappings(validateTemplate.typeMappings),
+      integer64SwiftType: validateTemplate.integer64SwiftType,
+      typeMappings: mergeToolingTypeMappings(
+        validateTemplate.typeMappings, integer64SwiftType: validateTemplate.integer64SwiftType),
       attributeRules: validateTemplate.attributeRules ?? .init(),
       relationshipRules: validateTemplate.relationshipRules ?? .init(),
       compositionRules: validateTemplate.compositionRules ?? .init(),
@@ -67,6 +72,7 @@ extension ToolingResolvedSchemaConfig {
 
   init(generateRequest: GenerateRequest) {
     self.init(
+      integer64SwiftType: generateRequest.integer64SwiftType,
       typeMappings: generateRequest.typeMappings,
       attributeRules: generateRequest.attributeRules,
       relationshipRules: generateRequest.relationshipRules,
@@ -83,6 +89,7 @@ extension ToolingResolvedSchemaConfig {
 
   init(validateRequest: ValidateRequest) {
     self.init(
+      integer64SwiftType: validateRequest.integer64SwiftType,
       typeMappings: validateRequest.typeMappings,
       attributeRules: validateRequest.attributeRules,
       relationshipRules: validateRequest.relationshipRules,

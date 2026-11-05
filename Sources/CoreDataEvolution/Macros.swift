@@ -230,6 +230,10 @@ public macro _CDObserved(
 /// - optional to-many relationship count accessors
 /// - an optional memberwise convenience initializer
 ///
+/// On targets with 32-bit `Int`, emits one compile-time warning per model listing ordinary
+/// `Int`/`Int?` attributes. Generated getters terminate if a stored value cannot fit `Int`.
+/// The condition is evaluated in the consuming target, independently of tooling configuration.
+///
 /// - Parameter generateInit: When `true`, synthesizes an initializer that includes all non-
 ///   relationship stored properties, including `@Ignore` and custom-storage persisted properties.
 ///   Relationship properties are excluded and no parameter gets a default argument.

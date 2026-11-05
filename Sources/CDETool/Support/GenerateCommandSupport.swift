@@ -32,6 +32,7 @@ enum GenerateCommandSupport {
       overrides.momcBin = command.momcBin
       overrides.outputDir = command.outputDir
       overrides.moduleName = command.moduleName
+      overrides.integer64SwiftType = command.integer64SwiftType
       overrides.accessLevel = command.accessLevel
       overrides.singleFile = command.singleFile
       overrides.splitByEntity = command.splitByEntity
@@ -73,6 +74,7 @@ enum GenerateCommandSupport {
       momcBin: command.momcBin.map { makeAbsoluteURL(fromCLIPath: $0).path },
       outputDir: makeAbsoluteURL(fromCLIPath: outputDir).path,
       moduleName: moduleName,
+      integer64SwiftType: command.integer64SwiftType,
       typeMappings: nil,
       attributeRules: nil,
       accessLevel: command.accessLevel,

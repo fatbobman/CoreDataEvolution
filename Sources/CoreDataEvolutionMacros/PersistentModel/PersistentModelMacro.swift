@@ -218,6 +218,11 @@ extension PersistentModelMacro: MemberMacro {
     let initProperties = analyzePersistentModelInitProperties(in: classDecl)
 
     var members: [DeclSyntax] = []
+    if let integerWidthWarning = makeIntegerWidthWarningDecl(
+      modelTypeName: modelTypeName, model: model)
+    {
+      members.append(integerWidthWarning)
+    }
     if isCDEObservationCompilerSupported, arguments.observation == .mainActor {
       members += makeObservationRegistrarDecls(modelTypeName: modelTypeName)
       members += makeObservationFieldMapDecls(

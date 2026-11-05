@@ -21,6 +21,7 @@ public enum ToolingValidateComparator {
     expected modelIR: ToolingModelIR,
     actual sourceIR: ToolingSourceModelIR,
     level: ToolingValidationLevel,
+    integer64SwiftType: ToolingInteger64SwiftType? = nil,
     attributeRules: ToolingAttributeRules = .init()
   ) -> [ToolingDiagnostic] {
     var diagnostics: [ToolingDiagnostic] = []
@@ -57,6 +58,7 @@ public enum ToolingValidateComparator {
         sourceIR: sourceIR,
         generationPolicy: modelIR.generationPolicy,
         level: level,
+        integer64SwiftType: integer64SwiftType,
         attributeRules: attributeRules,
         diagnostics: &diagnostics
       )
@@ -82,6 +84,7 @@ public enum ToolingValidateComparator {
     sourceIR: ToolingSourceModelIR,
     generationPolicy: ToolingGenerationPolicyIR,
     level: ToolingValidationLevel,
+    integer64SwiftType: ToolingInteger64SwiftType?,
     attributeRules: ToolingAttributeRules,
     diagnostics: inout [ToolingDiagnostic]
   ) {
@@ -158,6 +161,7 @@ public enum ToolingValidateComparator {
         entityName: entity.name,
         attribute: attribute,
         expectedPropertyName: expectedName,
+        allowLegacyInt64: integer64SwiftType == .int && level == .conformance,
         expectedType: expectedType,
         expectedNonOptionalType: expectedNonOptionalType,
         rule: attributeRules[entity: entity.name][attribute.persistentName] ?? .init(),
@@ -235,6 +239,7 @@ public enum ToolingValidateComparator {
     entityName: String,
     attribute: ToolingAttributeIR,
     expectedPropertyName: String,
+    allowLegacyInt64: Bool,
     expectedType: String,
     expectedNonOptionalType: String,
     rule: ToolingAttributeRule,
@@ -266,7 +271,17 @@ public enum ToolingValidateComparator {
       : sourceProperty.typeName
     let comparatorExpectedType =
       shouldIgnoreOptionalityMismatch ? expectedNonOptionalType : expectedType
-    if normalizeTypeName(actualTypeName) != normalizeTypeName(comparatorExpectedType) {
+    // Only ordinary Integer 64 attributes participate; optionality remains significant.
+    let acceptsLegacyInt64 =
+      allowLegacyInt64
+      && attribute.coreDataPrimitiveType == ToolingCoreDataPrimitiveType.integer64.rawValue
+      && attribute.storage.method == .default
+      && normalizeTypeName(actualTypeName)
+        == (normalizeTypeName(comparatorExpectedType) == "Int?" ? "Int64?" : "Int64")
+      && ["Int", "Int?"].contains(normalizeTypeName(comparatorExpectedType) ?? "")
+    if normalizeTypeName(actualTypeName) != normalizeTypeName(comparatorExpectedType)
+      && acceptsLegacyInt64 == false
+    {
       diagnostics.append(
         error(
           "validate found type mismatch for '\(entityName).\(expectedPropertyName)'. Expected '\(expectedType)', found '\(sourceProperty.typeName ?? "<missing>")'."
